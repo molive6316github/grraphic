@@ -31,6 +31,17 @@ import { STRIPE_PRODUCTS } from './stripe-config';
 
 type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms';
 
+// lib/gtag.js
+export const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID;
+
+// Track page views
+export const pageview = (url) => {
+  window.gtag('config', GA_TRACKING_ID, {
+    page_path: url,
+  });
+};
+
+
 function App() {
   const [state, setState] = useState<AppState>('upload');
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
