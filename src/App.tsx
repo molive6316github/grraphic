@@ -12,6 +12,8 @@ import { SubscriptionStatus } from './components/SubscriptionStatus';
 import { CheckoutSuccess } from './components/CheckoutSuccess';
 import { UsernameModal } from './components/UsernameModal';
 import { AdminPanel } from './components/AdminPanel';
+import { DesignHelpLanding } from './components/DesignHelpLanding';
+import { DesignInfoLanding } from './components/DesignInfoLanding';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { UploadedFile, DesignAnalysis } from './types';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -25,7 +27,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info';
 
 function App() {
   const [state, setState] = useState<AppState>('upload');
@@ -59,12 +61,22 @@ function App() {
     }
   }, [user]);
 
-  // Check for shared analysis in URL on component mount
+  // Check for shared analysis and custom pages in URL on component mount
   useEffect(() => {
+    const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     const analysisId = urlParams.get('analysis');
     const success = urlParams.get('success');
-    
+
+    // Check for custom landing pages
+    if (path === '/design-help') {
+      setState('design-help');
+      return;
+    } else if (path === '/design-info') {
+      setState('design-info');
+      return;
+    }
+
     if (analysisId) {
       loadPublicAnalysis(analysisId);
     } else if (success === 'true') {
@@ -231,6 +243,46 @@ function App() {
           <p className="text-white text-lg font-medium">Loading...</p>
         </div>
       </div>
+    );
+  }
+
+  if (state === 'design-help') {
+    return (
+      <>
+        <DesignHelpLanding
+          onGetStarted={startNewAnalysis}
+          onShowAuth={() => setShowAuthModal(true)}
+          user={user}
+        />
+        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSignIn={signIn}
+          onSignUp={signUp}
+          onSignInWithGoogle={signInWithGoogle}
+        />
+      </>
+    );
+  }
+
+  if (state === 'design-info') {
+    return (
+      <>
+        <DesignInfoLanding
+          onGetStarted={startNewAnalysis}
+          onShowAuth={() => setShowAuthModal(true)}
+          user={user}
+        />
+        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSignIn={signIn}
+          onSignUp={signUp}
+          onSignInWithGoogle={signInWithGoogle}
+        />
+      </>
     );
   }
 
