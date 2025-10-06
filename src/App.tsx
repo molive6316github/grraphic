@@ -12,10 +12,6 @@ import { SubscriptionStatus } from './components/SubscriptionStatus';
 import { CheckoutSuccess } from './components/CheckoutSuccess';
 import { UsernameModal } from './components/UsernameModal';
 import { AdminPanel } from './components/AdminPanel';
-import { DesignHelpLanding } from './components/DesignHelpLanding';
-import { DesignInfoLanding } from './components/DesignInfoLanding';
-import { PrivacyPolicy } from './components/PrivacyPolicy';
-import { TermsOfService } from './components/TermsOfService';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { UploadedFile, DesignAnalysis } from './types';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -29,55 +25,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms';
-
-// lib/gtag.js
-export const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID;
-
-// Track page views
-export const pageview = (url) => {
-  window.gtag('config', GA_TRACKING_ID, {
-    page_path: url,
-  });
-};
-
-import Script from 'next/script';
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
-import * as gtag from '../lib/gtag';
-
-export default function App({ Component, pageProps }) {
-  const router = useRouter();
-  useEffect(() => {
-    const handleRouteChange = (url) => gtag.pageview(url);
-    router.events.on('routeChangeComplete', handleRouteChange);
-    return () => router.events.off('routeChangeComplete', handleRouteChange);
-  }, [router.events]);
-
-  return (
-    <>
-      <Script
-        strategy="afterInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${gtag.GA_TRACKING_ID}`}
-      />
-      <Script
-        id="gtag-init"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{
-          __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${gtag.GA_TRACKING_ID}', { page_path: window.location.pathname });
-          `,
-        }}
-      />
-      <Component {...pageProps} />
-    </>
-  );
-}
-
-
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin';
 
 function App() {
   const [state, setState] = useState<AppState>('upload');
@@ -111,28 +59,12 @@ function App() {
     }
   }, [user]);
 
-  // Check for shared analysis and custom pages in URL on component mount
+  // Check for shared analysis in URL on component mount
   useEffect(() => {
-    const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     const analysisId = urlParams.get('analysis');
     const success = urlParams.get('success');
-
-    // Check for custom landing pages and legal pages
-    if (path === '/design-help') {
-      setState('design-help');
-      return;
-    } else if (path === '/design-info') {
-      setState('design-info');
-      return;
-    } else if (path === '/privacy') {
-      setState('privacy');
-      return;
-    } else if (path === '/terms') {
-      setState('terms');
-      return;
-    }
-
+    
     if (analysisId) {
       loadPublicAnalysis(analysisId);
     } else if (success === 'true') {
@@ -299,64 +231,6 @@ function App() {
           <p className="text-white text-lg font-medium">Loading...</p>
         </div>
       </div>
-    );
-  }
-
-  if (state === 'design-help') {
-    return (
-      <>
-        <DesignHelpLanding
-          onGetStarted={startNewAnalysis}
-          onShowAuth={() => setShowAuthModal(true)}
-          user={user}
-        />
-        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onSignIn={signIn}
-          onSignUp={signUp}
-          onSignInWithGoogle={signInWithGoogle}
-        />
-      </>
-    );
-  }
-
-  if (state === 'design-info') {
-    return (
-      <>
-        <DesignInfoLanding
-          onGetStarted={startNewAnalysis}
-          onShowAuth={() => setShowAuthModal(true)}
-          user={user}
-        />
-        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onSignIn={signIn}
-          onSignUp={signUp}
-          onSignInWithGoogle={signInWithGoogle}
-        />
-      </>
-    );
-  }
-
-  if (state === 'privacy') {
-    return (
-      <>
-        <PrivacyPolicy onBack={startNewAnalysis} />
-        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
-      </>
-    );
-  }
-
-  if (state === 'terms') {
-    return (
-      <>
-        <TermsOfService onBack={startNewAnalysis} />
-        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
-      </>
     );
   }
 
@@ -590,39 +464,16 @@ function App() {
             </div>
             
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">Legal</h4>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">Support</h4>
               <ul className="space-y-2 text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                <li>
-                  <button
-                    onClick={() => {
-                      setState('privacy');
-                      window.history.pushState({}, '', '/privacy');
-                    }}
-                    className="hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    Privacy Policy
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      setState('terms');
-                      window.history.pushState({}, '', '/terms');
-                    }}
-                    className="hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    Terms of Service
-                  </button>
-                </li>
-                <li>
-                  <a href="mailto:support@grraphic.com" className="hover:text-gray-900 dark:hover:text-white transition-colors">
-                    Contact Us
-                  </a>
-                </li>
+                <li>Documentation</li>
+                <li>Best Practices</li>
+                <li>Community</li>
+                <li>Contact Us</li>
               </ul>
             </div>
           </div>
-
+          
           <div className="border-t border-gray-200 dark:border-white/10 pt-8 mt-8 text-center text-gray-600 dark:text-gray-300 transition-colors duration-300">
             <p>&copy; 2025 Grraphic. Built with ❤️ for designers.</p>
           </div>
@@ -656,4 +507,16 @@ function App() {
   );
 }
 
-
+export default App;
+Footer
+© 2025 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information
