@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, TrendingUp, Calendar, DollarSign } from 'lucide-react';
+import { CreditCard, TrendingUp, Calendar, DollarSign, Ticket } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Subscription {
@@ -16,6 +16,7 @@ interface Subscription {
 
 interface SubscriptionWithUser extends Subscription {
   user_email: string;
+  discount_code: string | null;
 }
 
 export function AdminSubscriptions() {
@@ -50,18 +51,21 @@ export function AdminSubscriptions() {
             .maybeSingle();
 
           let userEmail = 'Unknown';
+          let discountCode = null;
           if (customer?.user_id) {
             const { data: user } = await supabase
               .from('users')
-              .select('email')
+              .select('email, discount_code')
               .eq('id', customer.user_id)
               .maybeSingle();
             userEmail = user?.email || 'Unknown';
+            discountCode = user?.discount_code || null;
           }
 
           return {
             ...sub,
-            user_email: userEmail
+            user_email: userEmail,
+            discount_code: discountCode
           };
         })
       );
@@ -143,7 +147,15 @@ export function AdminSubscriptions() {
                 <div className="flex items-center space-x-3">
                   <CreditCard size={20} className="text-gray-600 dark:text-gray-400" />
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">{sub.user_email}</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium text-gray-900 dark:text-white">{sub.user_email}</p>
+                      {sub.discount_code && (
+                        <span className="px-2 py-0.5 text-xs font-semibold text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 rounded flex items-center space-x-1">
+                          <Ticket size={10} />
+                          <span>{sub.discount_code}</span>
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {sub.payment_method_brand} •••• {sub.payment_method_last4}
                     </p>

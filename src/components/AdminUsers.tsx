@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, UserCheck, UserX, Search, Shield } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Search, Shield, Ticket, Edit2, Check, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Admin {
@@ -15,6 +15,7 @@ interface User {
   username: string;
   created_at: string;
   is_pro_subscriber: boolean;
+  discount_code: string | null;
 }
 
 export function AdminUsers() {
@@ -26,6 +27,8 @@ export function AdminUsers() {
   const [showDurationModal, setShowDurationModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [subscriptionDuration, setSubscriptionDuration] = useState<string>('1month');
+  const [editingDiscountUserId, setEditingDiscountUserId] = useState<string | null>(null);
+  const [discountCodeInput, setDiscountCodeInput] = useState<string>('');
 
   useEffect(() => {
     fetchData();
@@ -173,6 +176,34 @@ export function AdminUsers() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleEditDiscount = (userId: string, currentCode: string | null) => {
+    setEditingDiscountUserId(userId);
+    setDiscountCodeInput(currentCode || '');
+  };
+
+  const handleSaveDiscount = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ discount_code: discountCodeInput.toUpperCase() || null })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      await fetchData();
+      setEditingDiscountUserId(null);
+      setDiscountCodeInput('');
+    } catch (error) {
+      console.error('Error updating discount code:', error);
+      alert('Failed to update discount code');
+    }
+  };
+
+  const handleCancelDiscountEdit = () => {
+    setEditingDiscountUserId(null);
+    setDiscountCodeInput('');
   };
 
   const filteredUsers = users.filter(
@@ -351,14 +382,55 @@ export function AdminUsers() {
                         PRO
                       </span>
                     )}
+                    {user.discount_code && (
+                      <span className="px-2 py-0.5 text-xs font-semibold text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 rounded flex items-center space-x-1">
+                        <Ticket size={12} />
+                        <span>{user.discount_code}</span>
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">@{user.username || 'no username'}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     Joined {new Date(user.created_at).toLocaleDateString()}
                   </p>
+
+                  {editingDiscountUserId === user.id ? (
+                    <div className="mt-2 flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={discountCodeInput}
+                        onChange={(e) => setDiscountCodeInput(e.target.value)}
+                        placeholder="Discount code"
+                        className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      />
+                      <button
+                        onClick={() => handleSaveDiscount(user.id)}
+                        className="p-1 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                        title="Save"
+                      >
+                        <Check size={16} />
+                      </button>
+                      <button
+                        onClick={handleCancelDiscountEdit}
+                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                        title="Cancel"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleEditDiscount(user.id, user.discount_code)}
+                    className="flex items-center space-x-1 px-2 py-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors text-sm"
+                    title="Edit discount code"
+                  >
+                    <Ticket size={14} />
+                    <Edit2 size={12} />
+                  </button>
+
                   <button
                     onClick={() => handleToggleSubscription(user.id, user.is_pro_subscriber)}
                     disabled={actionLoading === user.id}
