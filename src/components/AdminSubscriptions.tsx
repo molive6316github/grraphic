@@ -17,6 +17,8 @@ interface Subscription {
 interface SubscriptionWithUser extends Subscription {
   user_email: string;
   discount_code: string | null;
+  discount_percent: number;
+  discount_amount: number;
 }
 
 export function AdminSubscriptions() {
@@ -52,20 +54,26 @@ export function AdminSubscriptions() {
 
           let userEmail = 'Unknown';
           let discountCode = null;
+          let discountPercent = 0;
+          let discountAmount = 0;
           if (customer?.user_id) {
             const { data: user } = await supabase
               .from('users')
-              .select('email, discount_code')
+              .select('email, discount_code, discount_percent, discount_amount')
               .eq('id', customer.user_id)
               .maybeSingle();
             userEmail = user?.email || 'Unknown';
             discountCode = user?.discount_code || null;
+            discountPercent = user?.discount_percent || 0;
+            discountAmount = user?.discount_amount || 0;
           }
 
           return {
             ...sub,
             user_email: userEmail,
-            discount_code: discountCode
+            discount_code: discountCode,
+            discount_percent: discountPercent,
+            discount_amount: discountAmount
           };
         })
       );
@@ -147,12 +155,22 @@ export function AdminSubscriptions() {
                 <div className="flex items-center space-x-3">
                   <CreditCard size={20} className="text-gray-600 dark:text-gray-400" />
                   <div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <p className="font-medium text-gray-900 dark:text-white">{sub.user_email}</p>
                       {sub.discount_code && (
                         <span className="px-2 py-0.5 text-xs font-semibold text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 rounded flex items-center space-x-1">
                           <Ticket size={10} />
                           <span>{sub.discount_code}</span>
+                        </span>
+                      )}
+                      {sub.discount_percent > 0 && (
+                        <span className="px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 rounded">
+                          {sub.discount_percent}% OFF
+                        </span>
+                      )}
+                      {sub.discount_amount > 0 && (
+                        <span className="px-2 py-0.5 text-xs font-semibold text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30 rounded">
+                          ${(sub.discount_amount / 100).toFixed(2)} OFF
                         </span>
                       )}
                     </div>

@@ -16,6 +16,8 @@ interface User {
   created_at: string;
   is_pro_subscriber: boolean;
   discount_code: string | null;
+  discount_percent: number;
+  discount_amount: number;
 }
 
 export function AdminUsers() {
@@ -29,6 +31,8 @@ export function AdminUsers() {
   const [subscriptionDuration, setSubscriptionDuration] = useState<string>('1month');
   const [editingDiscountUserId, setEditingDiscountUserId] = useState<string | null>(null);
   const [discountCodeInput, setDiscountCodeInput] = useState<string>('');
+  const [discountPercentInput, setDiscountPercentInput] = useState<string>('');
+  const [discountAmountInput, setDiscountAmountInput] = useState<string>('');
 
   useEffect(() => {
     fetchData();
@@ -178,16 +182,35 @@ export function AdminUsers() {
     }
   };
 
-  const handleEditDiscount = (userId: string, currentCode: string | null) => {
+  const handleEditDiscount = (userId: string, user: User) => {
     setEditingDiscountUserId(userId);
-    setDiscountCodeInput(currentCode || '');
+    setDiscountCodeInput(user.discount_code || '');
+    setDiscountPercentInput(user.discount_percent > 0 ? user.discount_percent.toString() : '');
+    setDiscountAmountInput(user.discount_amount > 0 ? user.discount_amount.toString() : '');
   };
 
   const handleSaveDiscount = async (userId: string) => {
     try {
+      const percent = parseInt(discountPercentInput) || 0;
+      const amount = parseInt(discountAmountInput) || 0;
+
+      if (percent < 0 || percent > 100) {
+        alert('Discount percent must be between 0 and 100');
+        return;
+      }
+
+      if (amount < 0) {
+        alert('Discount amount must be 0 or greater');
+        return;
+      }
+
       const { error } = await supabase
         .from('users')
-        .update({ discount_code: discountCodeInput.toUpperCase() || null })
+        .update({
+          discount_code: discountCodeInput.toUpperCase() || null,
+          discount_percent: percent,
+          discount_amount: amount
+        })
         .eq('id', userId);
 
       if (error) throw error;
@@ -195,15 +218,19 @@ export function AdminUsers() {
       await fetchData();
       setEditingDiscountUserId(null);
       setDiscountCodeInput('');
+      setDiscountPercentInput('');
+      setDiscountAmountInput('');
     } catch (error) {
-      console.error('Error updating discount code:', error);
-      alert('Failed to update discount code');
+      console.error('Error updating discount:', error);
+      alert('Failed to update discount');
     }
   };
 
   const handleCancelDiscountEdit = () => {
     setEditingDiscountUserId(null);
     setDiscountCodeInput('');
+    setDiscountPercentInput('');
+    setDiscountAmountInput('');
   };
 
   const filteredUsers = users.filter(
@@ -388,6 +415,16 @@ export function AdminUsers() {
                         <span>{user.discount_code}</span>
                       </span>
                     )}
+                    {user.discount_percent > 0 && (
+                      <span className="px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 rounded">
+                        {user.discount_percent}% OFF
+                      </span>
+                    )}
+                    {user.discount_amount > 0 && (
+                      <span className="px-2 py-0.5 text-xs font-semibold text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30 rounded">
+                        ${(user.discount_amount / 100).toFixed(2)} OFF
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">@{user.username || 'no username'}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
@@ -395,37 +432,73 @@ export function AdminUsers() {
                   </p>
 
                   {editingDiscountUserId === user.id ? (
-                    <div className="mt-2 flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={discountCodeInput}
-                        onChange={(e) => setDiscountCodeInput(e.target.value)}
-                        placeholder="Discount code"
-                        className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      />
-                      <button
-                        onClick={() => handleSaveDiscount(user.id)}
-                        className="p-1 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
-                        title="Save"
-                      >
-                        <Check size={16} />
-                      </button>
-                      <button
-                        onClick={handleCancelDiscountEdit}
-                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                        title="Cancel"
-                      >
-                        <X size={16} />
-                      </button>
+                    <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Code (optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={discountCodeInput}
+                            onChange={(e) => setDiscountCodeInput(e.target.value)}
+                            placeholder="e.g., SAVE20"
+                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Percent Off (0-100)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={discountPercentInput}
+                            onChange={(e) => setDiscountPercentInput(e.target.value)}
+                            placeholder="0"
+                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Amount Off (cents)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={discountAmountInput}
+                            onChange={(e) => setDiscountAmountInput(e.target.value)}
+                            placeholder="0"
+                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleSaveDiscount(user.id)}
+                          className="flex items-center space-x-1 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          <Check size={14} />
+                          <span>Save</span>
+                        </button>
+                        <button
+                          onClick={handleCancelDiscountEdit}
+                          className="flex items-center space-x-1 px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                        >
+                          <X size={14} />
+                          <span>Cancel</span>
+                        </button>
+                      </div>
                     </div>
                   ) : null}
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => handleEditDiscount(user.id, user.discount_code)}
+                    onClick={() => handleEditDiscount(user.id, user)}
                     className="flex items-center space-x-1 px-2 py-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors text-sm"
-                    title="Edit discount code"
+                    title="Edit discount"
                   >
                     <Ticket size={14} />
                     <Edit2 size={12} />
