@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { X, Mail, Lock, User, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -7,10 +7,13 @@ interface AuthModalProps {
   onSignIn: (email: string, password: string) => Promise<any>;
   onSignUp: (email: string, password: string) => Promise<any>;
   onSignInWithGoogle: () => Promise<any>;
+  onPasswordReset: (email: string) => Promise<any>;
 }
 
-export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoogle }: AuthModalProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
+type AuthView = 'signin' | 'signup' | 'reset' | 'reset-sent' | 'verify-email';
+
+export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoogle, onPasswordReset }: AuthModalProps) {
+  const [view, setView] = useState<AuthView>('signin');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -21,35 +24,60 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
 
   if (!isOpen) return null;
 
+  const resetForm = () => {
+    setEmail('');
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (isSignUp && password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
-    if (isSignUp && !username.trim()) {
-      setError('Username is required');
-      setLoading(false);
-      return;
-    }
     try {
-      const { error } = isSignUp 
-        ? await onSignUp(email, password, username)
-        : await onSignIn(email, password);
+      if (view === 'signup') {
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
 
-      if (error) {
-        setError(error.message);
-      } else {
-        onClose();
-        setEmail('');
-        setUsername('');
-        setPassword('');
-        setConfirmPassword('');
+        if (!username.trim()) {
+          setError('Username is required');
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await onSignUp(email, password, username);
+        if (error) {
+          setError(error.message);
+        } else {
+          setView('verify-email');
+        }
+      } else if (view === 'signin') {
+        const { error } = await onSignIn(email, password);
+        if (error) {
+          setError(error.message);
+        } else {
+          onClose();
+          resetForm();
+        }
+      } else if (view === 'reset') {
+        if (!email.trim()) {
+          setError('Please enter your email address');
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await onPasswordReset(email);
+        if (error) {
+          setError(error.message);
+        } else {
+          setView('reset-sent');
+        }
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -81,6 +109,61 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
     }
   };
 
+  // Success views
+  if (view === 'verify-email') {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+          <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <X size={20} />
+          </button>
+          <div className="text-center">
+            <div className="flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mx-auto mb-4">
+              <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Check Your Email</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              We've sent a verification link to <strong>{email}</strong>. Click the link to verify your account.
+            </p>
+            <button
+              onClick={() => { onClose(); resetForm(); setView('signin'); }}
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-all"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'reset-sent') {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+          <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <X size={20} />
+          </button>
+          <div className="text-center">
+            <div className="flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mx-auto mb-4">
+              <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Password Reset Email Sent</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              We've sent a password reset link to <strong>{email}</strong>. Click the link to reset your password.
+            </p>
+            <button
+              onClick={() => { onClose(); resetForm(); setView('signin'); }}
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-all"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -97,16 +180,27 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
           <X size={20} />
         </button>
 
+        {view === 'reset' && (
+          <button
+            onClick={() => { setView('signin'); setError(''); }}
+            className="absolute top-4 left-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        )}
+
         <div className="text-center mb-6">
           <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mx-auto mb-4">
-            <User size={24} className="text-white" />
+            {view === 'reset' ? <Mail size={24} className="text-white" /> : <User size={24} className="text-white" />}
           </div>
           <h2 id="auth-modal-title" className="text-2xl font-bold text-gray-900 dark:text-white">
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
+            {view === 'signup' ? 'Create Account' : view === 'reset' ? 'Reset Password' : 'Welcome Back'}
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mt-2">
-            {isSignUp 
-              ? 'Sign up to save your design analyses' 
+            {view === 'signup'
+              ? 'Sign up to save your design analyses'
+              : view === 'reset'
+              ? 'Enter your email to receive a password reset link'
               : 'Sign in to access your saved analyses'
             }
           </p>
@@ -130,7 +224,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
             </div>
           </div>
 
-          {isSignUp && (
+          {view === 'signup' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Username
@@ -149,6 +243,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
             </div>
           )}
 
+          {view !== 'reset' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Password
@@ -172,8 +267,9 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
               </button>
             </div>
           </div>
+          )}
 
-          {isSignUp && (
+          {view === 'signup' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Confirm Password
@@ -203,10 +299,22 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
             disabled={loading}
             className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
+            {loading ? 'Please wait...' : view === 'signup' ? 'Create Account' : view === 'reset' ? 'Send Reset Link' : 'Sign In'}
           </button>
         </form>
 
+        {view === 'signin' && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => { setView('reset'); setError(''); }}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              Forgot your password?
+            </button>
+          </div>
+        )}
+
+        {view !== 'reset' && (
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -245,18 +353,21 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
             <span className="text-gray-700 dark:text-gray-300 font-medium">Sign in with Google</span>
           </button>
         </div>
+        )}
 
+        {view !== 'reset' && (
         <div className="mt-6 text-center">
           <button
-            onClick={() => setIsSignUp(!isSignUp)}
+            onClick={() => { setView(view === 'signin' ? 'signup' : 'signin'); setError(''); }}
             className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
           >
-            {isSignUp 
-              ? 'Already have an account? Sign in' 
-              : "Don't have an account? Sign up"
+            {view === 'signin'
+              ? "Don't have an account? Sign up"
+              : 'Already have an account? Sign in'
             }
           </button>
         </div>
+        )}
       </div>
     </div>
   );

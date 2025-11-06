@@ -89,6 +89,20 @@ export function useAuth() {
     return { error };
   };
 
+  const resetPassword = async (email: string) => {
+    if (!isSupabaseConfigured()) {
+      return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to reset password.' } };
+    }
+
+    const currentUrl = new URL(window.location.href);
+    const redirectUrl = `${currentUrl.origin}${currentUrl.pathname}`;
+
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+    return { data, error };
+  };
+
   return {
     user,
     session,
@@ -97,5 +111,6 @@ export function useAuth() {
     signIn,
     signInWithGoogle,
     signOut,
+    resetPassword,
   };
 }
