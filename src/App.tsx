@@ -116,7 +116,7 @@ function App() {
       setState('upload');
     }
   };
-  const handleSubscribe = async () => {
+  const handleSubscribe = async (discountCode?: string) => {
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -131,18 +131,24 @@ function App() {
         return;
       }
 
+      const requestBody: any = {
+        price_id: STRIPE_PRODUCTS.grraphicPro.priceId,
+        success_url: `${window.location.origin}?success=true`,
+        cancel_url: `${window.location.origin}?canceled=true`,
+        mode: STRIPE_PRODUCTS.grraphicPro.mode,
+      };
+
+      if (discountCode) {
+        requestBody.discount_code = discountCode;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${userSession?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          price_id: STRIPE_PRODUCTS.grraphicPro.priceId,
-          success_url: `${window.location.origin}?success=true`,
-          cancel_url: `${window.location.origin}?canceled=true`,
-          mode: STRIPE_PRODUCTS.grraphicPro.mode,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
