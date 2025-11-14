@@ -9,32 +9,32 @@ export interface DesignAnalysis {
     typography: {
       score: number;
       feedback: string;
-      suggestions: string[];
+      improvementIdeas: string[];
     };
     colorHarmony: {
       score: number;
       feedback: string;
-      suggestions: string[];
+      improvementIdeas: string[];
     };
     composition: {
       score: number;
       feedback: string;
-      suggestions: string[];
+      improvementIdeas: string[];
     };
     hierarchy: {
       score: number;
       feedback: string;
-      suggestions: string[];
+      improvementIdeas: string[];
     };
     spacing: {
       score: number;
       feedback: string;
-      suggestions: string[];
+      improvementIdeas: string[];
     };
     contrast: {
       score: number;
       feedback: string;
-      suggestions: string[];
+      improvementIdeas: string[];
     };
   };
   strengths: string[];

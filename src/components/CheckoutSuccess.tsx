@@ -18,8 +18,8 @@ export function CheckoutSuccess({ onContinue }: CheckoutSuccessProps) {
         </h2>
         
         <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Your subscription is now active. You can now enjoy unlimited large file uploads, 
-          AI-powered autofix suggestions, and priority support.
+          Your subscription is now active. You can now enjoy unlimited large file uploads,
+          AI-powered improvement ideas, and priority support.
         </p>
         
         <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg p-4 mb-6">
@@ -29,7 +29,7 @@ export function CheckoutSuccess({ onContinue }: CheckoutSuccessProps) {
           </div>
           <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
             <li>✓ Unlimited large file uploads</li>
-            <li>✓ AI autofix suggestions</li>
+            <li>✓ AI improvement ideas</li>
             <li>✓ Priority analysis processing</li>
             <li>✓ Advanced design insights</li>
           </ul>

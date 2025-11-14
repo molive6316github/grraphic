@@ -4,7 +4,7 @@ export const STRIPE_PRODUCTS = {
     id: 'prod_T6JXobIzJJ9y2i',
     priceId: 'price_1SA6uPHp5AwvS0eqZWxMsyNN',
     name: 'Grraphic Pro',
-    description: 'Unlimited large file uploads, AI autofix suggestions, and priority support',
+    description: 'Unlimited large file uploads, AI improvement ideas, and priority support',
     price: 15.00,
     currency: 'usd',
     currencySymbol: '$',

@@ -56,32 +56,32 @@ CRITICAL: Return ONLY valid JSON. Do NOT include any markdown formatting, code b
     "typography": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
     },
     "colorHarmony": {
       "score": number (0-100),
-      "feedback": "detailed explanation string", 
-      "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+      "feedback": "detailed explanation string",
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
     },
     "composition": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
     },
     "hierarchy": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
     },
     "spacing": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
     },
     "contrast": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
     }
   },
   "strengths": ["strength 1", "strength 2", "strength 3", "strength 4"],
@@ -92,7 +92,7 @@ CRITICAL: Return ONLY valid JSON. Do NOT include any markdown formatting, code b
 For each category, provide:
 - score: number between 0-100 based on design quality (be generous, most designs should score 70-95)
 - feedback: detailed explanation of the assessment (2-3 sentences)
-- suggestions: array of exactly 3 specific, actionable recommendations
+- improvementIdeas: array of exactly 3 specific, actionable improvement ideas
 
 Categories to analyze:
 - typography: Font choices, readability, hierarchy, consistency
@@ -118,7 +118,7 @@ CRITICAL JSON FORMATTING RULES:
 - Keep all string values on a single line
 - Be encouraging and constructive in your feedback
 - Focus on what works well and provide gentle guidance for improvements
-- Be specific and actionable in your suggestions`
+- Be specific and actionable in your improvement ideas`
           },
           {
             inline_data: {

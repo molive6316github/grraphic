@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle, AlertCircle, TrendingUp, Download, Image } from 'lucide-react';
 import { DesignAnalysis } from '../types';
-import { AutofixSuggestions } from './AutofixSuggestions';
+import { ImprovementIdeas } from './ImprovementIdeas';
 
 interface AnalysisResultsProps {
   analysis: DesignAnalysis;
@@ -211,7 +211,7 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
       </div>
 
       {/* AI Autofix Suggestions */}
-      <AutofixSuggestions 
+      <ImprovementIdeas 
         analysis={analysis}
         fileName={fileName}
         isProSubscriber={isProSubscriber}

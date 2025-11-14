@@ -21,7 +21,7 @@ export function ProSubscriptionCard({ onSubscribe, loading }: ProSubscriptionCar
   
   const proFeatures = [
     'Unlimited large file uploads (no size limits)',
-    'AI-powered autofix suggestions',
+    'AI-powered improvement ideas',
     'Priority analysis processing',
     'Advanced design insights',
     'Export detailed reports',

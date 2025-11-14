@@ -60,16 +60,17 @@ export function useAnalysisHistory(userId: string | undefined) {
           console.warn('Skipping analysis with invalid data:', item.id);
           decryptedAnalysis = {
             overall: 0,
-            summary: 'Analysis data could not be loaded',
             categories: {
-              visual_hierarchy: { score: 0, feedback: 'Data unavailable' },
-              color_scheme: { score: 0, feedback: 'Data unavailable' },
-              typography: { score: 0, feedback: 'Data unavailable' },
-              layout: { score: 0, feedback: 'Data unavailable' },
-              accessibility: { score: 0, feedback: 'Data unavailable' },
-              user_experience: { score: 0, feedback: 'Data unavailable' }
+              typography: { score: 0, feedback: 'Data unavailable', improvementIdeas: [] },
+              colorHarmony: { score: 0, feedback: 'Data unavailable', improvementIdeas: [] },
+              composition: { score: 0, feedback: 'Data unavailable', improvementIdeas: [] },
+              hierarchy: { score: 0, feedback: 'Data unavailable', improvementIdeas: [] },
+              spacing: { score: 0, feedback: 'Data unavailable', improvementIdeas: [] },
+              contrast: { score: 0, feedback: 'Data unavailable', improvementIdeas: [] }
             },
-            suggestions: []
+            strengths: [],
+            improvements: [],
+            designPrinciples: []
           };
         }
         

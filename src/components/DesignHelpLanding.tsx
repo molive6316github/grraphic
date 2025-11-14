@@ -103,7 +103,7 @@ export function DesignHelpLanding({ onGetStarted, onShowAuth, user }: DesignHelp
               'Typography review',
               'Visual hierarchy assessment',
               'Contrast and accessibility checks',
-              'Actionable improvement suggestions',
+              'Actionable improvement ideas',
               'Save and track your progress',
               'Share your best work publicly'
             ].map((benefit, index) => (
