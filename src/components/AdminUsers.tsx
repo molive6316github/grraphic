@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, UserCheck, UserX, Search, Shield } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Search, Shield, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Admin {
@@ -170,6 +170,38 @@ export function AdminUsers() {
     } catch (error) {
       console.error('Error granting subscription:', error);
       alert('Failed to grant subscription. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteAccount = async (userId: string, email: string) => {
+    const confirmation = prompt(
+      `WARNING: This will permanently delete the account for ${email} and all associated data.\n\nType "DELETE" to confirm:`
+    );
+
+    if (confirmation !== 'DELETE') {
+      return;
+    }
+
+    try {
+      setActionLoading(userId);
+
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser?.id === userId) {
+        alert('You cannot delete your own account from the admin panel.');
+        return;
+      }
+
+      const { error: deleteUserError } = await supabase.auth.admin.deleteUser(userId);
+
+      if (deleteUserError) throw deleteUserError;
+
+      await fetchData();
+      alert(`Successfully deleted account for ${email}`);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Failed to delete account. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -384,6 +416,15 @@ export function AdminUsers() {
                       <span className="text-sm">Make Admin</span>
                     </button>
                   )}
+
+                  <button
+                    onClick={() => handleDeleteAccount(user.id, user.email)}
+                    disabled={actionLoading === user.id}
+                    className="flex items-center space-x-2 px-3 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 size={16} />
+                    <span className="text-sm">Delete</span>
+                  </button>
                 </div>
               </div>
             );
