@@ -86,32 +86,32 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Image Preview */}
       {(imagePreview || (analysis as any).image_url) && (
-        <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center transition-colors duration-300">
-            <Image size={20} className="mr-2 text-blue-500" />
+        <div className="glass-effect rounded-xl smooth-shadow-lg p-6 hover-lift">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <Image size={22} className="mr-2 text-blue-600 dark:text-blue-400" />
             Analyzed Design
           </h3>
-          <div className="aspect-video bg-gray-100 dark:bg-black/20 rounded-lg overflow-hidden">
+          <div className="aspect-video bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-xl overflow-hidden shadow-inner ring-1 ring-gray-200/50 dark:ring-gray-700/50">
             <img
               src={imagePreview || (analysis as any).image_url}
               alt={fileName}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain p-2"
             />
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 transition-colors duration-300">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mt-3">
             {fileName}
           </p>
         </div>
       )}
 
       {/* Overall Score */}
-      <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
-        <div className="flex items-center justify-between mb-6">
+      <div className="glass-effect rounded-xl smooth-shadow-lg p-8 hover-lift">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 transition-colors duration-300">Analysis Complete</h2>
+            <h2 className="text-3xl font-bold gradient-text mb-3">Analysis Complete</h2>
             <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">
               Here's your comprehensive design review
               {analysis.designContext && (
@@ -158,8 +158,8 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
 
       {/* Design Context */}
       {analysis.designContext && (
-        <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
+        <div className="glass-effect rounded-xl smooth-shadow-lg p-6 hover-lift">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
             Design Context & Purpose
           </h3>
           <div className="grid md:grid-cols-3 gap-4">
@@ -182,15 +182,15 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
       {/* Detailed Analysis */}
       <div className="grid md:grid-cols-2 gap-6">
         {categories.map(([key, category]) => (
-          <div key={key} className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize transition-colors duration-300">
+          <div key={key} className="glass-effect rounded-xl smooth-shadow p-6 hover-lift transition-all duration-300">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white capitalize">
                 {key === 'colorHarmony' ? 'Color Harmony' : key}
               </h3>
               <ScoreCircle score={category.score} size="sm" />
             </div>
-            
-            <p className="text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-300">{category.feedback}</p>
+
+            <p className="text-gray-700 dark:text-gray-200 mb-5 leading-relaxed">{category.feedback}</p>
             
             <div className="space-y-3">
               <h4 className="font-medium text-gray-900 dark:text-white flex items-center transition-colors duration-300">

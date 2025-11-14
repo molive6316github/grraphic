@@ -113,24 +113,25 @@ export function FileUpload({
 
   if (uploadedFile) {
     return (
-      <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
+      <div className="glass-effect rounded-xl smooth-shadow-lg p-6 animate-scale-in hover-lift">
         <div className="relative">
           <button
             onClick={onRemoveFile}
-            className="absolute top-2 right-2 z-10 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-lg"
+            className="absolute top-3 right-3 z-10 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-all duration-200 hover:scale-110 shadow-lg"
+            aria-label="Remove file"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
-          <div className="aspect-video bg-gray-100 dark:bg-black/20 rounded-lg overflow-hidden mb-4 transition-colors duration-300">
+          <div className="aspect-video bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-xl overflow-hidden mb-4 shadow-inner ring-1 ring-gray-200/50 dark:ring-gray-700/50">
             <img
               src={uploadedFile.preview}
               alt={uploadedFile.name}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain p-2"
             />
           </div>
-          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">
-            <span className="font-medium">{uploadedFile.name}</span>
-            <span>{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-semibold text-gray-900 dark:text-white truncate pr-2">{uploadedFile.name}</span>
+            <span className="text-gray-600 dark:text-gray-400 font-medium">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</span>
           </div>
         </div>
       </div>
@@ -138,13 +139,13 @@ export function FileUpload({
   }
 
   return (
-    <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
+    <div className="glass-effect rounded-xl smooth-shadow-lg p-6 animate-fade-in">
       <div
         className={`
-          relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
-          ${dragActive 
-            ? 'border-blue-400 bg-blue-500/10' 
-            : 'border-gray-300 dark:border-gray-500 hover:border-gray-400 dark:hover:border-gray-400'
+          relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 cursor-pointer
+          ${dragActive
+            ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-500/20 dark:to-purple-500/20 scale-[1.02] shadow-lg'
+            : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
           }
         `}
         onDrop={handleDrop}
@@ -161,19 +162,22 @@ export function FileUpload({
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
         
-        <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-5">
           <div className={`
-            p-3 rounded-full transition-colors duration-200
-            ${dragActive ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-400'}
+            p-4 rounded-full transition-all duration-300 transform
+            ${dragActive
+              ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white scale-110 shadow-2xl'
+              : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-500 dark:text-gray-400 hover:scale-105 shadow-md'
+            }
           `}>
-            {dragActive ? <Image size={32} /> : <Upload size={32} />}
+            {dragActive ? <Image size={40} className="animate-pulse" /> : <Upload size={40} />}
           </div>
-          
+
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 transition-colors duration-300">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               Upload your design
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-2 transition-colors duration-300">
+            <p className="text-base text-gray-700 dark:text-gray-200 mb-3 font-medium">
               Drag and drop your graphic design here, or click to browse
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
