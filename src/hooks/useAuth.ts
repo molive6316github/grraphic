@@ -38,31 +38,56 @@ export function useAuth() {
       return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to create an account.' } };
     }
 
-    // Hash username for privacy if provided
-    const hashedUsername = username ? hashSensitiveData(username) : undefined;
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}`,
         data: {
-          username: hashedUsername
+          username: username || ''
         }
       }
     });
     return { data, error };
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (emailOrUsername: string, password: string) => {
     if (!isSupabaseConfigured()) {
       return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to sign in.' } };
     }
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+
+    // Check if input is an email (contains @) or username
+    const isEmail = emailOrUsername.includes('@');
+
+    if (isEmail) {
+      // Sign in with email
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: emailOrUsername,
+        password,
+      });
+      return { data, error };
+    } else {
+      // Look up email by username
+      const { data: userData, error: lookupError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('username', emailOrUsername.toLowerCase())
+        .maybeSingle();
+
+      if (lookupError || !userData) {
+        return {
+          data: null,
+          error: { message: 'Username not found' }
+        };
+      }
+
+      // Sign in with the found email
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: userData.email,
+        password,
+      });
+      return { data, error };
+    }
   };
 
   const signInWithGoogle = async () => {

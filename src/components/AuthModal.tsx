@@ -217,16 +217,16 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Email
+              {view === 'signin' ? 'Email or Username' : 'Email'}
             </label>
             <div className="relative">
               <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="email"
+                type={view === 'signin' ? 'text' : 'email'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder="Enter your email"
+                placeholder={view === 'signin' ? 'Email or username' : 'Enter your email'}
                 required
               />
             </div>
