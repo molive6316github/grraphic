@@ -195,13 +195,13 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
             <div className="space-y-3">
               <h4 className="font-medium text-gray-900 dark:text-white flex items-center transition-colors duration-300">
                 <TrendingUp size={16} className="mr-2 text-blue-500" />
-                Suggestions
+                Improvement Ideas
               </h4>
               <ul className="space-y-1">
-                {category.suggestions.map((suggestion, idx) => (
+                {category.improvementIdeas?.map((idea, idx) => (
                   <li key={idx} className="text-sm text-gray-600 dark:text-gray-300 flex items-start transition-colors duration-300">
                     <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                    {suggestion}
+                    {idea}
                   </li>
                 ))}
               </ul>
