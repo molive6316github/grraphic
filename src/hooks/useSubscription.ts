@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export interface UserSubscription {
-  status: string;
+  subscription_status: string;
   current_period_end: number;
   cancel_at_period_end: boolean;
   payment_method_brand?: string;

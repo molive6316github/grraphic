@@ -3,7 +3,7 @@ import { Crown, Calendar, CreditCard } from 'lucide-react';
 
 interface SubscriptionStatusProps {
   subscription: {
-    status: string;
+    subscription_status: string;
     current_period_end: number;
     cancel_at_period_end: boolean;
     payment_method_brand?: string;
@@ -21,7 +21,7 @@ export function SubscriptionStatus({ subscription, loading }: SubscriptionStatus
     );
   }
 
-  if (!subscription || subscription.status !== 'active') {
+  if (!subscription || subscription.subscription_status !== 'active') {
     return null;
   }
 
