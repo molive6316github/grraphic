@@ -37,14 +37,15 @@ export function useAuth() {
     if (!isSupabaseConfigured()) {
       return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to create an account.' } };
     }
-    
+
     // Hash username for privacy if provided
     const hashedUsername = username ? hashSensitiveData(username) : undefined;
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}`,
         data: {
           username: hashedUsername
         }

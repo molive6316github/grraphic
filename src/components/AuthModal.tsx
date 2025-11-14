@@ -51,11 +51,19 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, onSignInWithGoo
           return;
         }
 
-        const { error } = await onSignUp(email, password, username);
+        const { data, error } = await onSignUp(email, password, username);
         if (error) {
           setError(error.message);
         } else {
-          setView('verify-email');
+          // Check if email confirmation is required
+          if (data?.user && !data.session) {
+            // Email confirmation required
+            setView('verify-email');
+          } else {
+            // No email confirmation required, user is signed in
+            onClose();
+            resetForm();
+          }
         }
       } else if (view === 'signin') {
         const { error } = await onSignIn(email, password);
