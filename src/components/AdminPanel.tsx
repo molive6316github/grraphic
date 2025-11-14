@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Shield, Users, FileImage, CreditCard, TrendingUp, RefreshCw, UserPlus, UserCheck } from 'lucide-react';
+import { Shield, Users, FileImage, CreditCard, TrendingUp, RefreshCw, UserPlus, UserCheck, Ticket } from 'lucide-react';
 import { useAdminStats } from '../hooks/useAdminStats';
 import { AdminUsers } from './AdminUsers';
 import { AdminSubscriptions } from './AdminSubscriptions';
+import { AdminDiscountCodes } from './AdminDiscountCodes';
 
-type AdminView = 'overview' | 'users' | 'subscriptions';
+type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -95,6 +96,16 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
             }`}
           >
             Subscriptions
+          </button>
+          <button
+            onClick={() => setActiveView('discounts')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeView === 'discounts'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Discount Codes
           </button>
         </div>
 
@@ -190,6 +201,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
 
         {activeView === 'users' && <AdminUsers />}
         {activeView === 'subscriptions' && <AdminSubscriptions />}
+        {activeView === 'discounts' && <AdminDiscountCodes />}
       </div>
     </div>
   );

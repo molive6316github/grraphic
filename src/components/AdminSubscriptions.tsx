@@ -16,9 +16,6 @@ interface Subscription {
 
 interface SubscriptionWithUser extends Subscription {
   user_email: string;
-  discount_code: string | null;
-  discount_percent: number;
-  discount_amount: number;
 }
 
 export function AdminSubscriptions() {
@@ -53,27 +50,18 @@ export function AdminSubscriptions() {
             .maybeSingle();
 
           let userEmail = 'Unknown';
-          let discountCode = null;
-          let discountPercent = 0;
-          let discountAmount = 0;
           if (customer?.user_id) {
             const { data: user } = await supabase
               .from('users')
-              .select('email, discount_code, discount_percent, discount_amount')
+              .select('email')
               .eq('id', customer.user_id)
               .maybeSingle();
             userEmail = user?.email || 'Unknown';
-            discountCode = user?.discount_code || null;
-            discountPercent = user?.discount_percent || 0;
-            discountAmount = user?.discount_amount || 0;
           }
 
           return {
             ...sub,
-            user_email: userEmail,
-            discount_code: discountCode,
-            discount_percent: discountPercent,
-            discount_amount: discountAmount
+            user_email: userEmail
           };
         })
       );

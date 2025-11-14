@@ -15,9 +15,6 @@ interface User {
   username: string;
   created_at: string;
   is_pro_subscriber: boolean;
-  discount_code: string | null;
-  discount_percent: number;
-  discount_amount: number;
 }
 
 export function AdminUsers() {
@@ -29,10 +26,6 @@ export function AdminUsers() {
   const [showDurationModal, setShowDurationModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [subscriptionDuration, setSubscriptionDuration] = useState<string>('1month');
-  const [editingDiscountUserId, setEditingDiscountUserId] = useState<string | null>(null);
-  const [discountCodeInput, setDiscountCodeInput] = useState<string>('');
-  const [discountPercentInput, setDiscountPercentInput] = useState<string>('');
-  const [discountAmountInput, setDiscountAmountInput] = useState<string>('');
 
   useEffect(() => {
     fetchData();
