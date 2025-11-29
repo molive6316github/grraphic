@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
-import { Sparkles, User, History, Shield } from 'lucide-react';
+import { Sparkles, User, History, Shield, Palette, Layout, Type, Zap } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { LoadingAnalysis } from './components/LoadingAnalysis';
 import { AnalysisResults } from './components/AnalysisResults';
@@ -48,6 +48,9 @@ function App() {
   const [publicAnalysis, setPublicAnalysis] = useState<any>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [isHoveringHeader, setIsHoveringHeader] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
   const { isDark, toggleDarkMode } = useDarkMode();
   const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
   const { analyses, loading: historyLoading, saveAnalysis, deleteAnalysis, togglePublic, getPublicAnalysis } = useAnalysisHistory(user?.id);
@@ -58,7 +61,7 @@ function App() {
   
   // Get user session for authenticated requests
   const [userSession, setUserSession] = useState<any>(null);
-  
+
   useEffect(() => {
     if (user) {
       // Get the current session
@@ -69,6 +72,15 @@ function App() {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setCursorPosition({ x: e.clientX, y: e.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Check for shared analysis and custom pages in URL on component mount
   useEffect(() => {
@@ -371,10 +383,17 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <button
-              onClick={startNewAnalysis}
-              className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+              onClick={() => {
+                startNewAnalysis();
+                setClickCount(prev => prev + 1);
+                if (clickCount === 9) {
+                  alert('🎉 You found the secret! You are a true design explorer!');
+                  setClickCount(0);
+                }
+              }}
+              className="flex items-center space-x-3 hover:opacity-80 transition-all duration-300 hover:scale-105"
             >
-              <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg">
+              <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg animate-bounce-slow">
                 <Sparkles size={20} className="text-white" />
               </div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Grraphic</h1>
@@ -427,10 +446,54 @@ function App() {
 
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 transition-colors duration-300">
+        {/* Cursor follower effect */}
+        {state === 'upload' && (
+          <div
+            className="fixed w-8 h-8 rounded-full bg-gradient-to-r from-blue-500/30 to-purple-500/30 blur-xl pointer-events-none z-50 transition-all duration-300"
+            style={{
+              left: `${cursorPosition.x}px`,
+              top: `${cursorPosition.y}px`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          />
+        )}
+
+        {/* Floating shapes background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300/20 dark:bg-blue-500/10 rounded-full blur-3xl animate-blob"></div>
+          <div className="absolute top-40 right-10 w-72 h-72 bg-purple-300/20 dark:bg-purple-500/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+          <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-300/20 dark:bg-pink-500/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+
+          {state === 'upload' && (
+            <>
+              <div className="absolute top-32 left-1/4 text-blue-400/30 dark:text-blue-300/20 animate-bounce-slow">
+                <Palette size={48} />
+              </div>
+              <div className="absolute top-48 right-1/3 text-purple-400/30 dark:text-purple-300/20 animate-bounce-slow animation-delay-2000">
+                <Layout size={56} />
+              </div>
+              <div className="absolute bottom-32 left-1/3 text-pink-400/30 dark:text-pink-300/20 animate-bounce-slow animation-delay-4000">
+                <Type size={52} />
+              </div>
+              <div className="absolute top-64 right-1/4 text-blue-300/30 dark:text-blue-400/20 animate-bounce-slow animation-delay-2000">
+                <Zap size={44} />
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center relative z-10">
+          <h1
+            className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 transition-all duration-300"
+            onMouseEnter={() => setIsHoveringHeader(true)}
+            onMouseLeave={() => setIsHoveringHeader(false)}
+          >
             Get AI-Powered
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+            <span
+              className={`text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 transition-all duration-500 ${
+                isHoveringHeader ? 'animate-pulse-glow inline-block scale-110' : ''
+              }`}
+            >
               {mode === 'design' ? ' Design Feedback' : ' UI Analysis'}
             </span>
           </h1>
