@@ -543,7 +543,7 @@ function App() {
           </>
         )}
 
-        {state === 'analyzing' && <LoadingAnalysis />}
+        {state === 'analyzing' && <LoadingAnalysis mode={mode} />}
 
         {state === 'results' && mode === 'design' && analysis && (
           <AnalysisResults
