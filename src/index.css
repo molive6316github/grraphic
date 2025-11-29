@@ -221,3 +221,29 @@
     opacity: 0;
   }
 }
+
+@keyframes bounce-running {
+  0%, 100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.05, 0.95);
+  }
+}
+
+.animate-bounce-running {
+  animation: bounce-running 0.3s ease-in-out infinite;
+}
+
+@keyframes idle-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-idle-bounce {
+  animation: idle-bounce 2s ease-in-out infinite;
+}
