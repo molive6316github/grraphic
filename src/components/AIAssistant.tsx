@@ -92,21 +92,52 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const moveToElement = (target: string) => {
+    setTimeout(() => {
+      let element: Element | null = null;
+
+      if (target === 'upload') {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        element = buttons.find(btn =>
+          btn.textContent?.includes('Drop') ||
+          btn.textContent?.includes('Choose') ||
+          btn.querySelector('input[type="file"]')
+        ) || null;
+      } else if (target === 'history') {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        element = buttons.find(btn =>
+          btn.textContent?.includes('History')
+        ) || null;
+      } else if (target === 'subscription') {
+        const proElements = Array.from(document.querySelectorAll('*'));
+        element = proElements.find(el =>
+          el.textContent?.includes('Pro') &&
+          (el.textContent?.includes('Subscribe') || el.textContent?.includes('$'))
+        ) || null;
+      } else if (target === 'account') {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        element = buttons.find(btn =>
+          btn.textContent?.includes('Sign In') ||
+          btn.textContent?.includes('Account')
+        ) || null;
+      }
+
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        const targetX = rect.left + rect.width / 2;
+        const targetY = rect.top + rect.height / 2;
+
+        setTargetPosition({ x: targetX, y: targetY });
+        setIsRunning(true);
+      }
+    }, 500);
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen) return;
-
-    const pickNewTarget = () => {
-      const padding = 100;
-      const newX = Math.random() * (window.innerWidth - padding * 2) + padding;
-      const newY = Math.random() * (window.innerHeight - padding * 2) + padding;
-      setTargetPosition({ x: newX, y: newY });
-      setIsRunning(true);
-    };
-
     const moveCharacter = () => {
       setPosition(prev => {
         const dx = targetPosition.x - prev.x;
@@ -115,7 +146,15 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
 
         if (distance < 10) {
           setIsRunning(false);
-          setTimeout(pickNewTarget, Math.random() * 2000 + 1000);
+          if (!isOpen) {
+            setTimeout(() => {
+              const padding = 100;
+              const newX = Math.random() * (window.innerWidth - padding * 2) + padding;
+              const newY = Math.random() * (window.innerHeight - padding * 2) + padding;
+              setTargetPosition({ x: newX, y: newY });
+              setIsRunning(true);
+            }, Math.random() * 2000 + 1000);
+          }
           return prev;
         }
 
@@ -129,9 +168,7 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
       });
     };
 
-    pickNewTarget();
     const interval = setInterval(moveCharacter, 30);
-
     return () => clearInterval(interval);
   }, [isOpen, targetPosition]);
 
@@ -160,13 +197,26 @@ User message: "${userMessage}"
 
 Respond in a friendly, enthusiastic way (2-3 sentences max). Show personality as a helpful hexagonal design mascot! Be encouraging about design and helpful with navigation.
 
-If the user mentions any of these, suggest navigation:
-- "upload" or "analyze" → suggest starting an analysis
-- "history" → suggest viewing their analysis history
-- "subscription" or "pro" → suggest checking out Pro features
-- "sign in" or "account" → suggest signing in
+If the user asks about navigation or where something is, you can physically move to show them! Respond with one of these special actions:
+- "MOVE_TO:upload" - to show where to upload designs
+- "MOVE_TO:history" - to show where to view analysis history
+- "MOVE_TO:subscription" - to show where Pro features are
+- "MOVE_TO:account" - to show where the sign in button is
 
-Return your response as plain text, be conversational and friendly!`;
+Format your response as:
+{
+  "message": "your friendly response text",
+  "action": "MOVE_TO:location or null"
+}
+
+Examples:
+User: "Where do I upload?"
+Response: {"message": "Let me show you! I'll run over to the upload button right now!", "action": "MOVE_TO:upload"}
+
+User: "How are you?"
+Response: {"message": "I'm doing great, thanks for asking! Ready to help with any design questions!", "action": null}
+
+Return valid JSON only.`;
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
@@ -180,6 +230,7 @@ Return your response as plain text, be conversational and friendly!`;
             generationConfig: {
               temperature: 0.9,
               maxOutputTokens: 200,
+              responseMimeType: "application/json",
             }
           })
         }
@@ -202,13 +253,32 @@ Return your response as plain text, be conversational and friendly!`;
       }
 
       const data = await response.json();
-      const assistantMessage = data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "I'm having trouble responding right now. Try asking me about design analysis or how to use Grraphic!";
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        '{"message": "I\'m having trouble responding right now. Try asking me about design analysis or how to use Grraphic!", "action": null}';
+
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(responseText);
+      } catch {
+        parsedResponse = {
+          message: responseText,
+          action: null
+        };
+      }
+
+      const assistantMessage = parsedResponse.message;
+      const action = parsedResponse.action;
 
       // Log assistant message
       logChatMessage(userId, sessionId, 'assistant', assistantMessage);
 
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+
+      // Handle movement action
+      if (action && action.startsWith('MOVE_TO:') && onNavigate) {
+        const target = action.split(':')[1];
+        moveToElement(target);
+      }
 
     } catch (error) {
       console.error('AI Assistant error:', error);
