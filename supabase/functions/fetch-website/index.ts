@@ -44,16 +44,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      },
-    });
+    const screenshotApiUrl = `https://api.screenshotone.com/take?url=${encodeURIComponent(url)}&viewport_width=1920&viewport_height=1080&device_scale_factor=1&format=jpg&image_quality=80&block_ads=true&block_cookie_banners=true&block_banners_by_heuristics=false&block_trackers=true&delay=3&timeout=60&access_key=XmFN9wT8oOCZww`;
+
+    const response = await fetch(screenshotApiUrl);
 
     if (!response.ok) {
       return new Response(
-        JSON.stringify({ error: `Failed to fetch: ${response.status} ${response.statusText}` }),
+        JSON.stringify({ error: `Failed to capture screenshot: ${response.status}` }),
         {
           status: response.status,
           headers: {
@@ -64,10 +61,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const html = await response.text();
+    const imageBuffer = await response.arrayBuffer();
+    const base64Image = btoa(
+      new Uint8Array(imageBuffer).reduce(
+        (data, byte) => data + String.fromCharCode(byte),
+        ''
+      )
+    );
 
     return new Response(
-      JSON.stringify({ html }),
+      JSON.stringify({ screenshot: base64Image }),
       {
         status: 200,
         headers: {
@@ -77,7 +80,7 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
-    console.error("Error fetching website:", error);
+    console.error("Error capturing screenshot:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
