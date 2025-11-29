@@ -35,26 +35,34 @@ export function AdminGradiChats() {
 
       const { data: messages, error } = await supabase
         .from('gradi_chat_logs')
-        .select(`
-          *,
-          user_email:user_id(email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
+      // Get user emails separately
+      const userIds = [...new Set(messages?.map(msg => msg.user_id).filter(Boolean))];
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, email')
+        .in('id', userIds);
+
+      const userEmailMap = new Map(users?.map(u => [u.id, u.email]) || []);
+
       const sessionMap = new Map<string, ChatSession>();
 
       messages?.forEach(msg => {
+        const userEmail = userEmailMap.get(msg.user_id) || 'Unknown';
+
         const formattedMsg: ChatMessage = {
           ...msg,
-          user_email: (msg.user_email as any)?.email || 'Unknown'
+          user_email: userEmail
         };
 
         if (!sessionMap.has(msg.session_id)) {
           sessionMap.set(msg.session_id, {
             session_id: msg.session_id,
-            user_email: (msg.user_email as any)?.email || 'Unknown',
+            user_email: userEmail,
             message_count: 0,
             first_message: msg.message_role === 'user' ? msg.message_content : '',
             last_activity: msg.created_at,

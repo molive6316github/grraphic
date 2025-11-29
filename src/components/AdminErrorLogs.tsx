@@ -27,20 +27,26 @@ export function AdminErrorLogs() {
   const fetchErrorLogs = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data: logs, error } = await supabase
         .from('error_logs')
-        .select(`
-          *,
-          user_email:user_id(email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (error) throw error;
 
-      const formattedLogs = data?.map(log => ({
+      // Get user emails separately
+      const userIds = [...new Set(logs?.map(log => log.user_id).filter(Boolean))];
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, email')
+        .in('id', userIds);
+
+      const userEmailMap = new Map(users?.map(u => [u.id, u.email]) || []);
+
+      const formattedLogs = logs?.map(log => ({
         ...log,
-        user_email: (log.user_email as any)?.email || 'Unknown'
+        user_email: userEmailMap.get(log.user_id) || 'Unknown'
       })) || [];
 
       setErrorLogs(formattedLogs);

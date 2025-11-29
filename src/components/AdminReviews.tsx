@@ -28,10 +28,7 @@ export function AdminReviews() {
       setLoading(true);
       let query = supabase
         .from('design_analyses')
-        .select(`
-          *,
-          user_email:user_id(email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (filter === 'public') {
@@ -40,13 +37,22 @@ export function AdminReviews() {
         query = query.eq('is_public', 'no');
       }
 
-      const { data, error } = await query;
+      const { data: analyses, error } = await query;
 
       if (error) throw error;
 
-      const formattedAnalyses = data?.map(analysis => ({
+      // Get user emails separately
+      const userIds = [...new Set(analyses?.map(a => a.user_id).filter(Boolean))];
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, email')
+        .in('id', userIds);
+
+      const userEmailMap = new Map(users?.map(u => [u.id, u.email]) || []);
+
+      const formattedAnalyses = analyses?.map(analysis => ({
         ...analysis,
-        user_email: (analysis.user_email as any)?.email || 'Unknown'
+        user_email: userEmailMap.get(analysis.user_id) || 'Unknown'
       })) || [];
 
       setAnalyses(formattedAnalyses);
