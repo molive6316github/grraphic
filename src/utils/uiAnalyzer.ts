@@ -149,7 +149,7 @@ Be specific about what you observe in the visual design.`;
       }
     };
 
-    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
     const url = `${GEMINI_API_URL}?key=${apiKey}`;
 
     const response = await fetch(url, {
@@ -169,7 +169,7 @@ Be specific about what you observe in the visual design.`;
       } else if (response.status === 403) {
         throw new Error(`Gemini API error (403): Access denied. Check your API key permissions and ensure your domain is allowed in HTTP referrer restrictions.`);
       } else if (response.status === 404) {
-        throw new Error(`Gemini API error (404): Model not found. The 'gemini-2.0-flash-exp' model may not be available or accessible with your current API key/project configuration.`);
+        throw new Error(`Gemini API error (404): Model not found. The 'gemini-2.5-flash' model may not be available or accessible with your current API key/project configuration.`);
       }
       throw new Error(`Gemini API error (${response.status}): ${errorText}`);
     }

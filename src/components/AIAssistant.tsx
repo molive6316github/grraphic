@@ -147,7 +147,7 @@ If the user mentions any of these, suggest navigation:
 Return your response as plain text, be conversational and friendly!`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: {
@@ -165,7 +165,18 @@ Return your response as plain text, be conversational and friendly!`;
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(`API responded with status ${response.status}: ${errorData}`);
+        let errorMessage = `API error (${response.status})`;
+
+        try {
+          const errorJson = JSON.parse(errorData);
+          if (errorJson.error?.message) {
+            errorMessage = errorJson.error.message;
+          }
+        } catch {
+          errorMessage = errorData.substring(0, 200);
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -182,9 +193,16 @@ Return your response as plain text, be conversational and friendly!`;
         logError(error, 'ai_assistant', userId);
       }
 
-      const errorMessage = isAdmin
-        ? `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Stack: ${error instanceof Error ? error.stack : 'N/A'}`
-        : "I'm so sorry! I'm having a little trouble right now. The admins have been notified and will fix this soon. In the meantime, feel free to explore Grraphic!";
+      let errorMessage: string;
+
+      if (isAdmin) {
+        const errorText = error instanceof Error ? error.message : 'Unknown error';
+        const stackTrace = error instanceof Error ? error.stack : 'N/A';
+
+        errorMessage = `**Error Details:**\n\n${errorText}\n\n**Stack Trace:**\n${stackTrace}`;
+      } else {
+        errorMessage = "I'm so sorry! I'm having a little trouble right now. The admins have been notified and will fix this soon. In the meantime, feel free to explore Grraphic!";
+      }
 
       setMessages(prev => [...prev, {
         role: 'assistant',
