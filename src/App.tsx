@@ -19,6 +19,7 @@ import { DesignHelpLanding } from './components/DesignHelpLanding';
 import { DesignInfoLanding } from './components/DesignInfoLanding';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
+import { AIAssistant } from './components/AIAssistant';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { analyzeUI } from './utils/uiAnalyzer';
 import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode } from './types';
@@ -51,6 +52,9 @@ function App() {
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [isHoveringHeader, setIsHoveringHeader] = useState(false);
   const [clickCount, setClickCount] = useState(0);
+  const [headingOffset, setHeadingOffset] = useState(150);
+  const [isRecentering, setIsRecentering] = useState(false);
+  const [confettiActive, setConfettiActive] = useState(false);
   const { isDark, toggleDarkMode } = useDarkMode();
   const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
   const { analyses, loading: historyLoading, saveAnalysis, deleteAnalysis, togglePublic, getPublicAnalysis } = useAnalysisHistory(user?.id);
@@ -483,20 +487,64 @@ function App() {
         </div>
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center relative z-10">
-          <h1
-            className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 transition-all duration-300"
-            onMouseEnter={() => setIsHoveringHeader(true)}
-            onMouseLeave={() => setIsHoveringHeader(false)}
-          >
-            Get AI-Powered
-            <span
-              className={`text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 transition-all duration-500 ${
-                isHoveringHeader ? 'animate-pulse-glow inline-block scale-110' : ''
-              }`}
+          <div className="relative group">
+            <h1
+              className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 transition-all duration-300 cursor-pointer"
+              style={{
+                transform: isRecentering ? 'translateX(0)' : `translateX(${headingOffset}px)`,
+                transition: isRecentering ? 'transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55)' : 'none'
+              }}
+              onMouseEnter={() => setIsHoveringHeader(true)}
+              onMouseLeave={() => setIsHoveringHeader(false)}
+              onClick={() => {
+                if (!isRecentering && headingOffset !== 0) {
+                  setIsRecentering(true);
+                  setHeadingOffset(0);
+                  setConfettiActive(true);
+                  setTimeout(() => {
+                    setIsRecentering(false);
+                    setConfettiActive(false);
+                  }, 1000);
+                }
+              }}
             >
-              {mode === 'design' ? ' Design Feedback' : ' UI Analysis'}
-            </span>
-          </h1>
+              Get AI-Powered
+              <span
+                className={`text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 transition-all duration-500 ${
+                  isHoveringHeader ? 'animate-pulse-glow inline-block scale-110' : ''
+                }`}
+              >
+                {mode === 'design' ? ' Design Feedback' : ' UI Analysis'}
+              </span>
+            </h1>
+
+            {headingOffset !== 0 && !isRecentering && (
+              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <div className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm rounded-lg px-4 py-2 whitespace-nowrap shadow-xl">
+                  Try recentering me! 🎯
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-white"></div>
+                </div>
+              </div>
+            )}
+
+            {confettiActive && (
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(20)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-3 h-3 rounded-full"
+                    style={{
+                      backgroundColor: ['#3b82f6', '#a855f7', '#ec4899', '#f59e0b'][i % 4],
+                      left: '50%',
+                      top: '50%',
+                      animation: `confetti-${i % 4} 1s ease-out forwards`,
+                      transform: `translate(-50%, -50%) rotate(${i * 18}deg)`
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto transition-colors duration-300">
             {mode === 'design'
               ? 'Upload your graphic design and receive comprehensive feedback on typography, color harmony, composition, and more. Improve your designs with professional insights.'
@@ -716,9 +764,12 @@ function App() {
         </div>
       </footer>
       
+      {/* AI Assistant */}
+      <AIAssistant />
+
       {/* Dark Mode Toggle */}
       <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
-      
+
       {/* Auth Modal */}
       <AuthModal
         isOpen={showAuthModal}

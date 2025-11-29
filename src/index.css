@@ -164,3 +164,60 @@
 .animate-pulse-glow {
   animation: pulse-glow 2s infinite ease-in-out;
 }
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-10px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(10px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes confetti-0 {
+  to {
+    transform: translate(-50%, -50%) rotate(0deg) translateY(-200px) translateX(50px);
+    opacity: 0;
+  }
+}
+
+@keyframes confetti-1 {
+  to {
+    transform: translate(-50%, -50%) rotate(90deg) translateY(-180px) translateX(-40px);
+    opacity: 0;
+  }
+}
+
+@keyframes confetti-2 {
+  to {
+    transform: translate(-50%, -50%) rotate(180deg) translateY(-220px) translateX(30px);
+    opacity: 0;
+  }
+}
+
+@keyframes confetti-3 {
+  to {
+    transform: translate(-50%, -50%) rotate(270deg) translateY(-190px) translateX(-50px);
+    opacity: 0;
+  }
+}
