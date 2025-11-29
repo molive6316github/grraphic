@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Shield, Users, FileImage, CreditCard, TrendingUp, RefreshCw, UserPlus, UserCheck, Ticket } from 'lucide-react';
+import { Shield, Users, FileImage, CreditCard, TrendingUp, RefreshCw, AlertCircle, MessageSquare, Ticket } from 'lucide-react';
 import { useAdminStats } from '../hooks/useAdminStats';
 import { AdminUsers } from './AdminUsers';
 import { AdminSubscriptions } from './AdminSubscriptions';
 import { AdminDiscountCodes } from './AdminDiscountCodes';
+import { AdminErrorLogs } from './AdminErrorLogs';
+import { AdminReviews } from './AdminReviews';
+import { AdminGradiChats } from './AdminGradiChats';
 
-type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts';
+type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'chats';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -107,6 +110,36 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
           >
             Discount Codes
           </button>
+          <button
+            onClick={() => setActiveView('reviews')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeView === 'reviews'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            All Reviews
+          </button>
+          <button
+            onClick={() => setActiveView('chats')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeView === 'chats'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Gradi Chats
+          </button>
+          <button
+            onClick={() => setActiveView('errors')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeView === 'errors'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Error Logs
+          </button>
         </div>
 
         {activeView === 'overview' && stats && (
@@ -202,6 +235,9 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         {activeView === 'users' && <AdminUsers />}
         {activeView === 'subscriptions' && <AdminSubscriptions />}
         {activeView === 'discounts' && <AdminDiscountCodes />}
+        {activeView === 'errors' && <AdminErrorLogs />}
+        {activeView === 'reviews' && <AdminReviews />}
+        {activeView === 'chats' && <AdminGradiChats />}
       </div>
     </div>
   );

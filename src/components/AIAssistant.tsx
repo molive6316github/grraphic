@@ -41,6 +41,24 @@ async function logError(error: unknown, context: string, userId: string) {
   }
 }
 
+async function logChatMessage(userId: string | undefined, sessionId: string, role: 'user' | 'assistant', content: string) {
+  try {
+    if (!userId) return;
+
+    const { supabase } = await import('../lib/supabase');
+
+    await supabase.from('gradi_chat_logs').insert({
+      user_id: userId,
+      session_id: sessionId,
+      message_role: role,
+      message_content: content,
+      created_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to log chat message:', error);
+  }
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -54,6 +72,7 @@ interface AIAssistantProps {
 
 export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -124,6 +143,9 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
+    // Log user message
+    logChatMessage(userId, sessionId, 'user', userMessage);
+
     try {
       const prompt = `You are Gradi, a friendly and helpful AI assistant for Grraphic, the design analysis tool. You're personified as the hexagonal logo character that runs around the screen.
 
@@ -182,6 +204,9 @@ Return your response as plain text, be conversational and friendly!`;
       const data = await response.json();
       const assistantMessage = data.candidates?.[0]?.content?.parts?.[0]?.text ||
         "I'm having trouble responding right now. Try asking me about design analysis or how to use Grraphic!";
+
+      // Log assistant message
+      logChatMessage(userId, sessionId, 'assistant', assistantMessage);
 
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
 
