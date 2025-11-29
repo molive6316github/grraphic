@@ -4,6 +4,9 @@ import { Sparkles, User, History, Shield } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { LoadingAnalysis } from './components/LoadingAnalysis';
 import { AnalysisResults } from './components/AnalysisResults';
+import { ModeToggle } from './components/ModeToggle';
+import { UIUpload } from './components/UIUpload';
+import { UIAnalysisResults } from './components/UIAnalysisResults';
 import { DarkModeToggle } from './components/DarkModeToggle';
 import { AuthModal } from './components/AuthModal';
 import AnalysisHistory from './components/AnalysisHistory';
@@ -17,7 +20,8 @@ import { DesignInfoLanding } from './components/DesignInfoLanding';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { analyzeDesign } from './utils/designAnalyzer';
-import { UploadedFile, DesignAnalysis } from './types';
+import { analyzeUI } from './utils/uiAnalyzer';
+import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode } from './types';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useAuth } from './hooks/useAuth';
 import { useAnalysisHistory } from './hooks/useAnalysisHistory';
@@ -32,9 +36,12 @@ import { STRIPE_PRODUCTS } from './stripe-config';
 type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms';
 
 function App() {
+  const [mode, setMode] = useState<AnalysisMode>('design');
   const [state, setState] = useState<AppState>('upload');
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [uploadedUI, setUploadedUI] = useState<UIUploadType | null>(null);
   const [analysis, setAnalysis] = useState<DesignAnalysis | null>(null);
+  const [uiAnalysis, setUIAnalysis] = useState<UIAnalysis | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [viewingAnalysis, setViewingAnalysis] = useState<any>(null);
@@ -219,12 +226,42 @@ function App() {
     setState('upload');
   };
 
+  const handleUIUpload = async (upload: UIUploadType) => {
+    setUploadedUI(upload);
+    setState('analyzing');
+
+    try {
+      const result = await analyzeUI(upload, import.meta.env.VITE_GEMINI_API_KEY);
+      setUIAnalysis(result);
+      setState('results');
+    } catch (error) {
+      console.error('UI Analysis failed:', error);
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred during analysis';
+      setErrorMessage(message);
+      setState('upload');
+      setTimeout(() => setErrorMessage(null), 10000);
+    }
+  };
+
+  const handleRemoveUI = () => {
+    setUploadedUI(null);
+    setUIAnalysis(null);
+    setState('upload');
+  };
+
+  const handleModeChange = (newMode: AnalysisMode) => {
+    setMode(newMode);
+    handleRemoveFile();
+    handleRemoveUI();
+    setState('upload');
+  };
+
   const startNewAnalysis = () => {
     handleRemoveFile();
+    handleRemoveUI();
     setViewingAnalysis(null);
     setPublicAnalysis(null);
     setState('upload');
-    // Clear URL parameters
     window.history.replaceState({}, document.title, window.location.pathname);
   };
 
@@ -392,14 +429,15 @@ function App() {
       <div className="relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 transition-colors duration-300">
-            Get AI-Powered 
+            Get AI-Powered
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
-              {' '}Design Feedback
+              {mode === 'design' ? ' Design Feedback' : ' UI Analysis'}
             </span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto transition-colors duration-300">
-            Upload your graphic design and receive comprehensive feedback on typography, 
-            color harmony, composition, and more. Improve your designs with professional insights.
+            {mode === 'design'
+              ? 'Upload your graphic design and receive comprehensive feedback on typography, color harmony, composition, and more. Improve your designs with professional insights.'
+              : 'Upload HTML or enter a website URL to receive comprehensive UI/UX analysis covering usability, accessibility, responsiveness, and performance.'}
           </p>
           
           {(state === 'results' || state === 'history' || state === 'success') && (
@@ -470,16 +508,32 @@ function App() {
         
         {state === 'upload' && (
           <>
-            <FileUpload
-              onFileUpload={handleFileUpload}
-              uploadedFile={uploadedFile}
-              onRemoveFile={handleRemoveFile}
-              hasProCredits={hasProCredits}
-              isProSubscriber={credits?.is_pro_subscriber || false}
-              isAuthenticated={!!user}
-              onShowAuth={() => setShowAuthModal(true)}
-            />
-            
+            <div className="mb-8 flex justify-center">
+              <ModeToggle mode={mode} onModeChange={handleModeChange} />
+            </div>
+
+            {mode === 'design' ? (
+              <FileUpload
+                onFileUpload={handleFileUpload}
+                uploadedFile={uploadedFile}
+                onRemoveFile={handleRemoveFile}
+                hasProCredits={hasProCredits}
+                isProSubscriber={credits?.is_pro_subscriber || false}
+                isAuthenticated={!!user}
+                onShowAuth={() => setShowAuthModal(true)}
+              />
+            ) : (
+              <UIUpload
+                onUpload={handleUIUpload}
+                uploadedUI={uploadedUI}
+                onRemove={handleRemoveUI}
+                hasProCredits={hasProCredits}
+                isProSubscriber={credits?.is_pro_subscriber || false}
+                isAuthenticated={!!user}
+                onShowAuth={() => setShowAuthModal(true)}
+              />
+            )}
+
             {/* Pro Subscription Card - Show for non-pro users below upload */}
             {user && !credits?.is_pro_subscriber && user.email !== 'maxolive6316@gmail.com' && (
               <div className="mt-8">
@@ -491,11 +545,23 @@ function App() {
 
         {state === 'analyzing' && <LoadingAnalysis />}
 
-        {state === 'results' && analysis && (
-          <AnalysisResults 
-            analysis={analysis} 
+        {state === 'results' && mode === 'design' && analysis && (
+          <AnalysisResults
+            analysis={analysis}
             fileName={uploadedFile?.name || viewingAnalysis?.file_name || 'Unknown'}
             imagePreview={uploadedFile?.preview}
+            isProSubscriber={credits?.is_pro_subscriber || user?.email === 'maxolive6316@gmail.com' || false}
+            onUpgrade={handleSubscribe}
+            userId={user?.id}
+          />
+        )}
+
+        {state === 'results' && mode === 'ui' && uiAnalysis && uploadedUI && (
+          <UIAnalysisResults
+            analysis={uiAnalysis}
+            uploadName={uploadedUI.name}
+            uploadType={uploadedUI.type}
+            uploadUrl={uploadedUI.url}
             isProSubscriber={credits?.is_pro_subscriber || user?.email === 'maxolive6316@gmail.com' || false}
             onUpgrade={handleSubscribe}
             userId={user?.id}

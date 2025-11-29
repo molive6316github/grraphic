@@ -207,11 +207,71 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Remove the data URL prefix to get just the base64 data
       const base64Data = result.split(',')[1];
       resolve(base64Data);
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+export async function analyzeWithGemini(prompt: string, apiKey: string, url?: string | null): Promise<any> {
+  const effectiveApiKey = apiKey || GEMINI_API_KEY;
+
+  if (!effectiveApiKey || effectiveApiKey.trim() === '' || !effectiveApiKey.startsWith('AIza')) {
+    throw new Error('Gemini API key not configured or invalid.');
+  }
+
+  try {
+    const requestBody = {
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 4096,
+        responseMimeType: "application/json",
+      }
+    };
+
+    const apiUrl = `${GEMINI_API_URL}?key=${effectiveApiKey}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    }
+
+    const rawData = await response.json();
+    const data = sanitizeApiResponse(rawData);
+
+    if (!data.candidates?.[0]?.content?.parts?.[0]) {
+      throw new Error('Invalid response from Gemini API');
+    }
+
+    const analysisText = data.candidates[0].content.parts[0].text;
+
+    try {
+      const analysis = JSON.parse(analysisText);
+      return sanitizeApiResponse(analysis);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      throw new Error(`Failed to parse Gemini response as JSON`);
+    }
+  } catch (error) {
+    console.error('Gemini analysis error:', error);
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Network error: Unable to connect to Gemini API.');
+    }
+    throw error;
+  }
 }

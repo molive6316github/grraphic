@@ -1,3 +1,5 @@
+export type AnalysisMode = 'design' | 'ui';
+
 export interface DesignAnalysis {
   overall: number;
   designContext?: {
@@ -42,11 +44,57 @@ export interface DesignAnalysis {
   designPrinciples: string[];
 }
 
+export interface UIAnalysis {
+  overall: number;
+  categories: {
+    usability: {
+      score: number;
+      feedback: string;
+      improvementIdeas: string[];
+    };
+    accessibility: {
+      score: number;
+      feedback: string;
+      improvementIdeas: string[];
+    };
+    responsiveness: {
+      score: number;
+      feedback: string;
+      improvementIdeas: string[];
+    };
+    performance: {
+      score: number;
+      feedback: string;
+      improvementIdeas: string[];
+    };
+    semantics: {
+      score: number;
+      feedback: string;
+      improvementIdeas: string[];
+    };
+    uxPatterns: {
+      score: number;
+      feedback: string;
+      improvementIdeas: string[];
+    };
+  };
+  strengths: string[];
+  improvements: string[];
+  bestPractices: string[];
+}
+
 export interface UploadedFile {
   file: File;
   preview: string;
   name: string;
   size: number;
+}
+
+export interface UIUpload {
+  type: 'html' | 'url';
+  content: string;
+  name: string;
+  url?: string;
 }
 
 export interface AnalysisRecord {
