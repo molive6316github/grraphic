@@ -2,6 +2,45 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send } from 'lucide-react';
 import logoImage from '../assets/ae52010de59e187ce864ed24eee6209a.png';
 
+async function logError(error: unknown, context: string, userId: string) {
+  try {
+    const { supabase } = await import('../lib/supabase');
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    await supabase.from('error_logs').insert({
+      user_id: userId,
+      error_message: errorMessage,
+      error_stack: errorStack,
+      context,
+      created_at: new Date().toISOString()
+    });
+
+    // Notify admins via edge function
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      await fetch(`${supabaseUrl}/functions/v1/notify-admin-error`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          error_message: errorMessage,
+          error_stack: errorStack,
+          context
+        })
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log error:', logError);
+  }
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -9,14 +48,16 @@ interface Message {
 
 interface AIAssistantProps {
   onNavigate?: (page: string) => void;
+  isAdmin?: boolean;
+  userId?: string;
 }
 
-export function AIAssistant({ onNavigate }: AIAssistantProps) {
+export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hi! I'm Grraphic, your design buddy! I can help you navigate the site, answer questions about design analysis, or just chat. What would you like to know?"
+      content: "Hi! I'm Gradi, your design buddy! I can help you navigate the site, answer questions about design analysis, or just chat. What would you like to know?"
     }
   ]);
   const [input, setInput] = useState('');
@@ -84,7 +125,7 @@ export function AIAssistant({ onNavigate }: AIAssistantProps) {
     setIsLoading(true);
 
     try {
-      const prompt = `You are Grraphic, a friendly and helpful AI assistant for the Grraphic design analysis tool. You're personified as the hexagonal logo character that runs around the screen.
+      const prompt = `You are Gradi, a friendly and helpful AI assistant for Grraphic, the design analysis tool. You're personified as the hexagonal logo character that runs around the screen.
 
 Context about Grraphic:
 - Grraphic analyzes graphic designs using AI (Gemini)
@@ -131,11 +172,22 @@ Return your response as plain text, be conversational and friendly!`;
         "I'm having trouble responding right now. Try asking me about design analysis or how to use Grraphic!";
 
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+
     } catch (error) {
       console.error('AI Assistant error:', error);
+
+      // Log error to database and notify admins
+      if (userId) {
+        logError(error, 'ai_assistant', userId);
+      }
+
+      const errorMessage = isAdmin
+        ? `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Stack: ${error instanceof Error ? error.stack : 'N/A'}`
+        : "I'm so sorry! I'm having a little trouble right now. The admins have been notified and will fix this soon. In the meantime, feel free to explore Grraphic!";
+
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Oops! I'm having trouble connecting. But I'm here to help with Grraphic - just ask me anything about design analysis!"
+        content: errorMessage
       }]);
     } finally {
       setIsLoading(false);
@@ -204,7 +256,7 @@ Return your response as plain text, be conversational and friendly!`;
                 className="w-10 h-10 rounded-full bg-white/20 p-1"
               />
               <div>
-                <h3 className="text-white font-bold">Grraphic</h3>
+                <h3 className="text-white font-bold">Gradi</h3>
                 <p className="text-white/80 text-xs">Your Design Buddy</p>
               </div>
             </div>
@@ -226,7 +278,7 @@ Return your response as plain text, be conversational and friendly!`;
                 {message.role === 'assistant' && (
                   <img
                     src={logoImage}
-                    alt="Grraphic"
+                    alt="Gradi"
                     className="w-8 h-8 rounded-full mr-2 flex-shrink-0"
                   />
                 )}
@@ -245,7 +297,7 @@ Return your response as plain text, be conversational and friendly!`;
               <div className="flex justify-start items-start">
                 <img
                   src={logoImage}
-                  alt="Grraphic"
+                  alt="Gradi"
                   className="w-8 h-8 rounded-full mr-2 flex-shrink-0"
                 />
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2">

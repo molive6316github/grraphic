@@ -765,7 +765,7 @@ function App() {
       </footer>
       
       {/* AI Assistant */}
-      <AIAssistant />
+      <AIAssistant isAdmin={isAdmin} userId={user?.id} />
 
       {/* Dark Mode Toggle */}
       <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
