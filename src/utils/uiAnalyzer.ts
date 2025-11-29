@@ -53,15 +53,24 @@ Return ONLY valid JSON with this exact structure:
 
 async function fetchWebsiteHTML(url: string): Promise<string> {
   try {
-    const corsProxy = 'https://api.allorigins.win/get?url=';
-    const response = await fetch(corsProxy + encodeURIComponent(url));
+    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-website`;
+
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ url }),
+    });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch website');
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || 'Failed to fetch website');
     }
 
     const data = await response.json();
-    return data.contents;
+    return data.html;
   } catch (error) {
     console.error('Error fetching website:', error);
     throw new Error('Unable to fetch website content. The site may block automated requests or the URL may be invalid.');
