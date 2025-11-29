@@ -164,7 +164,8 @@ Return your response as plain text, be conversational and friendly!`;
       );
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        const errorData = await response.text();
+        throw new Error(`API responded with status ${response.status}: ${errorData}`);
       }
 
       const data = await response.json();
