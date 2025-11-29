@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const screenshotApiUrl = `https://api.screenshotone.com/take?url=${encodeURIComponent(url)}&viewport_width=1920&viewport_height=1080&device_scale_factor=1&format=jpg&image_quality=80&block_ads=true&block_cookie_banners=true&block_banners_by_heuristics=false&block_trackers=true&delay=3&timeout=60&access_key=XmFN9wT8oOCZww`;
+    const screenshotApiUrl = `https://api.screenshotmachine.com?key=8f3c61&url=${encodeURIComponent(url)}&dimension=1920x1080&format=jpg&cacheLimit=0&delay=3000`;
 
     const response = await fetch(screenshotApiUrl);
 
