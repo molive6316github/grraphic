@@ -155,6 +155,8 @@ CRITICAL JSON FORMATTING RULES:
         throw new Error(`Gemini API error (403): Access denied. Check your API key permissions and ensure localhost:5173 is allowed in HTTP referrer restrictions.`);
       } else if (response.status === 404) {
         throw new Error(`Gemini API error (404): Model not found. The 'gemini-2.5-flash' model may not be available or accessible with your current API key/project configuration.`);
+      } else if (response.status === 429) {
+        throw new Error(`Gemini API rate limit exceeded (429). The free tier allows 15 requests per minute. Please wait a moment and try again, or consider upgrading to a paid plan for higher limits.`);
       } else {
         throw new Error(`Gemini API error (${response.status}): ${errorText}`);
       }
@@ -248,6 +250,9 @@ export async function analyzeWithGemini(prompt: string, apiKey: string, url?: st
 
     if (!response.ok) {
       const errorText = await response.text();
+      if (response.status === 429) {
+        throw new Error(`Gemini API rate limit exceeded (429). The free tier allows 15 requests per minute. Please wait a moment and try again, or consider upgrading to a paid plan for higher limits.`);
+      }
       throw new Error(`Gemini API error (${response.status}): ${errorText}`);
     }
 
