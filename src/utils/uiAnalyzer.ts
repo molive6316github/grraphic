@@ -161,7 +161,17 @@ Be specific about what you observe in the visual design.`;
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error (${response.status})`);
+      const errorText = await response.text();
+      if (response.status === 429) {
+        throw new Error(`Gemini API rate limit exceeded (429). The free tier allows 15 requests per minute. Please wait a moment and try again, or consider upgrading to a paid plan for higher limits.`);
+      } else if (response.status === 400) {
+        throw new Error(`Gemini API error (400): Invalid request. Check if the Generative Language API is enabled and your API key has proper restrictions configured.`);
+      } else if (response.status === 403) {
+        throw new Error(`Gemini API error (403): Access denied. Check your API key permissions and ensure your domain is allowed in HTTP referrer restrictions.`);
+      } else if (response.status === 404) {
+        throw new Error(`Gemini API error (404): Model not found. The 'gemini-2.0-flash-exp' model may not be available or accessible with your current API key/project configuration.`);
+      }
+      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
