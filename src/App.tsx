@@ -674,6 +674,7 @@ function App() {
             uploadName={uploadedUI.name}
             uploadType={uploadedUI.type}
             uploadUrl={uploadedUI.url}
+            screenshotUrl={(uiAnalysis as any).screenshotUrl}
             isProSubscriber={credits?.is_pro_subscriber || user?.email === 'maxolive6316@gmail.com' || false}
             onUpgrade={handleSubscribe}
             userId={user?.id}
