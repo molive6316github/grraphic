@@ -772,6 +772,8 @@ function App() {
         userId={user?.id}
         screenshotUrl={mode === 'design' ? uploadedFile?.preview : (uiAnalysis as any)?.screenshotUrl}
         analysisData={mode === 'design' ? analysis : uiAnalysis}
+        currentPage={state}
+        hasResults={state === 'results' && (analysis !== null || uiAnalysis !== null)}
       />
 
       {/* Dark Mode Toggle */}

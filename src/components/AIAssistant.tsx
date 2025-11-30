@@ -77,9 +77,11 @@ interface AIAssistantProps {
   userId?: string;
   screenshotUrl?: string;
   analysisData?: any;
+  currentPage?: string;
+  hasResults?: boolean;
 }
 
-export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl, analysisData }: AIAssistantProps) {
+export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl, analysisData, currentPage = 'upload', hasResults = false }: AIAssistantProps) {
   const [highlightBox, setHighlightBox] = useState<{ x: number; y: number; width: number; height: number; description: string } | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
@@ -100,10 +102,40 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [hasGreeted, setHasGreeted] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // React to screen context when chat opens
+  useEffect(() => {
+    if (isOpen && !hasGreeted) {
+      setHasGreeted(true);
+
+      // Add a context-aware greeting after a short delay
+      setTimeout(() => {
+        let contextMessage = "";
+
+        if (currentPage === 'results' && hasResults) {
+          const score = analysisData?.overall || 0;
+          contextMessage = `I see you just got your analysis results! ${score >= 80 ? "Nice score! 🎉" : "Interesting findings!"} Want me to explain anything or highlight specific areas?`;
+        } else if (currentPage === 'privacy') {
+          contextMessage = "Reading the privacy policy? I can give you the quick summary if you'd like!";
+        } else if (currentPage === 'terms') {
+          contextMessage = "Looking at the terms? They're pretty straightforward - want the TL;DR version?";
+        } else if (currentPage === 'upload') {
+          contextMessage = "Ready to analyze a design? Upload an image and I'll help you make sense of the results!";
+        } else if (currentPage === 'history') {
+          contextMessage = "Checking out your past analyses? I can help you understand any of them!";
+        }
+
+        if (contextMessage) {
+          setMessages(prev => [...prev, { role: 'assistant', content: contextMessage }]);
+        }
+      }, 500);
+    }
+  }, [isOpen, hasGreeted, currentPage, hasResults, analysisData]);
 
   const moveToElement = (target: string) => {
     setTimeout(() => {
@@ -207,7 +239,31 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl
       const lowerMsg = userMessage.toLowerCase();
       let quickResponse: { message: string; action: string | null } | null = null;
 
-      if (lowerMsg.includes('where') || lowerMsg.includes('how do i') || lowerMsg.includes('find')) {
+      // Context-aware reactions based on current page
+      if (lowerMsg.includes('privacy') || (currentPage === 'privacy' && (lowerMsg.includes('what') || lowerMsg.includes('summary') || lowerMsg.includes('tell me')))) {
+        quickResponse = {
+          message: "Our privacy policy is simple: We collect minimal data (email, designs you upload), use cookies for authentication, never sell your data, and you can delete your account anytime. We use Supabase for secure storage and Stripe for payments. Your designs are yours!",
+          action: null
+        };
+      } else if (lowerMsg.includes('terms') || (currentPage === 'terms' && (lowerMsg.includes('what') || lowerMsg.includes('summary')))) {
+        quickResponse = {
+          message: "The terms are straightforward: Use Grraphic for design analysis, don't abuse the service, Pro subscriptions renew monthly, and we reserve the right to moderate content. You own your uploads!",
+          action: null
+        };
+      } else if ((lowerMsg.includes('my results') || lowerMsg.includes('my analysis') || lowerMsg.includes('what did') || lowerMsg.includes('tell me about my')) && hasResults && analysisData) {
+        const score = analysisData.overall || 0;
+        const topCategory = analysisData.categories ?
+          Object.entries(analysisData.categories).reduce((a: any, b: any) => a[1].score > b[1].score ? a : b)[0] : 'design';
+        quickResponse = {
+          message: `Your design scored ${score}/100! Your strongest area is ${topCategory}. ${score >= 80 ? "Great work! 🎉" : score >= 60 ? "Good foundation, with room for improvement!" : "There's potential here - check the improvement ideas!"} Want me to highlight specific areas?`,
+          action: null
+        };
+      } else if ((lowerMsg.includes('what') || lowerMsg.includes('see')) && currentPage === 'results' && hasResults) {
+        quickResponse = {
+          message: "I can see your analysis results on screen! They look detailed. Want me to explain any specific category like typography, colors, or spacing? Or ask me to highlight problem areas!",
+          action: null
+        };
+      } else if (lowerMsg.includes('where') || lowerMsg.includes('how do i') || lowerMsg.includes('find')) {
         if (lowerMsg.includes('mode') || lowerMsg.includes('ui') || lowerMsg.includes('design mode')) {
           quickResponse = { message: "Let me show you where to switch modes! I'll run over there now!", action: "MOVE_TO:mode" };
         } else if (lowerMsg.includes('upload') || lowerMsg.includes('add') || lowerMsg.includes('submit')) {
@@ -220,9 +276,13 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl
           quickResponse = { message: "I'll show you where to sign in! Coming right up!", action: "MOVE_TO:account" };
         }
       } else if (lowerMsg.includes('hello') || lowerMsg.includes('hi ') || lowerMsg === 'hi' || lowerMsg === 'hey') {
-        quickResponse = { message: "Hey there! I'm Gradi, your design assistant! Need help finding something or want to learn about Grraphic?", action: null };
+        const greeting = currentPage === 'results' ? "Hey! I see you got your results - they look great! Want me to break down any specific aspect?" :
+                        currentPage === 'privacy' ? "Hi! Reading the privacy policy? I can summarize it for you if you'd like!" :
+                        currentPage === 'upload' ? "Hey there! Ready to analyze a design? Just upload an image and I'll help you understand the results!" :
+                        "Hey there! I'm Gradi, your design assistant! Need help finding something or want to learn about Grraphic?";
+        quickResponse = { message: greeting, action: null };
       } else if (lowerMsg.includes('help') || lowerMsg.includes('what can you')) {
-        quickResponse = { message: "I can help you navigate Grraphic! Ask me where to find features, learn about Design vs UI mode, or get tips on using the app!", action: null };
+        quickResponse = { message: "I can help you navigate Grraphic, explain your analysis results, summarize policies, highlight design issues, and answer questions about using the app!", action: null };
       } else if (lowerMsg.includes('thank') || lowerMsg.includes('thanks')) {
         quickResponse = { message: "You're welcome! Happy to help anytime!", action: null };
       }
