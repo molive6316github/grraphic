@@ -187,7 +187,35 @@ Be specific about what you observe in the visual design.`;
     }
 
     const analysisText = data.candidates[0].content.parts[0].text;
-    const analysis = JSON.parse(analysisText);
+
+    let analysis;
+    try {
+      analysis = JSON.parse(analysisText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Failed to parse response (first 500 chars):', analysisText.substring(0, 500));
+
+      // Try to repair the JSON
+      try {
+        let repairedText = analysisText;
+
+        // Remove any trailing commas before closing braces/brackets
+        repairedText = repairedText.replace(/,(\s*[}\]])/g, '$1');
+
+        // Try to find and remove incomplete visualReferences if present
+        repairedText = repairedText.replace(/"visualReferences"\s*:\s*\[[^\]]*$/gm, '');
+
+        // Remove trailing commas again after removal
+        repairedText = repairedText.replace(/,(\s*[}\]])/g, '$1');
+
+        // Try parsing the repaired JSON
+        analysis = JSON.parse(repairedText);
+        console.log('Successfully repaired JSON');
+      } catch (repairError) {
+        console.error('Failed to repair JSON:', repairError);
+        throw new Error(`Failed to parse Gemini response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}. The response may be incomplete or malformed.`);
+      }
+    }
 
     // Convert base64 image to data URL for display
     const screenshotUrl = `data:${mimeType};base64,${base64Image}`;
