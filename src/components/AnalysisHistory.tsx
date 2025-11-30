@@ -98,9 +98,9 @@ export default function AnalysisHistory({
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(analysis.created_at).toLocaleDateString()}
                     </p>
-                    {analysis.analysis_data?.overallScore && (
+                    {analysis.analysis_data?.overall && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                        Score: {analysis.analysis_data.overallScore}/100
+                        Score: {analysis.analysis_data.overall}/100
                       </span>
                     )}
                   </div>

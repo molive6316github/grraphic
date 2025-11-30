@@ -284,6 +284,7 @@ function App() {
   const handleViewAnalysis = (analysisRecord: any) => {
     setViewingAnalysis(analysisRecord);
     setAnalysis(analysisRecord.analysis_data);
+    setMode('design'); // Set mode to design when viewing from history
     // Create a mock uploaded file with the saved image
     setUploadedFile({
       file: new File([], analysisRecord.file_name),
