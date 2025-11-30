@@ -56,32 +56,38 @@ CRITICAL: Return ONLY valid JSON. Do NOT include any markdown formatting, code b
     "typography": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
+      "references": ["specific element you're referring to, like 'headline font', 'body text', 'button labels'"]
     },
     "colorHarmony": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
+      "references": ["specific colors or elements you're referring to, like 'blue background', 'orange CTA button', 'text color'"]
     },
     "composition": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
+      "references": ["specific layout elements you're referring to, like 'top section', 'left sidebar', 'footer area'"]
     },
     "hierarchy": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
+      "references": ["specific hierarchy elements you're referring to, like 'main heading', 'subheadings', 'call-to-action'"]
     },
     "spacing": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
+      "references": ["specific spacing areas you're referring to, like 'margins around logo', 'padding between sections', 'line spacing'"]
     },
     "contrast": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
-      "improvementIdeas": ["idea 1", "idea 2", "idea 3"]
+      "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
+      "references": ["specific contrast issues you're referring to, like 'text on background', 'button visibility', 'readability of captions'"]
     }
   },
   "strengths": ["strength 1", "strength 2", "strength 3", "strength 4"],
@@ -93,6 +99,7 @@ For each category, provide:
 - score: number between 0-100 based on design quality (be generous, most designs should score 70-95)
 - feedback: detailed explanation of the assessment (2-3 sentences)
 - improvementIdeas: array of exactly 3 specific, actionable improvement ideas
+- references: array of 2-4 specific visual elements you're talking about (be concrete, like "the blue headline", "spacing between logo and menu", "contrast of the footer text")
 
 Categories to analyze:
 - typography: Font choices, readability, hierarchy, consistency

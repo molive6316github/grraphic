@@ -12,31 +12,37 @@ export interface DesignAnalysis {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     colorHarmony: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     composition: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     hierarchy: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     spacing: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     contrast: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
   };
   strengths: string[];
@@ -51,31 +57,37 @@ export interface UIAnalysis {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     accessibility: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     responsiveness: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     performance: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     semantics: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
     uxPatterns: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
+      references?: string[];
     };
   };
   strengths: string[];

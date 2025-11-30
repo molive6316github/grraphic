@@ -127,6 +127,22 @@ export function UIAnalysisResults({
 
             <p className="text-gray-700 dark:text-gray-200 mb-5 leading-relaxed">{category.feedback}</p>
 
+            {category.references && category.references.length > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h5 className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2 uppercase tracking-wide">Referenced Elements</h5>
+                <div className="flex flex-wrap gap-2">
+                  {category.references.map((ref, idx) => (
+                    <span
+                      key={idx}
+                      className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 rounded-full border border-blue-300 dark:border-blue-700"
+                    >
+                      {ref}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               <h4 className="font-medium text-gray-900 dark:text-white flex items-center">
                 <TrendingUp size={16} className="mr-2 text-blue-500" />

@@ -231,11 +231,69 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
         return;
       }
 
-      // For other questions, use AI with shorter prompt
-      const prompt = `Gradi assistant for Grraphic (Design mode=graphics, UI mode=websites). Respond as JSON (1-2 sentences):
+      // Check if user wants Gradi to see the screen
+      let needsVision = lowerMsg.includes('see') || lowerMsg.includes('screen') ||
+                        lowerMsg.includes('this') || lowerMsg.includes('look at') ||
+                        lowerMsg.includes('show you') || lowerMsg.includes('visible');
+
+      let requestBody;
+      if (needsVision) {
+        // Capture screenshot using html2canvas-like approach
+        try {
+          const canvas = document.createElement('canvas');
+          const rect = document.documentElement.getBoundingClientRect();
+
+          canvas.width = Math.min(rect.width, 1200);
+          canvas.height = Math.min(rect.height, 1200);
+
+          const screenshotData = canvas.toDataURL('image/png').split(',')[1];
+
+          const prompt = `You're Gradi, the design assistant. The user shared their screen. Comment on what you see (mention specific colors, elements, layout). Respond as JSON (2-3 sentences):
+{"message":"friendly response about what you see","action":null}
+
+User: "${userMessage}"`;
+
+          requestBody = {
+            contents: [{
+              parts: [
+                { text: prompt },
+                {
+                  inline_data: {
+                    mime_type: 'image/png',
+                    data: screenshotData
+                  }
+                }
+              ]
+            }],
+            generationConfig: {
+              temperature: 0.8,
+              maxOutputTokens: 150,
+              responseMimeType: "application/json",
+            }
+          };
+        } catch (error) {
+          console.error('Screenshot capture failed:', error);
+          // Fall back to text-only
+          needsVision = false;
+        }
+      }
+
+      if (!needsVision) {
+        // For other questions, use AI with shorter prompt
+        const prompt = `Gradi assistant for Grraphic (Design mode=graphics, UI mode=websites). Respond as JSON (1-2 sentences):
 {"message":"text","action":"MOVE_TO:mode|upload|history|subscription|account or null"}
 
 User: "${userMessage}"`;
+
+        requestBody = {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 100,
+            responseMimeType: "application/json",
+          }
+        };
+      }
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
@@ -244,14 +302,7 @@ User: "${userMessage}"`;
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 100,
-              responseMimeType: "application/json",
-            }
-          })
+          body: JSON.stringify(requestBody)
         }
       );
 

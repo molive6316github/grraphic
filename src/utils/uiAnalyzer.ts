@@ -17,32 +17,38 @@ Return ONLY valid JSON with this exact structure:
     "usability": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
-      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"]
+      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
+      "references": ["specific UI elements mentioned, like 'navigation menu', 'search button', 'login form'"]
     },
     "accessibility": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
-      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"]
+      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
+      "references": ["specific accessibility concerns, like 'text contrast on blue background', 'icon buttons without labels'"]
     },
     "responsiveness": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
-      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"]
+      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
+      "references": ["specific layout elements, like 'sidebar width', 'mobile menu', 'content grid'"]
     },
     "performance": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
-      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"]
+      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
+      "references": ["specific performance indicators, like 'number of large images', 'animation complexity'"]
     },
     "semantics": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
-      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"]
+      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
+      "references": ["specific semantic elements, like 'page heading structure', 'section organization', 'content hierarchy'"]
     },
     "uxPatterns": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
-      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"]
+      "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
+      "references": ["specific UX patterns observed, like 'breadcrumb navigation', 'card layout', 'call-to-action placement'"]
     }
   },
   "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
