@@ -86,6 +86,9 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
   const [velocity, setVelocity] = useState({ x: 0, y: 0 });
   const [isRunning, setIsRunning] = useState(false);
   const [direction, setDirection] = useState<'left' | 'right'>('left');
+  const [chatPosition, setChatPosition] = useState({ x: window.innerWidth - 420, y: window.innerHeight - 540 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -153,15 +156,14 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
 
         if (distance < 10) {
           setIsRunning(false);
-          if (!isOpen) {
-            setTimeout(() => {
-              const padding = 100;
-              const newX = Math.random() * (window.innerWidth - padding * 2) + padding;
-              const newY = Math.random() * (window.innerHeight - padding * 2) + padding;
-              setTargetPosition({ x: newX, y: newY });
-              setIsRunning(true);
-            }, Math.random() * 2000 + 1000);
-          }
+          // Continue wandering even when chat is open
+          setTimeout(() => {
+            const padding = 100;
+            const newX = Math.random() * (window.innerWidth - padding * 2) + padding;
+            const newY = Math.random() * (window.innerHeight - padding * 2) + padding;
+            setTargetPosition({ x: newX, y: newY });
+            setIsRunning(true);
+          }, Math.random() * 2000 + 1000);
           return prev;
         }
 
@@ -348,6 +350,38 @@ User: "${userMessage}"`;
     }
   };
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - chatPosition.x,
+      y: e.clientY - chatPosition.y
+    });
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setChatPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart]);
+
   return (
     <>
       {/* Running Character */}
@@ -393,9 +427,19 @@ User: "${userMessage}"`;
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-96 h-[500px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700 animate-scale-in">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 flex items-center justify-between">
+        <div
+          className="fixed z-50 w-96 h-[500px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700 animate-scale-in"
+          style={{
+            left: `${chatPosition.x}px`,
+            top: `${chatPosition.y}px`,
+            cursor: isDragging ? 'grabbing' : 'default'
+          }}
+        >
+          {/* Header - Draggable */}
+          <div
+            className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 flex items-center justify-between cursor-grab active:cursor-grabbing"
+            onMouseDown={handleMouseDown}
+          >
             <div className="flex items-center space-x-3">
               <img
                 src={logoImage}
