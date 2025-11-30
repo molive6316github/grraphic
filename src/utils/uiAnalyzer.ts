@@ -18,56 +18,43 @@ Return ONLY valid JSON with this exact structure:
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific UI elements mentioned, like 'navigation menu', 'search button', 'login form'"],
-      "visualReferences": [{"description": "element description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
+      "references": ["specific UI elements mentioned, like 'navigation menu', 'search button', 'login form'"]
     },
     "accessibility": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific accessibility concerns, like 'text contrast on blue background', 'icon buttons without labels'"],
-      "visualReferences": [{"description": "element description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
+      "references": ["specific accessibility concerns, like 'text contrast on blue background', 'icon buttons without labels'"]
     },
     "responsiveness": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific layout elements, like 'sidebar width', 'mobile menu', 'content grid'"],
-      "visualReferences": [{"description": "element description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
+      "references": ["specific layout elements, like 'sidebar width', 'mobile menu', 'content grid'"]
     },
     "performance": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific performance indicators, like 'number of large images', 'animation complexity'"],
-      "visualReferences": [{"description": "element description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
+      "references": ["specific performance indicators, like 'number of large images', 'animation complexity'"]
     },
     "semantics": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific semantic elements, like 'page heading structure', 'section organization', 'content hierarchy'"],
-      "visualReferences": [{"description": "element description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
+      "references": ["specific semantic elements, like 'page heading structure', 'section organization', 'content hierarchy'"]
     },
     "uxPatterns": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific UX patterns observed, like 'breadcrumb navigation', 'card layout', 'call-to-action placement'"],
-      "visualReferences": [{"description": "element description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
+      "references": ["specific UX patterns observed, like 'breadcrumb navigation', 'card layout', 'call-to-action placement'"]
     }
   },
   "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
   "improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"],
   "bestPractices": ["<practice 1>", "<practice 2>", "<practice 3>"]
-}
-
-IMPORTANT: For visualReferences, provide 2-3 bounding boxes per category showing specific areas you're discussing. Coordinates are NORMALIZED (0-1 range):
-  - x: left edge position (0 = left side, 1 = right side)
-  - y: top edge position (0 = top, 1 = bottom)
-  - width: box width (0-1)
-  - height: box height (0-1)
-  Example: {"x": 0.1, "y": 0.2, "width": 0.3, "height": 0.15} means starting 10% from left, 20% from top, 30% wide, 15% tall`;
+}`;
 
 async function fetchWebsiteScreenshot(url: string): Promise<string> {
   try {
