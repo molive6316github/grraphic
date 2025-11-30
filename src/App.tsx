@@ -767,7 +767,12 @@ function App() {
       </footer>
       
       {/* AI Assistant */}
-      <AIAssistant isAdmin={isAdmin} userId={user?.id} />
+      <AIAssistant
+        isAdmin={isAdmin}
+        userId={user?.id}
+        screenshotUrl={mode === 'design' ? uploadedFile?.preview : (uiAnalysis as any)?.screenshotUrl}
+        analysisData={mode === 'design' ? analysis : uiAnalysis}
+      />
 
       {/* Dark Mode Toggle */}
       <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />

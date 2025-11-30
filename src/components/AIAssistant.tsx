@@ -62,15 +62,25 @@ async function logChatMessage(userId: string | undefined, sessionId: string, rol
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  highlight?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    description: string;
+  };
 }
 
 interface AIAssistantProps {
   onNavigate?: (page: string) => void;
   isAdmin?: boolean;
   userId?: string;
+  screenshotUrl?: string;
+  analysisData?: any;
 }
 
-export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistantProps) {
+export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl, analysisData }: AIAssistantProps) {
+  const [highlightBox, setHighlightBox] = useState<{ x: number; y: number; width: number; height: number; description: string } | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [messages, setMessages] = useState<Message[]>([
@@ -231,25 +241,43 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
         return;
       }
 
-      // Check if user wants Gradi to see the screen
-      let needsVision = lowerMsg.includes('see') || lowerMsg.includes('screen') ||
-                        lowerMsg.includes('this') || lowerMsg.includes('look at') ||
-                        lowerMsg.includes('show you') || lowerMsg.includes('visible');
+      // Check if user wants to talk about the design/analysis
+      let needsAnalysis = screenshotUrl && analysisData && (
+        lowerMsg.includes('show me') || lowerMsg.includes('where') ||
+        lowerMsg.includes('point out') || lowerMsg.includes('highlight') ||
+        lowerMsg.includes('typography') || lowerMsg.includes('color') ||
+        lowerMsg.includes('spacing') || lowerMsg.includes('layout') ||
+        lowerMsg.includes('composition') || lowerMsg.includes('contrast') ||
+        lowerMsg.includes('hierarchy') || lowerMsg.includes('usability') ||
+        lowerMsg.includes('accessibility')
+      );
 
       let requestBody;
-      if (needsVision) {
-        // Capture screenshot using html2canvas-like approach
+      if (needsAnalysis) {
+        // Use analysis data to provide context-aware responses with highlights
         try {
-          const canvas = document.createElement('canvas');
-          const rect = document.documentElement.getBoundingClientRect();
+          const imageData = screenshotUrl.split(',')[1];
+          const analysisContext = JSON.stringify(analysisData);
 
-          canvas.width = Math.min(rect.width, 1200);
-          canvas.height = Math.min(rect.height, 1200);
+          const prompt = `You're Gradi, the design assistant. You have access to the design analysis and can highlight specific areas on the image.
 
-          const screenshotData = canvas.toDataURL('image/png').split(',')[1];
+Analysis data: ${analysisContext}
 
-          const prompt = `You're Gradi, the design assistant. The user shared their screen. Comment on what you see (mention specific colors, elements, layout). Respond as JSON (2-3 sentences):
-{"message":"friendly response about what you see","action":null}
+When the user asks about specific areas, respond with:
+{
+  "message": "your friendly explanation (2-3 sentences)",
+  "action": null,
+  "highlight": {
+    "x": 0.1,
+    "y": 0.2,
+    "width": 0.3,
+    "height": 0.15,
+    "description": "brief label"
+  }
+}
+
+If you can identify a relevant area from the analysis data (visualReferences or references), include the highlight. Coordinates are normalized 0-1.
+If no specific area is mentioned, omit the highlight field.
 
 User: "${userMessage}"`;
 
@@ -260,25 +288,25 @@ User: "${userMessage}"`;
                 {
                   inline_data: {
                     mime_type: 'image/png',
-                    data: screenshotData
+                    data: imageData
                   }
                 }
               ]
             }],
             generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 150,
+              temperature: 0.7,
+              maxOutputTokens: 200,
               responseMimeType: "application/json",
             }
           };
         } catch (error) {
-          console.error('Screenshot capture failed:', error);
+          console.error('Analysis context failed:', error);
           // Fall back to text-only
-          needsVision = false;
+          needsAnalysis = false;
         }
       }
 
-      if (!needsVision) {
+      if (!needsAnalysis) {
         // For other questions, use AI with shorter prompt
         const prompt = `Gradi assistant for Grraphic (Design mode=graphics, UI mode=websites). Respond as JSON (1-2 sentences):
 {"message":"text","action":"MOVE_TO:mode|upload|history|subscription|account or null"}
@@ -329,12 +357,14 @@ User: "${userMessage}"`;
       let parsedResponse;
       let assistantMessage: string;
       let action: string | null = null;
+      let highlight: { x: number; y: number; width: number; height: number; description: string } | undefined = undefined;
 
       try {
         // Try to parse as JSON
         parsedResponse = JSON.parse(responseText);
         assistantMessage = parsedResponse.message || responseText;
         action = parsedResponse.action || null;
+        highlight = parsedResponse.highlight || undefined;
       } catch {
         // If JSON parsing fails, try to extract JSON from the text
         const jsonMatch = responseText.match(/\{[^{}]*"message"[^{}]*\}/);
@@ -343,6 +373,7 @@ User: "${userMessage}"`;
             parsedResponse = JSON.parse(jsonMatch[0]);
             assistantMessage = parsedResponse.message || responseText;
             action = parsedResponse.action || null;
+            highlight = parsedResponse.highlight || undefined;
           } catch {
             // If that fails too, just use the text as the message
             assistantMessage = responseText.replace(/[{}]/g, '').replace(/"message":\s*"?|"action":\s*\w+/g, '').trim();
@@ -353,6 +384,15 @@ User: "${userMessage}"`;
           assistantMessage = responseText;
           action = null;
         }
+      }
+
+      // Set or clear the highlight
+      if (highlight && highlight.x !== undefined && highlight.y !== undefined) {
+        setHighlightBox(highlight);
+        // Clear highlight after 10 seconds
+        setTimeout(() => setHighlightBox(null), 10000);
+      } else {
+        setHighlightBox(null);
       }
 
       // Log assistant message
@@ -573,6 +613,35 @@ User: "${userMessage}"`;
               >
                 <Send size={20} />
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Highlight Overlay */}
+      {highlightBox && screenshotUrl && (
+        <div
+          className="fixed inset-0 z-40 pointer-events-none"
+          style={{
+            backgroundImage: `url(${screenshotUrl})`,
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+            opacity: 0.3
+          }}
+        >
+          <div
+            className="absolute border-4 border-blue-500 rounded-lg animate-pulse"
+            style={{
+              left: `${highlightBox.x * 100}%`,
+              top: `${highlightBox.y * 100}%`,
+              width: `${highlightBox.width * 100}%`,
+              height: `${highlightBox.height * 100}%`,
+              boxShadow: '0 0 20px rgba(59, 130, 246, 0.8), inset 0 0 20px rgba(59, 130, 246, 0.3)'
+            }}
+          >
+            <div className="absolute -top-8 left-0 bg-blue-500 text-white text-sm px-3 py-1 rounded-md shadow-lg whitespace-nowrap">
+              {highlightBox.description}
             </div>
           </div>
         </div>
