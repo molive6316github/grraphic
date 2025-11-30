@@ -57,37 +57,48 @@ CRITICAL: Return ONLY valid JSON. Do NOT include any markdown formatting, code b
       "score": number (0-100),
       "feedback": "detailed explanation string",
       "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
-      "references": ["specific element you're referring to, like 'headline font', 'body text', 'button labels'"]
+      "references": ["specific element you're referring to, like 'headline font', 'body text', 'button labels'"],
+      "visualReferences": [
+        {
+          "description": "brief description of what this shows",
+          "boundingBox": {"x": 0.1, "y": 0.2, "width": 0.3, "height": 0.1}
+        }
+      ]
     },
     "colorHarmony": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
       "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
-      "references": ["specific colors or elements you're referring to, like 'blue background', 'orange CTA button', 'text color'"]
+      "references": ["specific colors or elements you're referring to, like 'blue background', 'orange CTA button', 'text color'"],
+      "visualReferences": [{"description": "area description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
     },
     "composition": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
       "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
-      "references": ["specific layout elements you're referring to, like 'top section', 'left sidebar', 'footer area'"]
+      "references": ["specific layout elements you're referring to, like 'top section', 'left sidebar', 'footer area'"],
+      "visualReferences": [{"description": "area description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
     },
     "hierarchy": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
       "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
-      "references": ["specific hierarchy elements you're referring to, like 'main heading', 'subheadings', 'call-to-action'"]
+      "references": ["specific hierarchy elements you're referring to, like 'main heading', 'subheadings', 'call-to-action'"],
+      "visualReferences": [{"description": "area description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
     },
     "spacing": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
       "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
-      "references": ["specific spacing areas you're referring to, like 'margins around logo', 'padding between sections', 'line spacing'"]
+      "references": ["specific spacing areas you're referring to, like 'margins around logo', 'padding between sections', 'line spacing'"],
+      "visualReferences": [{"description": "area description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
     },
     "contrast": {
       "score": number (0-100),
       "feedback": "detailed explanation string",
       "improvementIdeas": ["idea 1", "idea 2", "idea 3"],
-      "references": ["specific contrast issues you're referring to, like 'text on background', 'button visibility', 'readability of captions'"]
+      "references": ["specific contrast issues you're referring to, like 'text on background', 'button visibility', 'readability of captions'"],
+      "visualReferences": [{"description": "area description", "boundingBox": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}}]
     }
   },
   "strengths": ["strength 1", "strength 2", "strength 3", "strength 4"],
@@ -100,6 +111,12 @@ For each category, provide:
 - feedback: detailed explanation of the assessment (2-3 sentences)
 - improvementIdeas: array of exactly 3 specific, actionable improvement ideas
 - references: array of 2-4 specific visual elements you're talking about (be concrete, like "the blue headline", "spacing between logo and menu", "contrast of the footer text")
+- visualReferences: array of 2-3 bounding boxes showing the areas you're discussing. Coordinates are NORMALIZED (0-1 range):
+  * x: left edge position (0 = left side, 1 = right side)
+  * y: top edge position (0 = top, 1 = bottom)
+  * width: box width (0-1)
+  * height: box height (0-1)
+  Example: {"x": 0.1, "y": 0.2, "width": 0.3, "height": 0.15} means a box starting 10% from left, 20% from top, 30% wide, 15% tall
 
 Categories to analyze:
 - typography: Font choices, readability, hierarchy, consistency

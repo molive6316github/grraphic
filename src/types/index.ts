@@ -13,36 +13,60 @@ export interface DesignAnalysis {
       feedback: string;
       improvementIdeas: string[];
       references?: string[];
+      visualReferences?: Array<{
+        description: string;
+        boundingBox: { x: number; y: number; width: number; height: number };
+      }>;
     };
     colorHarmony: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
       references?: string[];
+      visualReferences?: Array<{
+        description: string;
+        boundingBox: { x: number; y: number; width: number; height: number };
+      }>;
     };
     composition: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
       references?: string[];
+      visualReferences?: Array<{
+        description: string;
+        boundingBox: { x: number; y: number; width: number; height: number };
+      }>;
     };
     hierarchy: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
       references?: string[];
+      visualReferences?: Array<{
+        description: string;
+        boundingBox: { x: number; y: number; width: number; height: number };
+      }>;
     };
     spacing: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
       references?: string[];
+      visualReferences?: Array<{
+        description: string;
+        boundingBox: { x: number; y: number; width: number; height: number };
+      }>;
     };
     contrast: {
       score: number;
       feedback: string;
       improvementIdeas: string[];
       references?: string[];
+      visualReferences?: Array<{
+        description: string;
+        boundingBox: { x: number; y: number; width: number; height: number };
+      }>;
     };
   };
   strengths: string[];

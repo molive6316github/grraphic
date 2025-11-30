@@ -1,5 +1,5 @@
-import React from 'react';
-import { CheckCircle, AlertCircle, TrendingUp, Download, Image } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { CheckCircle, AlertCircle, TrendingUp, Download, Image, Crop } from 'lucide-react';
 import { DesignAnalysis } from '../types';
 import { ImprovementIdeas } from './ImprovementIdeas';
 
@@ -10,6 +10,54 @@ interface AnalysisResultsProps {
   isProSubscriber?: boolean;
   onUpgrade?: () => void;
   userId?: string;
+}
+
+function VisualReference({ imageUrl, boundingBox, description }: { imageUrl: string; boundingBox: { x: number; y: number; width: number; height: number }; description: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const cropX = boundingBox.x * img.width;
+      const cropY = boundingBox.y * img.height;
+      const cropWidth = boundingBox.width * img.width;
+      const cropHeight = boundingBox.height * img.height;
+
+      canvas.width = cropWidth;
+      canvas.height = cropHeight;
+
+      ctx.drawImage(
+        img,
+        cropX, cropY, cropWidth, cropHeight,
+        0, 0, cropWidth, cropHeight
+      );
+      setIsLoaded(true);
+    };
+    img.src = imageUrl;
+  }, [imageUrl, boundingBox]);
+
+  return (
+    <div className="relative group">
+      <canvas
+        ref={canvasRef}
+        className="rounded-lg border-2 border-blue-300 dark:border-blue-700 shadow-md max-w-full h-auto"
+        style={{ maxHeight: '120px' }}
+      />
+      {isLoaded && (
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+          <p className="text-white text-xs font-medium px-2 text-center">{description}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ScoreCircle({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' | 'lg' }) {
@@ -192,14 +240,35 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
 
             <p className="text-gray-700 dark:text-gray-200 mb-5 leading-relaxed">{category.feedback}</p>
 
-            {category.references && category.references.length > 0 && (
+            {category.visualReferences && category.visualReferences.length > 0 && (imagePreview || (analysis as any).image_url) && (
               <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h5 className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2 uppercase tracking-wide">Referenced Elements</h5>
+                <h5 className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2 uppercase tracking-wide flex items-center">
+                  <Crop size={14} className="mr-1" />
+                  Visual References
+                </h5>
+                <div className="grid grid-cols-2 gap-3">
+                  {category.visualReferences.map((ref, idx) => (
+                    <div key={idx}>
+                      <VisualReference
+                        imageUrl={imagePreview || (analysis as any).image_url}
+                        boundingBox={ref.boundingBox}
+                        description={ref.description}
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{ref.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {category.references && category.references.length > 0 && (
+              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                <h5 className="text-xs font-semibold text-gray-800 dark:text-gray-300 mb-2 uppercase tracking-wide">Referenced Elements</h5>
                 <div className="flex flex-wrap gap-2">
                   {category.references.map((ref, idx) => (
                     <span
                       key={idx}
-                      className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 rounded-full border border-blue-300 dark:border-blue-700"
+                      className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-900/40 text-gray-700 dark:text-gray-200 rounded-full border border-gray-300 dark:border-gray-700"
                     >
                       {ref}
                     </span>
