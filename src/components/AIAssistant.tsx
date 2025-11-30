@@ -96,7 +96,14 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
     setTimeout(() => {
       let element: Element | null = null;
 
-      if (target === 'upload') {
+      if (target === 'mode') {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        element = buttons.find(btn =>
+          btn.textContent?.includes('Design') ||
+          btn.textContent?.includes('UI Mode') ||
+          btn.textContent?.includes('Website')
+        ) || null;
+      } else if (target === 'upload') {
         const buttons = Array.from(document.querySelectorAll('button'));
         element = buttons.find(btn =>
           btn.textContent?.includes('Drop') ||
@@ -187,36 +194,35 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
       const prompt = `You are Gradi, a friendly and helpful AI assistant for Grraphic, the design analysis tool. You're personified as the hexagonal logo character that runs around the screen.
 
 Context about Grraphic:
-- Grraphic analyzes graphic designs using AI (Gemini)
-- It provides feedback on typography, color harmony, composition, hierarchy, spacing, and contrast
-- Users can upload designs or analyze websites/UIs
+- Grraphic has TWO modes: Design mode (for graphics/images) and UI mode (for websites/HTML)
+- Design mode analyzes graphic designs (typography, color, composition)
+- UI mode analyzes websites and UIs (usability, accessibility, responsiveness)
+- Users can switch between modes using toggle buttons at the top
 - There's a Pro subscription for unlimited analyses
 - Users can view their analysis history and share analyses publicly
 
 User message: "${userMessage}"
 
-Respond in a friendly, enthusiastic way (2-3 sentences max). Show personality as a helpful hexagonal design mascot! Be encouraging about design and helpful with navigation.
+CRITICAL: You must respond with valid JSON only. No extra text before or after the JSON.
 
-If the user asks about navigation or where something is, you can physically move to show them! Respond with one of these special actions:
+Respond in a friendly, enthusiastic way (2-3 sentences max). Show personality as a helpful hexagonal design mascot!
+
+If the user asks about navigation or where something is, you can physically move to show them! Use these actions:
+- "MOVE_TO:mode" - to show where to switch between Design/UI mode
 - "MOVE_TO:upload" - to show where to upload designs
 - "MOVE_TO:history" - to show where to view analysis history
 - "MOVE_TO:subscription" - to show where Pro features are
 - "MOVE_TO:account" - to show where the sign in button is
 
-Format your response as:
+JSON Format (NO OTHER TEXT):
 {
   "message": "your friendly response text",
   "action": "MOVE_TO:location or null"
 }
 
 Examples:
-User: "Where do I upload?"
-Response: {"message": "Let me show you! I'll run over to the upload button right now!", "action": "MOVE_TO:upload"}
-
-User: "How are you?"
-Response: {"message": "I'm doing great, thanks for asking! Ready to help with any design questions!", "action": null}
-
-Return valid JSON only.`;
+{"message": "Let me show you! I'll run over to the mode toggle right now!", "action": "MOVE_TO:mode"}
+{"message": "I'm doing great, thanks for asking! Ready to help with any design questions!", "action": null}`;
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
@@ -257,17 +263,33 @@ Return valid JSON only.`;
         '{"message": "I\'m having trouble responding right now. Try asking me about design analysis or how to use Grraphic!", "action": null}';
 
       let parsedResponse;
-      try {
-        parsedResponse = JSON.parse(responseText);
-      } catch {
-        parsedResponse = {
-          message: responseText,
-          action: null
-        };
-      }
+      let assistantMessage: string;
+      let action: string | null = null;
 
-      const assistantMessage = parsedResponse.message;
-      const action = parsedResponse.action;
+      try {
+        // Try to parse as JSON
+        parsedResponse = JSON.parse(responseText);
+        assistantMessage = parsedResponse.message || responseText;
+        action = parsedResponse.action || null;
+      } catch {
+        // If JSON parsing fails, try to extract JSON from the text
+        const jsonMatch = responseText.match(/\{[^{}]*"message"[^{}]*\}/);
+        if (jsonMatch) {
+          try {
+            parsedResponse = JSON.parse(jsonMatch[0]);
+            assistantMessage = parsedResponse.message || responseText;
+            action = parsedResponse.action || null;
+          } catch {
+            // If that fails too, just use the text as the message
+            assistantMessage = responseText.replace(/[{}]/g, '').replace(/"message":\s*"?|"action":\s*\w+/g, '').trim();
+            action = null;
+          }
+        } else {
+          // No JSON found, use as plain text
+          assistantMessage = responseText;
+          action = null;
+        }
+      }
 
       // Log assistant message
       logChatMessage(userId, sessionId, 'assistant', assistantMessage);
