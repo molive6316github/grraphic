@@ -191,38 +191,49 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId }: AIAssistant
     logChatMessage(userId, sessionId, 'user', userMessage);
 
     try {
-      const prompt = `You are Gradi, a friendly and helpful AI assistant for Grraphic, the design analysis tool. You're personified as the hexagonal logo character that runs around the screen.
+      // Quick rule-based responses for common questions to save API calls
+      const lowerMsg = userMessage.toLowerCase();
+      let quickResponse: { message: string; action: string | null } | null = null;
 
-Context about Grraphic:
-- Grraphic has TWO modes: Design mode (for graphics/images) and UI mode (for websites/HTML)
-- Design mode analyzes graphic designs (typography, color, composition)
-- UI mode analyzes websites and UIs (usability, accessibility, responsiveness)
-- Users can switch between modes using toggle buttons at the top
-- There's a Pro subscription for unlimited analyses
-- Users can view their analysis history and share analyses publicly
+      if (lowerMsg.includes('where') || lowerMsg.includes('how do i') || lowerMsg.includes('find')) {
+        if (lowerMsg.includes('mode') || lowerMsg.includes('ui') || lowerMsg.includes('design mode')) {
+          quickResponse = { message: "Let me show you where to switch modes! I'll run over there now!", action: "MOVE_TO:mode" };
+        } else if (lowerMsg.includes('upload') || lowerMsg.includes('add') || lowerMsg.includes('submit')) {
+          quickResponse = { message: "I'll show you the upload area! Follow me!", action: "MOVE_TO:upload" };
+        } else if (lowerMsg.includes('history') || lowerMsg.includes('past') || lowerMsg.includes('previous')) {
+          quickResponse = { message: "Your history is right over here! Let me take you there!", action: "MOVE_TO:history" };
+        } else if (lowerMsg.includes('pro') || lowerMsg.includes('subscribe') || lowerMsg.includes('premium')) {
+          quickResponse = { message: "Want to see Pro features? I'll show you where they are!", action: "MOVE_TO:subscription" };
+        } else if (lowerMsg.includes('sign in') || lowerMsg.includes('login') || lowerMsg.includes('account')) {
+          quickResponse = { message: "I'll show you where to sign in! Coming right up!", action: "MOVE_TO:account" };
+        }
+      } else if (lowerMsg.includes('hello') || lowerMsg.includes('hi ') || lowerMsg === 'hi' || lowerMsg === 'hey') {
+        quickResponse = { message: "Hey there! I'm Gradi, your design assistant! Need help finding something or want to learn about Grraphic?", action: null };
+      } else if (lowerMsg.includes('help') || lowerMsg.includes('what can you')) {
+        quickResponse = { message: "I can help you navigate Grraphic! Ask me where to find features, learn about Design vs UI mode, or get tips on using the app!", action: null };
+      } else if (lowerMsg.includes('thank') || lowerMsg.includes('thanks')) {
+        quickResponse = { message: "You're welcome! Happy to help anytime!", action: null };
+      }
 
-User message: "${userMessage}"
+      if (quickResponse) {
+        // Use quick response without API call
+        logChatMessage(userId, sessionId, 'assistant', quickResponse.message);
+        setMessages(prev => [...prev, { role: 'assistant', content: quickResponse.message }]);
 
-CRITICAL: You must respond with valid JSON only. No extra text before or after the JSON.
+        if (quickResponse.action && quickResponse.action.startsWith('MOVE_TO:')) {
+          const target = quickResponse.action.split(':')[1];
+          moveToElement(target);
+        }
 
-Respond in a friendly, enthusiastic way (2-3 sentences max). Show personality as a helpful hexagonal design mascot!
+        setIsLoading(false);
+        return;
+      }
 
-If the user asks about navigation or where something is, you can physically move to show them! Use these actions:
-- "MOVE_TO:mode" - to show where to switch between Design/UI mode
-- "MOVE_TO:upload" - to show where to upload designs
-- "MOVE_TO:history" - to show where to view analysis history
-- "MOVE_TO:subscription" - to show where Pro features are
-- "MOVE_TO:account" - to show where the sign in button is
+      // For other questions, use AI with shorter prompt
+      const prompt = `Gradi assistant for Grraphic (Design mode=graphics, UI mode=websites). Respond as JSON (1-2 sentences):
+{"message":"text","action":"MOVE_TO:mode|upload|history|subscription|account or null"}
 
-JSON Format (NO OTHER TEXT):
-{
-  "message": "your friendly response text",
-  "action": "MOVE_TO:location or null"
-}
-
-Examples:
-{"message": "Let me show you! I'll run over to the mode toggle right now!", "action": "MOVE_TO:mode"}
-{"message": "I'm doing great, thanks for asking! Ready to help with any design questions!", "action": null}`;
+User: "${userMessage}"`;
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
@@ -234,8 +245,8 @@ Examples:
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.9,
-              maxOutputTokens: 200,
+              temperature: 0.7,
+              maxOutputTokens: 100,
               responseMimeType: "application/json",
             }
           })
