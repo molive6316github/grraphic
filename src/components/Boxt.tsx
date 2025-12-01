@@ -322,95 +322,120 @@ Be creative and design something beautiful! Use realistic coordinates and colors
   const executeAction = async (action: any) => {
     const { tool, params } = action;
 
-    switch (tool) {
-      case 'ADD_RECT':
-        addElement({
-          id: Date.now().toString(),
-          type: 'rect',
-          x: params[0] || 100,
-          y: params[1] || 100,
-          width: params[2] || 200,
-          height: params[3] || 150,
-          fill: params[4] || fillColor,
-          stroke: params[5] || strokeColor,
-          strokeWidth: 2
-        });
-        break;
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        switch (tool) {
+          case 'ADD_RECT':
+            const rect = {
+              id: Date.now().toString() + Math.random(),
+              type: 'rect' as const,
+              x: Number(params[0]) || 100,
+              y: Number(params[1]) || 100,
+              width: Number(params[2]) || 200,
+              height: Number(params[3]) || 150,
+              fill: String(params[4]) || fillColor,
+              stroke: String(params[5]) || strokeColor,
+              strokeWidth: 2
+            };
+            setElements(prev => {
+              const newElements = [...prev, rect];
+              addToHistory(newElements);
+              return newElements;
+            });
+            break;
 
-      case 'ADD_CIRCLE':
-        addElement({
-          id: Date.now().toString(),
-          type: 'circle',
-          x: params[0] || 100,
-          y: params[1] || 100,
-          width: (params[2] || 75) * 2,
-          height: (params[2] || 75) * 2,
-          fill: params[3] || fillColor,
-          stroke: params[4] || strokeColor,
-          strokeWidth: 2
-        });
-        break;
+          case 'ADD_CIRCLE':
+            const circle = {
+              id: Date.now().toString() + Math.random(),
+              type: 'circle' as const,
+              x: Number(params[0]) || 100,
+              y: Number(params[1]) || 100,
+              width: (Number(params[2]) || 75) * 2,
+              height: (Number(params[2]) || 75) * 2,
+              fill: String(params[3]) || fillColor,
+              stroke: String(params[4]) || strokeColor,
+              strokeWidth: 2
+            };
+            setElements(prev => {
+              const newElements = [...prev, circle];
+              addToHistory(newElements);
+              return newElements;
+            });
+            break;
 
-      case 'ADD_TEXT':
-        addElement({
-          id: Date.now().toString(),
-          type: 'text',
-          x: params[0] || 100,
-          y: params[1] || 100,
-          width: 400,
-          height: 50,
-          text: params[2] || 'Text',
-          fontSize: params[3] || 24,
-          fontFamily: params[4] || 'Arial',
-          fill: params[5] || '#000000',
-          fontWeight: params[6] ? 'bold' : 'normal',
-          fontStyle: params[7] ? 'italic' : 'normal'
-        });
-        break;
+          case 'ADD_TEXT':
+            const text = {
+              id: Date.now().toString() + Math.random(),
+              type: 'text' as const,
+              x: Number(params[0]) || 100,
+              y: Number(params[1]) || 100,
+              width: 400,
+              height: 50,
+              text: String(params[2]) || 'Text',
+              fontSize: Number(params[3]) || 24,
+              fontFamily: String(params[4]) || 'Arial',
+              fill: String(params[5]) || '#000000',
+              fontWeight: params[6] ? 'bold' : 'normal',
+              fontStyle: params[7] ? 'italic' : 'normal'
+            };
+            setElements(prev => {
+              const newElements = [...prev, text];
+              addToHistory(newElements);
+              return newElements;
+            });
+            break;
 
-      case 'SEARCH_IMAGE':
-        if (params[0]) {
-          setPixabayQuery(params[0]);
-          await searchPixabayForAgent(params[0]);
+          case 'SEARCH_IMAGE':
+            if (params[0]) {
+              setPixabayQuery(String(params[0]));
+              searchPixabayForAgent(String(params[0]));
+            }
+            break;
+
+          case 'ADD_IMAGE':
+            if (params[4]) {
+              const image = {
+                id: Date.now().toString() + Math.random(),
+                type: 'image' as const,
+                x: Number(params[0]) || 100,
+                y: Number(params[1]) || 100,
+                width: Number(params[2]) || 400,
+                height: Number(params[3]) || 300,
+                imageUrl: String(params[4])
+              };
+              setElements(prev => {
+                const newElements = [...prev, image];
+                addToHistory(newElements);
+                return newElements;
+              });
+            }
+            break;
+
+          case 'SET_BACKGROUND':
+            setBackgroundColor(String(params[0]) || '#ffffff');
+            break;
+
+          case 'MOVE_ELEMENT':
+            setElements(prev => prev.map(el =>
+              el.id === params[0] ? { ...el, x: Number(params[1]), y: Number(params[2]) } : el
+            ));
+            break;
+
+          case 'RESIZE_ELEMENT':
+            setElements(prev => prev.map(el =>
+              el.id === params[0] ? { ...el, width: Number(params[1]), height: Number(params[2]) } : el
+            ));
+            break;
+
+          case 'UPDATE_TEXT':
+            setElements(prev => prev.map(el =>
+              el.id === params[0] ? { ...el, [params[1]]: params[2] } : el
+            ));
+            break;
         }
-        break;
-
-      case 'ADD_IMAGE':
-        if (params[4]) {
-          addElement({
-            id: Date.now().toString(),
-            type: 'image',
-            x: params[0] || 100,
-            y: params[1] || 100,
-            width: params[2] || 400,
-            height: params[3] || 300,
-            imageUrl: params[4]
-          });
-        }
-        break;
-
-      case 'SET_BACKGROUND':
-        setBackgroundColor(params[0] || '#ffffff');
-        break;
-
-      case 'MOVE_ELEMENT':
-        setElements(prev => prev.map(el =>
-          el.id === params[0] ? { ...el, x: params[1], y: params[2] } : el
-        ));
-        break;
-
-      case 'RESIZE_ELEMENT':
-        setElements(prev => prev.map(el =>
-          el.id === params[0] ? { ...el, width: params[1], height: params[2] } : el
-        ));
-        break;
-
-      case 'UPDATE_TEXT':
-        setElements(prev => prev.map(el =>
-          el.id === params[0] ? { ...el, [params[1]]: params[2] } : el
-        ));
-        break;
-    }
+        resolve();
+      }, 100);
+    });
   };
 
   const searchPixabayForAgent = async (query: string) => {
@@ -421,14 +446,19 @@ Be creative and design something beautiful! Use realistic coordinates and colors
       const data = await response.json();
       if (data.hits && data.hits.length > 0) {
         const randomImage = data.hits[Math.floor(Math.random() * data.hits.length)];
-        addElement({
-          id: Date.now().toString(),
-          type: 'image',
+        const image = {
+          id: Date.now().toString() + Math.random(),
+          type: 'image' as const,
           x: 100,
           y: 100,
           width: 400,
           height: 300,
           imageUrl: randomImage.webformatURL
+        };
+        setElements(prev => {
+          const newElements = [...prev, image];
+          addToHistory(newElements);
+          return newElements;
         });
       }
     } catch (error) {
@@ -684,97 +714,107 @@ Be creative and design something beautiful! Use realistic coordinates and colors
   const selectedElement = elements.find(el => el.id === selectedId);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="text-purple-600" size={24} />
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Boxt</h1>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-purple-950">
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-white/20 dark:border-slate-700/50 p-4 flex items-center justify-between shadow-lg shadow-black/5">
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3 bg-gradient-to-r from-purple-600 to-pink-600 p-3 rounded-2xl shadow-lg shadow-purple-500/30">
+            <Sparkles className="text-white animate-pulse" size={28} />
+            <h1 className="text-2xl font-black text-white tracking-tight">Boxt</h1>
           </div>
           <input
             type="text"
             value={designTitle}
             onChange={(e) => setDesignTitle(e.target.value)}
-            className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+            className="px-4 py-2.5 border border-purple-200 dark:border-purple-800 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-inner"
+            placeholder="Untitled Masterpiece"
           />
         </div>
 
-        <div className="flex items-center space-x-2">
-          <button onClick={() => setShowGradi(!showGradi)} className="flex items-center space-x-1 px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800" title="Ask Gradi AI">
-            <MessageSquare size={16} />
-            <span className="text-sm">Gradi</span>
+        <div className="flex items-center space-x-3">
+          <button onClick={() => setShowGradi(!showGradi)} className="group flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105" title="Ask Gradi AI">
+            <MessageSquare size={18} className="group-hover:rotate-12 transition-transform" />
+            <span className="text-sm font-semibold">Gradi AI</span>
           </button>
-          <button onClick={() => { setShowGrraphic(!showGrraphic); if (!showGrraphic) analyzeDesignWithGrraphic(); }} className="flex items-center space-x-1 px-3 py-2 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800" title="Analyze with Grraphic">
-            <BarChart size={16} />
-            <span className="text-sm">Analyze</span>
+          <button onClick={() => { setShowGrraphic(!showGrraphic); if (!showGrraphic) analyzeDesignWithGrraphic(); }} className="group flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105" title="Analyze with Grraphic">
+            <BarChart size={18} className="group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-semibold">Analyze</span>
           </button>
-          <button onClick={newDesign} className="flex items-center space-x-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-            <Plus size={16} />
-            <span className="text-sm">New</span>
+          <button onClick={newDesign} className="flex items-center space-x-2 px-4 py-2.5 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl hover:bg-white dark:hover:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200 dark:border-slate-700">
+            <Plus size={18} className="text-purple-600 dark:text-purple-400" />
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">New</span>
           </button>
-          <button onClick={() => setShowMyDesigns(!showMyDesigns)} className="flex items-center space-x-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-            <FolderOpen size={16} />
-            <span className="text-sm">Designs ({myDesigns.length})</span>
+          <button onClick={() => setShowMyDesigns(!showMyDesigns)} className="flex items-center space-x-2 px-4 py-2.5 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl hover:bg-white dark:hover:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200 dark:border-slate-700">
+            <FolderOpen size={18} className="text-purple-600 dark:text-purple-400" />
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Designs ({myDesigns.length})</span>
           </button>
-          <button onClick={undo} disabled={historyIndex === 0} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50">
-            <Undo size={20} />
-          </button>
-          <button onClick={redo} disabled={historyIndex === history.length - 1} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50">
-            <Redo size={20} />
-          </button>
-          <button onClick={saveDesign} className="flex items-center space-x-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            <Save size={16} />
+          <div className="flex items-center space-x-1 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-1 shadow-md border border-gray-200 dark:border-slate-700">
+            <button onClick={undo} disabled={historyIndex === 0} className="p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg disabled:opacity-30 transition-all duration-200 hover:scale-110" title="Undo">
+              <Undo size={18} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button onClick={redo} disabled={historyIndex === history.length - 1} className="p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg disabled:opacity-30 transition-all duration-200 hover:scale-110" title="Redo">
+              <Redo size={18} className="text-gray-700 dark:text-gray-300" />
+            </button>
+          </div>
+          <button onClick={saveDesign} className="group flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg shadow-blue-600/40 hover:shadow-blue-600/60 transition-all duration-300 hover:scale-105 font-semibold">
+            <Save size={18} className="group-hover:rotate-12 transition-transform" />
             <span>Save</span>
           </button>
-          <button onClick={exportDesign} className="flex items-center space-x-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-            <Download size={16} />
+          <button onClick={exportDesign} className="group flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl shadow-lg shadow-emerald-600/40 hover:shadow-emerald-600/60 transition-all duration-300 hover:scale-105 font-semibold">
+            <Download size={18} className="group-hover:translate-y-1 transition-transform" />
             <span>Export</span>
           </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-20 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col items-center py-4 space-y-2">
-          <button onClick={() => setTool('select')} className={`p-3 rounded-lg ${tool === 'select' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`} title="Select">
-            <Move size={24} />
+        <div className="w-24 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-r border-white/20 dark:border-slate-700/50 flex flex-col items-center py-6 space-y-3 shadow-2xl">
+          <button onClick={() => setTool('select')} className={`group relative p-4 rounded-2xl transition-all duration-300 hover:scale-110 ${tool === 'select' ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' : 'bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-md'}`} title="Select">
+            <Move size={24} className={tool === 'select' ? 'text-white' : 'text-gray-700 dark:text-gray-300'} />
+            {tool === 'select' && <div className="absolute inset-0 rounded-2xl bg-white/20 animate-pulse"></div>}
           </button>
-          <button onClick={() => setTool('rect')} className={`p-3 rounded-lg ${tool === 'rect' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`} title="Rectangle">
-            <Square size={24} />
+          <button onClick={() => setTool('rect')} className={`group relative p-4 rounded-2xl transition-all duration-300 hover:scale-110 ${tool === 'rect' ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/50' : 'bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-md'}`} title="Rectangle">
+            <Square size={24} className={tool === 'rect' ? 'text-white' : 'text-gray-700 dark:text-gray-300'} />
+            {tool === 'rect' && <div className="absolute inset-0 rounded-2xl bg-white/20 animate-pulse"></div>}
           </button>
-          <button onClick={() => setTool('circle')} className={`p-3 rounded-lg ${tool === 'circle' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`} title="Circle">
-            <Circle size={24} />
+          <button onClick={() => setTool('circle')} className={`group relative p-4 rounded-2xl transition-all duration-300 hover:scale-110 ${tool === 'circle' ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50' : 'bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-md'}`} title="Circle">
+            <Circle size={24} className={tool === 'circle' ? 'text-white' : 'text-gray-700 dark:text-gray-300'} />
+            {tool === 'circle' && <div className="absolute inset-0 rounded-2xl bg-white/20 animate-pulse"></div>}
           </button>
-          <button onClick={() => setTool('text')} className={`p-3 rounded-lg ${tool === 'text' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`} title="Text">
-            <Type size={24} />
+          <button onClick={() => setTool('text')} className={`group relative p-4 rounded-2xl transition-all duration-300 hover:scale-110 ${tool === 'text' ? 'bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/50' : 'bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-md'}`} title="Text">
+            <Type size={24} className={tool === 'text' ? 'text-white' : 'text-gray-700 dark:text-gray-300'} />
+            {tool === 'text' && <div className="absolute inset-0 rounded-2xl bg-white/20 animate-pulse"></div>}
           </button>
-          <button onClick={() => setShowPixabay(true)} className="p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" title="Search Images">
-            <Search size={24} />
+          <button onClick={() => setShowPixabay(true)} className="group p-4 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/50 hover:shadow-violet-500/70 transition-all duration-300 hover:scale-110" title="Search Images">
+            <Search size={24} className="group-hover:rotate-90 transition-transform duration-300" />
           </button>
-          <button onClick={() => fileInputRef.current?.click()} className="p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" title="Upload Image">
-            <Upload size={24} />
+          <button onClick={() => fileInputRef.current?.click()} className="group p-4 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 hover:scale-110" title="Upload Image">
+            <Upload size={24} className="group-hover:translate-y-1 transition-transform duration-300" />
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700 w-full flex flex-col items-center space-y-2">
-            <button onClick={() => setShowGrid(!showGrid)} className={`p-3 rounded-lg ${showGrid ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`} title="Toggle grid">
-              <Grid size={24} />
+          <div className="pt-6 mt-auto border-t border-white/20 dark:border-slate-700/50 w-full flex flex-col items-center space-y-3">
+            <button onClick={() => setShowGrid(!showGrid)} className={`group p-4 rounded-2xl transition-all duration-300 hover:scale-110 ${showGrid ? 'bg-gradient-to-br from-indigo-500 to-blue-500 text-white shadow-lg shadow-indigo-500/50' : 'bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-md'}`} title="Toggle grid">
+              <Grid size={24} className={showGrid ? 'text-white' : 'text-gray-700 dark:text-gray-300 group-hover:rotate-90 transition-transform'} />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-gray-200 dark:bg-gray-700 p-8 flex items-center justify-center relative">
-          <canvas
-            ref={canvasRef}
-            width={canvasWidth * zoom}
-            height={canvasHeight * zoom}
-            onClick={handleCanvasClick}
-            onDoubleClick={handleCanvasDoubleClick}
-            className="bg-white shadow-2xl cursor-crosshair"
-            style={{ maxWidth: '100%', maxHeight: '100%' }}
-          />
+        <div className="flex-1 overflow-auto bg-gradient-to-br from-slate-100 via-purple-50 to-blue-100 dark:from-slate-800 dark:via-purple-950 dark:to-blue-950 p-8 flex items-center justify-center relative">
+          <div className="relative">
+            <canvas
+              ref={canvasRef}
+              width={canvasWidth * zoom}
+              height={canvasHeight * zoom}
+              onClick={handleCanvasClick}
+              onDoubleClick={handleCanvasDoubleClick}
+              className="bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] cursor-crosshair rounded-2xl ring-1 ring-black/5 dark:ring-white/10"
+              style={{ maxWidth: '100%', maxHeight: '100%' }}
+            />
+            <div className="absolute -inset-4 bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-blue-600/20 rounded-3xl blur-2xl -z-10 opacity-50"></div>
+          </div>
 
           {showGradi && (
-            <div className="absolute right-4 top-4 bottom-4 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="absolute right-4 top-4 bottom-4 w-96 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-3xl shadow-[0_25px_80px_-15px_rgba(0,0,0,0.4)] dark:shadow-[0_25px_80px_-15px_rgba(0,0,0,0.9)] flex flex-col border border-white/20 dark:border-slate-700/50 overflow-hidden">
+              <div className="p-5 border-b border-purple-100 dark:border-slate-700/50 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                     <MessageSquare size={20} className="text-blue-600" />
