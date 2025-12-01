@@ -5,39 +5,14 @@ import {
   AlignLeft, AlignCenter, AlignRight, Bold, Italic, X,
   Plus, FolderOpen, Sparkles, Search, MessageSquare, BarChart,
   Underline, Strikethrough, Maximize2, Minimize2, RotateCw,
-  AlignJustify, ChevronUp, ChevronDown, Wand2
+  AlignJustify, ChevronUp, ChevronDown, Wand2, Layers
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSubscription } from '../hooks/useSubscription';
 import { analyzeDesign } from '../utils/designAnalyzer';
 import { gradiChat } from '../services/groqService';
-
-interface DesignElement {
-  id: string;
-  type: 'rect' | 'circle' | 'text' | 'image';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  fill?: string;
-  stroke?: string;
-  strokeWidth?: number;
-  text?: string;
-  fontSize?: number;
-  fontFamily?: string;
-  fontWeight?: string;
-  fontStyle?: string;
-  textAlign?: string;
-  imageUrl?: string;
-  rotation?: number;
-  opacity?: number;
-  textDecoration?: string;
-  lineHeight?: number;
-  letterSpacing?: number;
-  textTransform?: string;
-  textShadow?: string;
-  borderRadius?: number;
-}
+import { PropertiesPanel } from './PropertiesPanel';
+import type { DesignElement } from '../types';
 
 interface BoxtProps {
   userId?: string;
@@ -103,6 +78,46 @@ export function Boxt({ userId }: BoxtProps) {
   useEffect(() => {
     drawCanvas();
   }, [elements, backgroundColor, zoom, showGrid, canvasWidth, canvasHeight]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextArea) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        duplicateSelected();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveDesign();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedId) {
+          e.preventDefault();
+          deleteSelected();
+        }
+      } else if (e.key === 'Escape') {
+        setSelectedId(null);
+      } else if (e.key === 'v') {
+        setTool('select');
+      } else if (e.key === 'r') {
+        setTool('rect');
+      } else if (e.key === 'c') {
+        setTool('circle');
+      } else if (e.key === 't') {
+        setTool('text');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId, historyIndex, history]);
 
   const loadMyDesigns = async () => {
     if (!userId) return;
@@ -810,12 +825,52 @@ OUTPUT 3-5 POLISH COMMANDS:`;
   };
 
   const duplicateSelected = () => {
-    if (selectedId) {
-      const element = elements.find(el => el.id === selectedId);
-      if (element) {
-        addElement({ ...element, id: Date.now().toString(), x: element.x + 20, y: element.y + 20 });
-      }
+    if (!selectedId) return;
+    const element = elements.find(el => el.id === selectedId);
+    if (!element) return;
+
+    const newElement: DesignElement = {
+      ...element,
+      id: Date.now().toString() + Math.random(),
+      x: element.x + 20,
+      y: element.y + 20
+    };
+
+    const newElements = [...elements, newElement];
+    setElements(newElements);
+    addToHistory(newElements);
+    setSelectedId(newElement.id);
+  };
+
+  const updateElement = (updates: Partial<DesignElement>) => {
+    if (!selectedId) return;
+    const newElements = elements.map(el =>
+      el.id === selectedId ? { ...el, ...updates } : el
+    );
+    setElements(newElements);
+    addToHistory(newElements);
+  };
+
+  const moveLayer = (direction: 'up' | 'down' | 'top' | 'bottom') => {
+    if (!selectedId) return;
+    const index = elements.findIndex(el => el.id === selectedId);
+    if (index === -1) return;
+
+    const newElements = [...elements];
+    const [element] = newElements.splice(index, 1);
+
+    if (direction === 'up' && index < elements.length - 1) {
+      newElements.splice(index + 1, 0, element);
+    } else if (direction === 'down' && index > 0) {
+      newElements.splice(index - 1, 0, element);
+    } else if (direction === 'top') {
+      newElements.push(element);
+    } else if (direction === 'bottom') {
+      newElements.unshift(element);
     }
+
+    setElements(newElements);
+    addToHistory(newElements);
   };
 
   const exportDesign = () => {
@@ -1212,6 +1267,15 @@ OUTPUT 3-5 POLISH COMMANDS:`;
             </div>
           </div>
         </div>
+
+        <PropertiesPanel
+          selectedElement={selectedElement}
+          elements={elements}
+          onUpdate={updateElement}
+          onDelete={deleteSelected}
+          onDuplicate={duplicateSelected}
+          onMoveLayer={moveLayer}
+        />
       </div>
 
       {editingTextId && (
