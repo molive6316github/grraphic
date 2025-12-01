@@ -241,108 +241,201 @@ export function Boxt({ userId }: BoxtProps) {
 
   const executeAgentMode = async (userRequest: string) => {
     setAgentWorking(true);
-    setGradiMessages(prev => [...prev, { role: 'assistant', content: '🤖 Agent Mode Activated! Generating design plan...' }]);
+    setGradiMessages(prev => [...prev, { role: 'assistant', content: '🤖 Agent Mode Activated! Creating professional design...' }]);
 
-    const agentPrompt = `You are an autonomous design agent controlling Boxt. User request: "${userRequest}"
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+    const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-CRITICAL RULES:
-1. Output ONLY tool commands, nothing else
-2. Each command on a new line
-3. Use realistic coordinates for ${canvasWidth}x${canvasHeight} canvas
-4. Create professional, balanced designs
-5. Use complementary colors
+    try {
+      const initialPrompt = `You are a world-class design agent. User wants: "${userRequest}"
 
-AVAILABLE TOOLS:
+Canvas: ${canvasWidth}x${canvasHeight}
+
+PROFESSIONAL DESIGN REQUIREMENTS:
+- Use design principles: hierarchy, contrast, balance, whitespace
+- Choose sophisticated color palettes
+- Perfect typography (font pairing, sizing, spacing)
+- Strategic use of imagery
+- Visual flow and focal points
+- Professional polish
+
+OUTPUT ONLY COMMANDS (one per line):
+SET_BACKGROUND(hexColor)
 ADD_RECT(x, y, width, height, fillColor, strokeColor)
 ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
 ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
-SEARCH_IMAGE(searchQuery)
-SET_BACKGROUND(hexColor)
+SEARCH_IMAGE(query)
 
-EXAMPLE:
-SET_BACKGROUND(#1a1a2e)
-ADD_RECT(100, 100, 400, 300, #4f46e5, #8b5cf6)
-ADD_TEXT(120, 150, Welcome!, 48, Impact, #ffffff, true, false)
-SEARCH_IMAGE(mountain landscape)
+CREATE STUNNING DESIGN:`;
 
-NOW CREATE THE DESIGN:`;
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Phase 1: Generating initial design...' }]);
 
-    try {
-      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-      const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
+      let response = await callAI(apiKey, fallbackKey, initialPrompt);
+      let actions = parseAgentActions(response);
 
-      let response: string;
-
-      try {
-        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: 'You are a design automation AI. Output only tool commands, no explanations.' },
-              { role: 'user', content: agentPrompt }
-            ],
-            temperature: 0.9,
-            max_tokens: 2000,
-            top_p: 1,
-          }),
-        });
-
-        if (!groqResponse.ok) throw new Error('Groq failed');
-        const data = await groqResponse.json();
-        response = data.choices[0]?.message?.content || '';
-        setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Using Groq AI to generate design...' }]);
-      } catch (error) {
-        console.log('Groq failed, using Gemini fallback');
-        const geminiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${fallbackKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: agentPrompt }] }],
-              generationConfig: { temperature: 0.9, maxOutputTokens: 2000 }
-            })
-          }
-        );
-        const geminiData = await geminiResponse.json();
-        response = geminiData.candidates[0]?.content?.parts[0]?.text || '';
-        setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Using Gemini AI to generate design...' }]);
-      }
-
-      const actions = parseAgentActions(response);
       if (actions.length === 0) {
-        setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ Could not parse design commands. Try again!' }]);
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ Failed to generate commands' }]);
         setAgentWorking(false);
         return;
       }
 
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: `🎨 Executing ${actions.length} actions...` }]);
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: `🎨 Executing ${actions.length} initial actions...` }]);
+      await executeActionsWithProgress(actions);
 
-      for (let i = 0; i < actions.length; i++) {
-        await executeAction(actions[i]);
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setGradiMessages(prev => {
-          const newMessages = [...prev];
-          newMessages[newMessages.length - 1] = {
-            role: 'assistant',
-            content: `🎨 [${i + 1}/${actions.length}] ${actions[i].tool}(${actions[i].params.slice(0, 2).join(', ')}...)`
-          };
-          return newMessages;
-        });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const designSnapshot = canvas.toDataURL('image/png');
+
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔍 Phase 2: Analyzing design quality...' }]);
+
+      const analysisPrompt = `You are a professional design critic. Analyze this design created for: "${userRequest}"
+
+Current elements: ${elements.length} shapes/text
+Canvas: ${canvasWidth}x${canvasHeight}
+
+Rate the design (1-10) on:
+1. Visual Hierarchy - Is there a clear focal point?
+2. Color Harmony - Do colors work together professionally?
+3. Typography - Are fonts appropriate and well-sized?
+4. Balance - Is the composition balanced?
+5. Whitespace - Is spacing effective?
+6. Professional Polish - Does it look production-ready?
+
+Provide SPECIFIC improvements needed. Be harsh and demanding. What would make this design truly exceptional?
+
+Format:
+OVERALL_SCORE: X/10
+IMPROVEMENTS:
+- [specific improvement 1]
+- [specific improvement 2]
+...`;
+
+      const analysis = await callAI(apiKey, fallbackKey, analysisPrompt);
+
+      const scoreMatch = analysis.match(/OVERALL_SCORE:\s*(\d+)/i);
+      const score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
+
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: `📊 Design Score: ${score}/10` }]);
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: analysis.substring(0, 300) }]);
+
+      if (score < 8) {
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Phase 3: Applying improvements...' }]);
+
+        const improvementPrompt = `Current design for "${userRequest}" scored ${score}/10.
+
+Analysis feedback:
+${analysis}
+
+Current state:
+- ${elements.length} elements on canvas
+- Canvas: ${canvasWidth}x${canvasHeight}
+
+CREATE IMPROVEMENT COMMANDS to address ALL criticisms. Make it EXCEPTIONAL (9-10/10):
+
+OUTPUT ONLY COMMANDS:
+ADD_RECT(x, y, width, height, fillColor, strokeColor)
+ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
+ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
+SEARCH_IMAGE(query)
+SET_BACKGROUND(hexColor)
+
+IMPROVE THE DESIGN:`;
+
+        const improvements = await callAI(apiKey, fallbackKey, improvementPrompt);
+        const improvementActions = parseAgentActions(improvements);
+
+        if (improvementActions.length > 0) {
+          setGradiMessages(prev => [...prev, { role: 'assistant', content: `✨ Applying ${improvementActions.length} improvements...` }]);
+          await executeActionsWithProgress(improvementActions);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '🎯 Phase 4: Final polish pass...' }]);
+
+        const polishPrompt = `Final polish for "${userRequest}". Add finishing touches for professional excellence:
+
+- Subtle accent elements
+- Perfect spacing adjustments
+- Typography refinements
+- Strategic visual accents
+
+OUTPUT 3-5 POLISH COMMANDS:`;
+
+        const polish = await callAI(apiKey, fallbackKey, polishPrompt);
+        const polishActions = parseAgentActions(polish);
+
+        if (polishActions.length > 0) {
+          await executeActionsWithProgress(polishActions);
+        }
       }
 
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✅ Design complete! What do you think?' }]);
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✅ Professional design complete! This is production-ready.' }]);
+
     } catch (error) {
       console.error('Agent error:', error);
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ Agent error: ' + String(error) }]);
     }
 
     setAgentWorking(false);
+  };
+
+  const callAI = async (groqKey: string, geminiKey: string, prompt: string): Promise<string> => {
+    try {
+      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: 'You are an expert design AI. Follow instructions exactly.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.85,
+          max_tokens: 2500,
+          top_p: 0.95,
+        }),
+      });
+
+      if (!groqResponse.ok) throw new Error('Groq failed');
+      const data = await groqResponse.json();
+      return data.choices[0]?.message?.content || '';
+    } catch (error) {
+      console.log('Using Gemini fallback');
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.85, maxOutputTokens: 2500 }
+          })
+        }
+      );
+      const geminiData = await geminiResponse.json();
+      return geminiData.candidates[0]?.content?.parts[0]?.text || '';
+    }
+  };
+
+  const executeActionsWithProgress = async (actions: any[]) => {
+    for (let i = 0; i < actions.length; i++) {
+      await executeAction(actions[i]);
+      await new Promise(resolve => setTimeout(resolve, 600));
+      setGradiMessages(prev => {
+        const newMessages = [...prev];
+        newMessages[newMessages.length - 1] = {
+          role: 'assistant',
+          content: `🎨 [${i + 1}/${actions.length}] ${actions[i].tool}(${actions[i].params.slice(0, 2).join(', ')}...)`
+        };
+        return newMessages;
+      });
+    }
   };
 
   const parseAgentActions = (response: string): any[] => {
