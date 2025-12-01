@@ -105,11 +105,17 @@ When user asks "create a poster" or similar, Agent Mode:
 - Can search Pixabay for stock images
 
 Commands available in Agent Mode:
-- SET_BACKGROUND(hexColor)
-- ADD_RECT(x, y, width, height, fillColor, strokeColor)
-- ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
-- ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
-- SEARCH_IMAGE(query)
+- SET_BACKGROUND(hexColor) - Set canvas background
+- ADD_RECT(x, y, width, height, fillColor, strokeColor) - Add rectangle
+- ADD_CIRCLE(x, y, radius, fillColor, strokeColor) - Add circle
+- ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic) - Add text
+- SEARCH_IMAGE(query) - Search Pixabay for images
+- DELETE(index) - Delete element by index (0-based)
+- MOVE(index, newX, newY) - Move element to new position
+- MODIFY_TEXT(index, newText, newSize, newColor) - Modify text element
+- MODIFY_COLOR(index, newFillColor, newStrokeColor) - Change element colors
+
+Agent analyzes designs and can DELETE messy elements, MOVE for better composition, and MODIFY to fix issues!
 
 ## USER TIERS:
 - **Free**: 3 analyses/month, 5 Boxt designs, 50 chat messages

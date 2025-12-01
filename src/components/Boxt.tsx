@@ -313,14 +313,18 @@ BREATHTAKING EXECUTION:
 - Professional polish
 - Magazine-quality composition
 
-OUTPUT FORMAT (commands only):
+AVAILABLE COMMANDS (output ONLY commands):
 SET_BACKGROUND(hexColor)
 ADD_RECT(x, y, width, height, fillColor, strokeColor)
 ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
 ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
 SEARCH_IMAGE(query)
+DELETE(index)
+MOVE(index, newX, newY)
+MODIFY_TEXT(index, newText, newSize, newColor)
+MODIFY_COLOR(index, newFillColor, newStrokeColor)
 
-CREATE 10-15 ELEMENTS FOR STUNNING DESIGN:`;
+CREATE 12-15 ELEMENTS FOR STUNNING INITIAL DESIGN:`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Phase 1: Generating initial design...' }]);
 
@@ -365,54 +369,56 @@ CREATE 10-15 ELEMENTS FOR STUNNING DESIGN:`;
         return;
       }
 
-      const elementDescriptions = currentElements.map(el => {
+      const elementDescriptions = currentElements.map((el, idx) => {
         if (el.type === 'text') {
-          return `Text: "${el.text}" at (${Math.round(el.x)},${Math.round(el.y)}) - ${el.fontSize}px ${el.fontFamily} ${el.fontWeight || ''} - Color: ${el.fill}`;
+          return `[${idx}] Text: "${el.text}" at (${Math.round(el.x)},${Math.round(el.y)}) - ${el.fontSize}px ${el.fontFamily} ${el.fontWeight || ''} - Color: ${el.fill}`;
         } else if (el.type === 'rect') {
-          return `Rectangle at (${Math.round(el.x)},${Math.round(el.y)}) - ${Math.round(el.width)}x${Math.round(el.height)}px - Fill: ${el.fill}, Stroke: ${el.stroke || 'none'}`;
+          return `[${idx}] Rectangle at (${Math.round(el.x)},${Math.round(el.y)}) - ${Math.round(el.width)}x${Math.round(el.height)}px - Fill: ${el.fill}, Stroke: ${el.stroke || 'none'}`;
         } else if (el.type === 'circle') {
-          return `Circle at (${Math.round(el.x)},${Math.round(el.y)}) - Radius: ${Math.round(el.width/2)}px - Fill: ${el.fill}, Stroke: ${el.stroke || 'none'}`;
+          return `[${idx}] Circle at (${Math.round(el.x)},${Math.round(el.y)}) - Radius: ${Math.round(el.width/2)}px - Fill: ${el.fill}, Stroke: ${el.stroke || 'none'}`;
         } else if (el.type === 'image') {
-          return `Image at (${Math.round(el.x)},${Math.round(el.y)}) - ${Math.round(el.width)}x${Math.round(el.height)}px`;
+          return `[${idx}] Image at (${Math.round(el.x)},${Math.round(el.y)}) - ${Math.round(el.width)}x${Math.round(el.height)}px`;
         }
         return '';
       }).join('\n');
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔍 Phase 2: Analyzing design quality...' }]);
 
-      const analysisPrompt = `You are a BRUTAL design critic reviewing: "${userRequest}"
+      const analysisPrompt = `You are a BRUTAL design critic analyzing: "${userRequest}"
 
 Canvas: ${canvasWidth}x${canvasHeight}
 Background: ${currentBg}
 
-CURRENT DESIGN ELEMENTS (${currentElements.length} total):
+CURRENT ELEMENTS (${currentElements.length} total - indexed [0] to [${currentElements.length - 1}]):
 ${elementDescriptions}
 
-SCORE (1-10) these categories:
-1. WOW Factor - Does it stop you in your tracks? (needs 9+ for exceptional)
-2. Color Mastery - Are colors bold, harmonious, and intentional?
-3. Typography Impact - Is text MASSIVE, BOLD, and hierarchical?
-4. Visual Drama - Are there dramatic size contrasts and focal points?
-5. Professional Polish - Magazine-worthy quality?
-6. Composition - Perfect balance and golden ratio usage?
+CRITICAL ANALYSIS RULES:
+1. Check for visual noise and overlapping elements that create confusion
+2. Identify elements that should be DELETED or repositioned
+3. Flag typography that's underwhelming or poorly sized
+4. Point out missing focal points or clear hierarchy
+5. Identify color palette issues (too bland, too chaotic)
+6. Check spacing and alignment problems
+7. Assess overall composition and balance
 
-BE EXTREMELY HARSH. Rate like a top design agency would.
+BE BRUTALLY HONEST. Score harshly:
+- 8-10: Exceptional, magazine-quality
+- 6-7: Good foundation but needs refinement
+- 4-5: Messy, lacks focus, needs major work
+- 1-3: Complete redesign needed
 
-What's MISSING for BREATHTAKING quality:
-- Not enough visual drama?
-- Text too small/boring?
-- Colors too safe/bland?
-- No clear focal point?
-- Missing decorative elements?
-- Poor spacing?
-- Lack of size contrast?
+PROVIDE SPECIFIC IMPROVEMENTS using element indices:
+- **DELETE elements** that create visual noise: "Delete [index] - overlaps and creates confusion"
+- **MOVE elements** for better composition: "Move [index] to (x, y) for better balance"
+- **MODIFY sizes/colors** for better hierarchy: "Make text [index] bigger/bolder"
+- **ADD new elements** to fill gaps or create focus
 
 Format:
 OVERALL_SCORE: X/10
 IMPROVEMENTS:
-- [brutal, specific improvement 1]
-- [brutal, specific improvement 2]
-- [brutal, specific improvement 3]`;
+- [Specific action with element indices or new additions]
+- [Be harsh and demanding - what would make this EXCEPTIONAL?]
+- [Address overlaps, typography, spacing, focal points]`;
 
       const analysis = await callAI(apiKey, fallbackKey, analysisPrompt);
 
@@ -425,33 +431,54 @@ IMPROVEMENTS:
       if (score < 8) {
         setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Phase 3: Applying improvements...' }]);
 
-        const improvementPrompt = `EMERGENCY REDESIGN for "${userRequest}" - Current score: ${score}/10 (UNACCEPTABLE)
+        let currentElementsForImprovement: any[] = [];
+        setElements(prev => {
+          currentElementsForImprovement = prev;
+          return prev;
+        });
 
-Brutal Critique:
+        const currentElementsList = currentElementsForImprovement.map((el, idx) => {
+          if (el.type === 'text') {
+            return `[${idx}] Text: "${el.text}" - ${el.fontSize}px at (${Math.round(el.x)},${Math.round(el.y)})`;
+          } else if (el.type === 'rect') {
+            return `[${idx}] Rectangle - ${Math.round(el.width)}x${Math.round(el.height)}px at (${Math.round(el.x)},${Math.round(el.y)})`;
+          } else if (el.type === 'circle') {
+            return `[${idx}] Circle - radius ${Math.round(el.width/2)}px at (${Math.round(el.x)},${Math.round(el.y)})`;
+          } else if (el.type === 'image') {
+            return `[${idx}] Image - ${Math.round(el.width)}x${Math.round(el.height)}px at (${Math.round(el.x)},${Math.round(el.y)})`;
+          }
+          return '';
+        }).join('\n');
+
+        const improvementPrompt = `REDESIGN MISSION for "${userRequest}" - Current score: ${score}/10
+
+Canvas: ${canvasWidth}x${canvasHeight}
+
+BRUTAL CRITIQUE:
 ${analysis}
 
-Current: ${elements.length} elements on ${canvasWidth}x${canvasHeight}
+CURRENT ELEMENTS (indexed):
+${currentElementsList}
 
-YOUR MISSION: Transform this into a 9-10/10 MASTERPIECE
+YOUR COMMANDS (use element indices from list above):
+1. DELETE(index) - Remove visual noise, overlapping elements
+2. MOVE(index, newX, newY) - Reposition for better composition
+3. MODIFY_TEXT(index, newText, newSize, newColor) - Fix typography
+4. MODIFY_COLOR(index, newFillColor, newStrokeColor) - Adjust colors
+5. ADD_RECT(x, y, width, height, fillColor, strokeColor) - New shapes
+6. ADD_CIRCLE(x, y, radius, fillColor, strokeColor) - New circles
+7. ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic) - New text
+8. SEARCH_IMAGE(query) - Add relevant images
 
-REQUIRED IMPROVEMENTS:
-1. Add MASSIVE headline (120-144px, BOLD, Impact/Georgia)
-2. Add dramatic decorative circles (120-180 radius, bold colors)
-3. Add accent rectangles for visual interest
-4. Use BOLD color palette (no boring grays!)
-5. Create SIZE DRAMA (biggest 3x+ bigger than smallest)
-6. Add subtle opacity elements (0.85-0.95) for depth
-7. Position using golden ratio (38% or 62% from edges)
-8. Add call-to-action text (48-60px)
+IMPROVEMENT STRATEGY:
+1. DELETE messy/overlapping elements first
+2. MOVE elements for golden ratio positioning (38% or 62%)
+3. MODIFY_TEXT to make headlines HUGE (120-160px, BOLD)
+4. ADD dramatic elements (decorative circles 120-200 radius)
+5. ADD strong typography with massive size contrasts
+6. Ensure clear focal point and visual hierarchy
 
-ADD 8-12 POWERFUL ELEMENTS:
-ADD_RECT(x, y, width, height, fillColor, strokeColor)
-ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
-ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
-SEARCH_IMAGE(query)
-SET_BACKGROUND(hexColor)
-
-MAKE IT BREATHTAKING NOW:`;
+EXECUTE 8-15 COMMANDS TO FIX ISSUES:`;
 
         const improvements = await callAI(apiKey, fallbackKey, improvementPrompt);
         const improvementActions = parseAgentActions(improvements);
@@ -465,21 +492,35 @@ MAKE IT BREATHTAKING NOW:`;
 
         setGradiMessages(prev => [...prev, { role: 'assistant', content: '🎯 Phase 4: Final polish pass...' }]);
 
-        const polishPrompt = `FINAL PERFECTION PASS for "${userRequest}"
+        let finalElements: any[] = [];
+        setElements(prev => {
+          finalElements = prev;
+          return prev;
+        });
 
-Current design is GOOD (8/10) - make it LEGENDARY (10/10)
+        const finalElementsList = finalElements.map((el, idx) => {
+          if (el.type === 'text') return `[${idx}] Text: "${el.text}" - ${el.fontSize}px`;
+          if (el.type === 'rect') return `[${idx}] Rectangle - ${Math.round(el.width)}x${Math.round(el.height)}px`;
+          if (el.type === 'circle') return `[${idx}] Circle - ${Math.round(el.width/2)}px radius`;
+          if (el.type === 'image') return `[${idx}] Image`;
+          return '';
+        }).join('\n');
 
-Add ONLY finishing touches:
-- One subtle accent circle (small, 40-60 radius, light color)
-- One thin line/rect for sophistication (2-4px stroke)
-- Adjust any text spacing if needed
-- One final color pop accent
+        const polishPrompt = `FINAL POLISH for "${userRequest}" (8/10 → 10/10)
 
-ADD 2-4 SUBTLE REFINEMENTS:
-ADD_RECT(x, y, width, height, fillColor, strokeColor)
-ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
+CURRENT ELEMENTS:
+${finalElementsList}
 
-PERFECTION NOW:`;
+Add SUBTLE finishing touches:
+- Tiny accent shapes for sophistication
+- Micro-adjustments to spacing
+- Final color refinements
+- One surprise element for "WOW"
+
+COMMANDS:
+ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
+
+2-4 POLISH COMMANDS:`;
 
         const polish = await callAI(apiKey, fallbackKey, polishPrompt);
         const polishActions = parseAgentActions(polish);
@@ -699,22 +740,72 @@ PERFECTION NOW:`;
             setBackgroundColor(String(params[0]) || '#ffffff');
             break;
 
-          case 'MOVE_ELEMENT':
-            setElements(prev => prev.map(el =>
-              el.id === params[0] ? { ...el, x: Number(params[1]), y: Number(params[2]) } : el
-            ));
+          case 'MOVE':
+            // MOVE(index, newX, newY) - Move element by array index (0-based)
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length) {
+                const newElements = [...prev];
+                newElements[index] = {
+                  ...newElements[index],
+                  x: Number(params[1]),
+                  y: Number(params[2])
+                };
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
             break;
 
-          case 'RESIZE_ELEMENT':
-            setElements(prev => prev.map(el =>
-              el.id === params[0] ? { ...el, width: Number(params[1]), height: Number(params[2]) } : el
-            ));
+          case 'DELETE':
+            // DELETE(index) - Delete element by array index (0-based)
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length) {
+                const newElements = prev.filter((_, i) => i !== index);
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
             break;
 
-          case 'UPDATE_TEXT':
-            setElements(prev => prev.map(el =>
-              el.id === params[0] ? { ...el, [params[1]]: params[2] } : el
-            ));
+          case 'MODIFY_TEXT':
+            // MODIFY_TEXT(index, newText, newSize, newColor) - Modify existing text element
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length && prev[index].type === 'text') {
+                const newElements = [...prev];
+                newElements[index] = {
+                  ...newElements[index],
+                  text: params[1] !== undefined ? String(params[1]) : newElements[index].text,
+                  fontSize: params[2] !== undefined ? Number(params[2]) : newElements[index].fontSize,
+                  fill: params[3] !== undefined ? String(params[3]) : newElements[index].fill
+                };
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
+            break;
+
+          case 'MODIFY_COLOR':
+            // MODIFY_COLOR(index, newFillColor, newStrokeColor) - Change colors of any element
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length) {
+                const newElements = [...prev];
+                newElements[index] = {
+                  ...newElements[index],
+                  fill: params[1] !== undefined ? String(params[1]) : newElements[index].fill,
+                  stroke: params[2] !== undefined ? String(params[2]) : newElements[index].stroke
+                };
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
             break;
         }
         resolve();
