@@ -19,7 +19,7 @@ interface BoxtProps {
 }
 
 const FREE_DESIGN_LIMIT = 5;
-const PIXABAY_API_KEY = '48388095-62e5301173806e83180fb2e60';
+const PIXABAY_API_KEY = '53498346-800474751f60780eb0202c736';
 
 export function Boxt({ userId }: BoxtProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
