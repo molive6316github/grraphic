@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send } from 'lucide-react';
 import logoImage from '../assets/ae52010de59e187ce864ed24eee6209a.png';
+import { generateIntelligentResponse } from '../utils/gradiIntelligence';
 
 async function logError(error: unknown, context: string, userId: string) {
   try {
@@ -302,86 +303,62 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl
       }
 
       // Check if user wants to talk about the design/analysis
-      let needsAnalysis = screenshotUrl && analysisData && (
+      const needsAnalysis = analysisData && (
         lowerMsg.includes('show me') || lowerMsg.includes('where') ||
         lowerMsg.includes('point out') || lowerMsg.includes('highlight') ||
         lowerMsg.includes('typography') || lowerMsg.includes('color') ||
         lowerMsg.includes('spacing') || lowerMsg.includes('layout') ||
         lowerMsg.includes('composition') || lowerMsg.includes('contrast') ||
         lowerMsg.includes('hierarchy') || lowerMsg.includes('usability') ||
-        lowerMsg.includes('accessibility')
+        lowerMsg.includes('accessibility') || lowerMsg.includes('improve') ||
+        lowerMsg.includes('strength') || lowerMsg.includes('weakness') ||
+        lowerMsg.includes('overall') || lowerMsg.includes('summary')
       );
 
-      let requestBody;
       if (needsAnalysis) {
-        // Use analysis data to provide context-aware responses with highlights
+        // Use intelligent response system first (no API needed)
         try {
-          const imageData = screenshotUrl.split(',')[1];
-          const analysisContext = JSON.stringify(analysisData);
+          const intelligentResponse = generateIntelligentResponse(userMessage, analysisData);
 
-          const prompt = `You're Gradi, the design assistant. You have access to the design analysis and can highlight specific areas on the image.
+          logChatMessage(userId, sessionId, 'assistant', intelligentResponse.message);
+          setMessages(prev => [...prev, { role: 'assistant', content: intelligentResponse.message }]);
 
-Analysis data: ${analysisContext}
+          if (intelligentResponse.highlight && screenshotUrl) {
+            setHighlightBox(intelligentResponse.highlight);
+            setTimeout(() => setHighlightBox(null), 10000);
+          }
 
-When the user asks about specific areas, respond with:
-{
-  "message": "your friendly explanation (2-3 sentences)",
-  "action": null,
-  "highlight": {
-    "x": 0.1,
-    "y": 0.2,
-    "width": 0.3,
-    "height": 0.15,
-    "description": "brief label"
-  }
-}
-
-If you can identify a relevant area from the analysis data (visualReferences or references), include the highlight. Coordinates are normalized 0-1.
-If no specific area is mentioned, omit the highlight field.
-
-User: "${userMessage}"`;
-
-          requestBody = {
-            contents: [{
-              parts: [
-                { text: prompt },
-                {
-                  inline_data: {
-                    mime_type: 'image/png',
-                    data: imageData
-                  }
-                }
-              ]
-            }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 200,
-              responseMimeType: "application/json",
-            }
-          };
+          setIsLoading(false);
+          return;
         } catch (error) {
-          console.error('Analysis context failed:', error);
-          // Fall back to text-only
-          needsAnalysis = false;
+          console.error('Intelligent response failed:', error);
         }
       }
 
-      if (!needsAnalysis) {
-        // For other questions, use AI with shorter prompt
-        const prompt = `Gradi assistant for Grraphic (Design mode=graphics, UI mode=websites). Respond as JSON (1-2 sentences):
+      // For non-analysis questions, try Gemini if API key is available
+      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        // No API key - use intelligent fallback
+        const fallbackMessage = "I can help you navigate Grraphic! Ask me where to find features, or if you have analysis results, I can explain specific aspects like colors, typography, spacing, and more!";
+        logChatMessage(userId, sessionId, 'assistant', fallbackMessage);
+        setMessages(prev => [...prev, { role: 'assistant', content: fallbackMessage }]);
+        setIsLoading(false);
+        return;
+      }
+
+      // For other questions, use AI with shorter prompt
+      const prompt = `Gradi assistant for Grraphic (Design mode=graphics, UI mode=websites). Respond as JSON (1-2 sentences):
 {"message":"text","action":"MOVE_TO:mode|upload|history|subscription|account or null"}
 
 User: "${userMessage}"`;
 
-        requestBody = {
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 100,
-            responseMimeType: "application/json",
-          }
-        };
-      }
+      const requestBody = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 100,
+          responseMimeType: "application/json",
+        }
+      };
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
@@ -476,13 +453,25 @@ User: "${userMessage}"`;
 
       let errorMessage: string;
 
-      if (isAdmin) {
-        const errorText = error instanceof Error ? error.message : 'Unknown error';
-        const stackTrace = error instanceof Error ? error.stack : 'N/A';
-
-        errorMessage = `**Error Details:**\n\n${errorText}\n\n**Stack Trace:**\n${stackTrace}`;
+      // Try to use intelligent response as fallback if we have analysis data
+      if (analysisData && needsAnalysis) {
+        try {
+          const intelligentResponse = generateIntelligentResponse(userMessage, analysisData);
+          errorMessage = intelligentResponse.message;
+        } catch (fallbackError) {
+          console.error('Intelligent fallback failed:', fallbackError);
+          errorMessage = isAdmin
+            ? `**Error Details:**\n\n${error instanceof Error ? error.message : 'Unknown error'}\n\n**Stack Trace:**\n${error instanceof Error ? error.stack : 'N/A'}`
+            : "I'm having trouble right now, but if you have analysis results, try asking about specific categories like colors, typography, or spacing!";
+        }
       } else {
-        errorMessage = "I'm so sorry! I'm having a little trouble right now. The admins have been notified and will fix this soon. In the meantime, feel free to explore Grraphic!";
+        if (isAdmin) {
+          const errorText = error instanceof Error ? error.message : 'Unknown error';
+          const stackTrace = error instanceof Error ? error.stack : 'N/A';
+          errorMessage = `**Error Details:**\n\n${errorText}\n\n**Stack Trace:**\n${stackTrace}`;
+        } else {
+          errorMessage = "I'm so sorry! I'm having a little trouble right now. The admins have been notified and will fix this soon. In the meantime, feel free to explore Grraphic!";
+        }
       }
 
       setMessages(prev => [...prev, {
