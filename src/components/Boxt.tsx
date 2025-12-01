@@ -3,7 +3,9 @@ import {
   Square, Circle, Type, Download, Save, Undo, Redo,
   Trash2, Copy, ZoomIn, ZoomOut, Grid, Move, Upload,
   AlignLeft, AlignCenter, AlignRight, Bold, Italic, X,
-  Plus, FolderOpen, Sparkles, Search, MessageSquare, BarChart
+  Plus, FolderOpen, Sparkles, Search, MessageSquare, BarChart,
+  Underline, Strikethrough, Maximize2, Minimize2, RotateCw,
+  AlignJustify, ChevronUp, ChevronDown, Wand2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSubscription } from '../hooks/useSubscription';
@@ -29,6 +31,12 @@ interface DesignElement {
   imageUrl?: string;
   rotation?: number;
   opacity?: number;
+  textDecoration?: string;
+  lineHeight?: number;
+  letterSpacing?: number;
+  textTransform?: string;
+  textShadow?: string;
+  borderRadius?: number;
 }
 
 interface BoxtProps {
@@ -72,6 +80,8 @@ export function Boxt({ userId }: BoxtProps) {
   const [gradiInput, setGradiInput] = useState('');
   const [gradiMessages, setGradiMessages] = useState<any[]>([]);
   const [gradiLoading, setGradiLoading] = useState(false);
+  const [agentMode, setAgentMode] = useState(false);
+  const [agentWorking, setAgentWorking] = useState(false);
 
   const [grraphicAnalysis, setGrraphicAnalysis] = useState<any>(null);
   const [grraphicLoading, setGrraphicLoading] = useState(false);
@@ -214,15 +224,216 @@ export function Boxt({ userId }: BoxtProps) {
     setGradiLoading(true);
 
     try {
-      const response = await gradiChat(userMessage, gradiMessages, {
-        currentPage: 'boxt-editor',
-        hasResults: false
-      });
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      if (agentMode) {
+        await executeAgentMode(userMessage);
+      } else {
+        const response = await gradiChat(userMessage, gradiMessages, {
+          currentPage: 'boxt-editor',
+          hasResults: false
+        });
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      }
     } catch (error) {
       console.error('Gradi error:', error);
     }
     setGradiLoading(false);
+  };
+
+  const executeAgentMode = async (userRequest: string) => {
+    setAgentWorking(true);
+    setGradiMessages(prev => [...prev, { role: 'assistant', content: '🤖 Agent Mode Activated! Let me create that for you...' }]);
+
+    const agentPrompt = `You are an autonomous design agent controlling Boxt (a Canva-like design tool). The user wants: "${userRequest}"
+
+You have these tools available:
+- ADD_RECT(x, y, width, height, fill, stroke): Add rectangle
+- ADD_CIRCLE(x, y, radius, fill, stroke): Add circle
+- ADD_TEXT(x, y, text, fontSize, fontFamily, fill, bold, italic): Add text
+- SEARCH_IMAGE(query): Search Pixabay for images
+- ADD_IMAGE(x, y, width, height, url): Add image from URL
+- SET_BACKGROUND(color): Change canvas background
+- MOVE_ELEMENT(id, x, y): Move element
+- RESIZE_ELEMENT(id, width, height): Resize element
+- UPDATE_TEXT(id, property, value): Update text properties
+
+Canvas size: ${canvasWidth}x${canvasHeight}
+
+Create a step-by-step plan using ONLY these exact tool commands. Format as:
+TOOL_NAME(params)
+TOOL_NAME(params)
+
+Be creative and design something beautiful! Use realistic coordinates and colors.`;
+
+    try {
+      const response = await gradiChat(agentPrompt, [], {
+        currentPage: 'boxt-agent-mode',
+        hasResults: false
+      });
+
+      const actions = parseAgentActions(response);
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: `Executing ${actions.length} actions...` }]);
+
+      for (let i = 0; i < actions.length; i++) {
+        await executeAction(actions[i]);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setGradiMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = {
+            role: 'assistant',
+            content: `Executing ${i + 1}/${actions.length} actions... ${actions[i].tool}`
+          };
+          return newMessages;
+        });
+      }
+
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✅ Design complete! How does it look?' }]);
+    } catch (error) {
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ Agent error: ' + error }]);
+    }
+
+    setAgentWorking(false);
+  };
+
+  const parseAgentActions = (response: string): any[] => {
+    const actions: any[] = [];
+    const lines = response.split('\n');
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+
+      const match = trimmed.match(/^(\w+)\((.*)\)$/);
+      if (match) {
+        const [, tool, paramsStr] = match;
+        const params = paramsStr.split(',').map(p => {
+          const cleaned = p.trim().replace(/^['"]|['"]$/g, '');
+          if (cleaned === 'true') return true;
+          if (cleaned === 'false') return false;
+          if (!isNaN(Number(cleaned))) return Number(cleaned);
+          return cleaned;
+        });
+        actions.push({ tool, params });
+      }
+    }
+
+    return actions;
+  };
+
+  const executeAction = async (action: any) => {
+    const { tool, params } = action;
+
+    switch (tool) {
+      case 'ADD_RECT':
+        addElement({
+          id: Date.now().toString(),
+          type: 'rect',
+          x: params[0] || 100,
+          y: params[1] || 100,
+          width: params[2] || 200,
+          height: params[3] || 150,
+          fill: params[4] || fillColor,
+          stroke: params[5] || strokeColor,
+          strokeWidth: 2
+        });
+        break;
+
+      case 'ADD_CIRCLE':
+        addElement({
+          id: Date.now().toString(),
+          type: 'circle',
+          x: params[0] || 100,
+          y: params[1] || 100,
+          width: (params[2] || 75) * 2,
+          height: (params[2] || 75) * 2,
+          fill: params[3] || fillColor,
+          stroke: params[4] || strokeColor,
+          strokeWidth: 2
+        });
+        break;
+
+      case 'ADD_TEXT':
+        addElement({
+          id: Date.now().toString(),
+          type: 'text',
+          x: params[0] || 100,
+          y: params[1] || 100,
+          width: 400,
+          height: 50,
+          text: params[2] || 'Text',
+          fontSize: params[3] || 24,
+          fontFamily: params[4] || 'Arial',
+          fill: params[5] || '#000000',
+          fontWeight: params[6] ? 'bold' : 'normal',
+          fontStyle: params[7] ? 'italic' : 'normal'
+        });
+        break;
+
+      case 'SEARCH_IMAGE':
+        if (params[0]) {
+          setPixabayQuery(params[0]);
+          await searchPixabayForAgent(params[0]);
+        }
+        break;
+
+      case 'ADD_IMAGE':
+        if (params[4]) {
+          addElement({
+            id: Date.now().toString(),
+            type: 'image',
+            x: params[0] || 100,
+            y: params[1] || 100,
+            width: params[2] || 400,
+            height: params[3] || 300,
+            imageUrl: params[4]
+          });
+        }
+        break;
+
+      case 'SET_BACKGROUND':
+        setBackgroundColor(params[0] || '#ffffff');
+        break;
+
+      case 'MOVE_ELEMENT':
+        setElements(prev => prev.map(el =>
+          el.id === params[0] ? { ...el, x: params[1], y: params[2] } : el
+        ));
+        break;
+
+      case 'RESIZE_ELEMENT':
+        setElements(prev => prev.map(el =>
+          el.id === params[0] ? { ...el, width: params[1], height: params[2] } : el
+        ));
+        break;
+
+      case 'UPDATE_TEXT':
+        setElements(prev => prev.map(el =>
+          el.id === params[0] ? { ...el, [params[1]]: params[2] } : el
+        ));
+        break;
+    }
+  };
+
+  const searchPixabayForAgent = async (query: string) => {
+    try {
+      const response = await fetch(
+        `https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&per_page=5`
+      );
+      const data = await response.json();
+      if (data.hits && data.hits.length > 0) {
+        const randomImage = data.hits[Math.floor(Math.random() * data.hits.length)];
+        addElement({
+          id: Date.now().toString(),
+          type: 'image',
+          x: 100,
+          y: 100,
+          width: 400,
+          height: 300,
+          imageUrl: randomImage.webformatURL
+        });
+      }
+    } catch (error) {
+      console.error('Agent Pixabay error:', error);
+    }
   };
 
   const analyzeDesignWithGrraphic = async () => {
@@ -563,13 +774,29 @@ export function Boxt({ userId }: BoxtProps) {
 
           {showGradi && (
             <div className="absolute right-4 top-4 bottom-4 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                  <MessageSquare size={20} className="text-blue-600" />
-                  <span>Ask Gradi</span>
-                </h3>
-                <button onClick={() => setShowGradi(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <X size={20} />
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                    <MessageSquare size={20} className="text-blue-600" />
+                    <span>Ask Gradi</span>
+                  </h3>
+                  <button onClick={() => setShowGradi(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                    <X size={20} />
+                  </button>
+                </div>
+                <button
+                  onClick={() => setAgentMode(!agentMode)}
+                  className={`w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg transition-all ${
+                    agentMode
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                  disabled={agentWorking}
+                >
+                  <Wand2 size={16} className={agentWorking ? 'animate-spin' : ''} />
+                  <span className="text-sm font-medium">
+                    {agentWorking ? 'Agent Working...' : agentMode ? '🤖 Agent Mode ON' : 'Agent Mode OFF'}
+                  </span>
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -673,27 +900,78 @@ export function Boxt({ userId }: BoxtProps) {
             {selectedElement && selectedElement.type === 'text' && (
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                 <h4 className="font-semibold text-gray-900 dark:text-white">Text Properties</h4>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Font Size</label>
-                  <input type="number" value={selectedElement.fontSize || 24} onChange={(e) => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontSize: parseInt(e.target.value) } : el))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Font Size: {selectedElement.fontSize || 24}px</label>
+                  <input type="range" min="8" max="200" value={selectedElement.fontSize || 24} onChange={(e) => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontSize: parseInt(e.target.value) } : el))} className="w-full" />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Font Family</label>
-                  <select value={selectedElement.fontFamily || 'Arial'} onChange={(e) => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontFamily: e.target.value } : el))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+                  <select value={selectedElement.fontFamily || 'Arial'} onChange={(e) => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontFamily: e.target.value } : el))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm">
                     <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
                     <option value="Times New Roman">Times New Roman</option>
-                    <option value="Courier New">Courier New</option>
                     <option value="Georgia">Georgia</option>
+                    <option value="Courier New">Courier New</option>
                     <option value="Verdana">Verdana</option>
+                    <option value="Comic Sans MS">Comic Sans MS</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Trebuchet MS">Trebuchet MS</option>
+                    <option value="Palatino">Palatino</option>
                   </select>
                 </div>
-                <div className="flex space-x-2">
-                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontWeight: el.fontWeight === 'bold' ? 'normal' : 'bold' } : el))} className={`flex-1 p-2 rounded ${selectedElement.fontWeight === 'bold' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontWeight: el.fontWeight === 'bold' ? 'normal' : 'bold' } : el))} className={`p-2 rounded ${selectedElement.fontWeight === 'bold' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`} title="Bold">
                     <Bold size={16} className="mx-auto" />
                   </button>
-                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontStyle: el.fontStyle === 'italic' ? 'normal' : 'italic' } : el))} className={`flex-1 p-2 rounded ${selectedElement.fontStyle === 'italic' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontStyle: el.fontStyle === 'italic' ? 'normal' : 'italic' } : el))} className={`p-2 rounded ${selectedElement.fontStyle === 'italic' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`} title="Italic">
                     <Italic size={16} className="mx-auto" />
                   </button>
+                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, textDecoration: el.textDecoration === 'underline' ? 'none' : 'underline' } : el))} className={`p-2 rounded ${selectedElement.textDecoration === 'underline' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`} title="Underline">
+                    <Underline size={16} className="mx-auto" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, textAlign: 'left' } : el))} className={`p-2 rounded ${selectedElement.textAlign === 'left' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`} title="Align Left">
+                    <AlignLeft size={16} className="mx-auto" />
+                  </button>
+                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, textAlign: 'center' } : el))} className={`p-2 rounded ${selectedElement.textAlign === 'center' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`} title="Align Center">
+                    <AlignCenter size={16} className="mx-auto" />
+                  </button>
+                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, textAlign: 'right' } : el))} className={`p-2 rounded ${selectedElement.textAlign === 'right' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`} title="Align Right">
+                    <AlignRight size={16} className="mx-auto" />
+                  </button>
+                  <button onClick={() => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, textAlign: 'justify' } : el))} className={`p-2 rounded ${selectedElement.textAlign === 'justify' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`} title="Justify">
+                    <AlignJustify size={16} className="mx-auto" />
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Line Height: {selectedElement.lineHeight || 1.2}</label>
+                  <input type="range" min="0.5" max="3" step="0.1" value={selectedElement.lineHeight || 1.2} onChange={(e) => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, lineHeight: parseFloat(e.target.value) } : el))} className="w-full" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Letter Spacing: {selectedElement.letterSpacing || 0}px</label>
+                  <input type="range" min="-5" max="20" value={selectedElement.letterSpacing || 0} onChange={(e) => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, letterSpacing: parseInt(e.target.value) } : el))} className="w-full" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Opacity: {Math.round((selectedElement.opacity || 1) * 100)}%</label>
+                  <input type="range" min="0" max="1" step="0.05" value={selectedElement.opacity || 1} onChange={(e) => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, opacity: parseFloat(e.target.value) } : el))} className="w-full" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Text Transform</label>
+                  <select value={selectedElement.textTransform || 'none'} onChange={(e) => setElements(prev => prev.map(el => el.id === selectedId ? { ...el, textTransform: e.target.value } : el))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm">
+                    <option value="none">None</option>
+                    <option value="uppercase">UPPERCASE</option>
+                    <option value="lowercase">lowercase</option>
+                    <option value="capitalize">Capitalize</option>
+                  </select>
                 </div>
               </div>
             )}
