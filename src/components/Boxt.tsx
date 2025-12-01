@@ -241,54 +241,105 @@ export function Boxt({ userId }: BoxtProps) {
 
   const executeAgentMode = async (userRequest: string) => {
     setAgentWorking(true);
-    setGradiMessages(prev => [...prev, { role: 'assistant', content: '🤖 Agent Mode Activated! Let me create that for you...' }]);
+    setGradiMessages(prev => [...prev, { role: 'assistant', content: '🤖 Agent Mode Activated! Generating design plan...' }]);
 
-    const agentPrompt = `You are an autonomous design agent controlling Boxt (a Canva-like design tool). The user wants: "${userRequest}"
+    const agentPrompt = `You are an autonomous design agent controlling Boxt. User request: "${userRequest}"
 
-You have these tools available:
-- ADD_RECT(x, y, width, height, fill, stroke): Add rectangle
-- ADD_CIRCLE(x, y, radius, fill, stroke): Add circle
-- ADD_TEXT(x, y, text, fontSize, fontFamily, fill, bold, italic): Add text
-- SEARCH_IMAGE(query): Search Pixabay for images
-- ADD_IMAGE(x, y, width, height, url): Add image from URL
-- SET_BACKGROUND(color): Change canvas background
-- MOVE_ELEMENT(id, x, y): Move element
-- RESIZE_ELEMENT(id, width, height): Resize element
-- UPDATE_TEXT(id, property, value): Update text properties
+CRITICAL RULES:
+1. Output ONLY tool commands, nothing else
+2. Each command on a new line
+3. Use realistic coordinates for ${canvasWidth}x${canvasHeight} canvas
+4. Create professional, balanced designs
+5. Use complementary colors
 
-Canvas size: ${canvasWidth}x${canvasHeight}
+AVAILABLE TOOLS:
+ADD_RECT(x, y, width, height, fillColor, strokeColor)
+ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
+ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
+SEARCH_IMAGE(searchQuery)
+SET_BACKGROUND(hexColor)
 
-Create a step-by-step plan using ONLY these exact tool commands. Format as:
-TOOL_NAME(params)
-TOOL_NAME(params)
+EXAMPLE:
+SET_BACKGROUND(#1a1a2e)
+ADD_RECT(100, 100, 400, 300, #4f46e5, #8b5cf6)
+ADD_TEXT(120, 150, Welcome!, 48, Impact, #ffffff, true, false)
+SEARCH_IMAGE(mountain landscape)
 
-Be creative and design something beautiful! Use realistic coordinates and colors.`;
+NOW CREATE THE DESIGN:`;
 
     try {
-      const response = await gradiChat(agentPrompt, [], {
-        currentPage: 'boxt-agent-mode',
-        hasResults: false
-      });
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+      const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+      let response: string;
+
+      try {
+        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: 'You are a design automation AI. Output only tool commands, no explanations.' },
+              { role: 'user', content: agentPrompt }
+            ],
+            temperature: 0.9,
+            max_tokens: 2000,
+            top_p: 1,
+          }),
+        });
+
+        if (!groqResponse.ok) throw new Error('Groq failed');
+        const data = await groqResponse.json();
+        response = data.choices[0]?.message?.content || '';
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Using Groq AI to generate design...' }]);
+      } catch (error) {
+        console.log('Groq failed, using Gemini fallback');
+        const geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${fallbackKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: agentPrompt }] }],
+              generationConfig: { temperature: 0.9, maxOutputTokens: 2000 }
+            })
+          }
+        );
+        const geminiData = await geminiResponse.json();
+        response = geminiData.candidates[0]?.content?.parts[0]?.text || '';
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Using Gemini AI to generate design...' }]);
+      }
 
       const actions = parseAgentActions(response);
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: `Executing ${actions.length} actions...` }]);
+      if (actions.length === 0) {
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ Could not parse design commands. Try again!' }]);
+        setAgentWorking(false);
+        return;
+      }
+
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: `🎨 Executing ${actions.length} actions...` }]);
 
       for (let i = 0; i < actions.length; i++) {
         await executeAction(actions[i]);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
         setGradiMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = {
             role: 'assistant',
-            content: `Executing ${i + 1}/${actions.length} actions... ${actions[i].tool}`
+            content: `🎨 [${i + 1}/${actions.length}] ${actions[i].tool}(${actions[i].params.slice(0, 2).join(', ')}...)`
           };
           return newMessages;
         });
       }
 
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✅ Design complete! How does it look?' }]);
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✅ Design complete! What do you think?' }]);
     } catch (error) {
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ Agent error: ' + error }]);
+      console.error('Agent error:', error);
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ Agent error: ' + String(error) }]);
     }
 
     setAgentWorking(false);
@@ -300,23 +351,46 @@ Be creative and design something beautiful! Use realistic coordinates and colors
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('```') || trimmed.length < 5) continue;
 
-      const match = trimmed.match(/^(\w+)\((.*)\)$/);
+      const match = trimmed.match(/^(\w+)\s*\((.*)\)\s*$/);
       if (match) {
         const [, tool, paramsStr] = match;
-        const params = paramsStr.split(',').map(p => {
-          const cleaned = p.trim().replace(/^['"]|['"]$/g, '');
-          if (cleaned === 'true') return true;
-          if (cleaned === 'false') return false;
-          if (!isNaN(Number(cleaned))) return Number(cleaned);
-          return cleaned;
-        });
+
+        const params: any[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < paramsStr.length; i++) {
+          const char = paramsStr[i];
+          if (char === '\"' || char === '\'') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            params.push(cleanParam(current.trim()));
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        if (current.trim()) {
+          params.push(cleanParam(current.trim()));
+        }
+
         actions.push({ tool, params });
       }
     }
 
     return actions;
+  };
+
+  const cleanParam = (param: string): any => {
+    const cleaned = param.replace(/^['\"]+|['\"]+$/g, '');
+    if (cleaned === 'true') return true;
+    if (cleaned === 'false') return false;
+    if (cleaned.startsWith('#')) return cleaned;
+    const num = Number(cleaned);
+    if (!isNaN(num) && cleaned !== '') return num;
+    return cleaned;
   };
 
   const executeAction = async (action: any) => {
