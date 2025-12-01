@@ -21,6 +21,7 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { AIAssistant } from './components/AIAssistant';
 import { GradiChat } from './components/GradiChat';
+import { Boxt } from './components/Boxt';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { analyzeUI } from './utils/uiAnalyzer';
 import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode } from './types';
@@ -35,7 +36,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'boxt';
 
 function App() {
   const [mode, setMode] = useState<AnalysisMode>('design');
@@ -109,6 +110,9 @@ function App() {
       return;
     } else if (path === '/gradi') {
       setState('gradi');
+      return;
+    } else if (path === '/boxt') {
+      setState('boxt');
       return;
     }
 
@@ -419,6 +423,35 @@ function App() {
     );
   }
 
+  if (state === 'boxt') {
+    if (!user) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 dark:from-blue-900 dark:via-blue-800 dark:to-slate-900">
+          <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl">
+            <Sparkles size={64} className="mx-auto mb-4 text-purple-600" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sign in to Use Boxt</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Create an account or sign in to access the powerful design editor.</p>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-xl transition-all duration-300"
+            >
+              Sign In / Sign Up
+            </button>
+          </div>
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            onSignIn={signIn}
+            onSignUp={signUp}
+            onGoogleSignIn={signInWithGoogle}
+          />
+        </div>
+      );
+    }
+
+    return <Boxt userId={user.id} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 dark:from-blue-900 dark:via-blue-800 dark:to-slate-900 transition-colors duration-300">
       {/* Header */}
@@ -445,6 +478,17 @@ function App() {
             <div className="flex items-center space-x-4">
               {user ? (
                 <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => {
+                      setState('boxt');
+                      window.history.pushState({}, '', '/boxt');
+                    }}
+                    className="flex items-center space-x-2 px-3 py-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                    title="Design Editor"
+                  >
+                    <Palette size={16} />
+                    <span className="hidden sm:inline">Boxt</span>
+                  </button>
                   <button
                     onClick={() => {
                       setState('gradi');
