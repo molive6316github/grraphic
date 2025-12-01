@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send } from 'lucide-react';
+import { X, Send, Mic, MicOff, Download, Copy, Maximize2, Minimize2, MessageSquare, Volume2, VolumeX, Camera, Eraser } from 'lucide-react';
 import logoImage from '../assets/ae52010de59e187ce864ed24eee6209a.png';
 import { generateIntelligentResponse } from '../utils/gradiIntelligence';
 
@@ -94,6 +94,12 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [position, setPosition] = useState({ x: window.innerWidth - 120, y: window.innerHeight - 120 });
   const [targetPosition, setTargetPosition] = useState({ x: window.innerWidth - 120, y: window.innerHeight - 120 });
   const [velocity, setVelocity] = useState({ x: 0, y: 0 });
@@ -224,6 +230,94 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl
     return () => clearInterval(interval);
   }, [isOpen, targetPosition]);
 
+  const startVoiceRecognition = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice recognition is not supported in your browser. Try Chrome or Edge!');
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopVoiceRecognition = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  const speakMessage = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+
+      speechSynthesisRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const stopSpeaking = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  };
+
+  const exportChatHistory = () => {
+    const chatText = messages.map(m => `${m.role === 'user' ? 'You' : 'Gradi'}: ${m.content}`).join('\n\n');
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gradi-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const clearChat = () => {
+    setMessages([{
+      role: 'assistant',
+      content: "Chat cleared! How can I help you today?"
+    }]);
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -292,6 +386,11 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl
         // Use quick response without API call
         logChatMessage(userId, sessionId, 'assistant', quickResponse.message);
         setMessages(prev => [...prev, { role: 'assistant', content: quickResponse.message }]);
+
+        // Auto-speak if enabled
+        if (isSpeaking) {
+          speakMessage(quickResponse.message);
+        }
 
         if (quickResponse.action && quickResponse.action.startsWith('MOVE_TO:')) {
           const target = quickResponse.action.split(':')[1];
@@ -522,6 +621,31 @@ User: "${userMessage}"`;
     }
   }, [isDragging, dragStart]);
 
+  useEffect(() => {
+    const handleKeyboardShortcuts = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'k') {
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        } else if (e.key === 'e' && isOpen) {
+          e.preventDefault();
+          exportChatHistory();
+        } else if (e.key === 'l' && isOpen) {
+          e.preventDefault();
+          clearChat();
+        } else if (e.key === 'm' && isOpen) {
+          e.preventDefault();
+          setIsMinimized(!isMinimized);
+        }
+      } else if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyboardShortcuts);
+    return () => window.removeEventListener('keydown', handleKeyboardShortcuts);
+  }, [isOpen, isMinimized]);
+
   return (
     <>
       {/* Running Character */}
@@ -577,53 +701,130 @@ User: "${userMessage}"`;
         >
           {/* Header - Draggable */}
           <div
-            className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 flex items-center justify-between cursor-grab active:cursor-grabbing"
+            className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 cursor-grab active:cursor-grabbing"
             onMouseDown={handleMouseDown}
           >
-            <div className="flex items-center space-x-3">
-              <img
-                src={logoImage}
-                alt="Grraphic"
-                className="w-10 h-10 rounded-full bg-white/20 p-1"
-              />
-              <div>
-                <h3 className="text-white font-bold">Gradi</h3>
-                <p className="text-white/80 text-xs">Your Design Buddy</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <img
+                  src={logoImage}
+                  alt="Grraphic"
+                  className="w-10 h-10 rounded-full bg-white/20 p-1"
+                />
+                <div>
+                  <h3 className="text-white font-bold">Gradi</h3>
+                  <p className="text-white/80 text-xs">Your Design Buddy</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsMinimized(!isMinimized)}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                  title={isMinimized ? "Maximize" : "Minimize"}
+                >
+                  {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
+            {/* Action Bar */}
+            <div className="flex items-center space-x-2 mt-2 pb-1 border-t border-white/10 pt-2">
+              <button
+                onClick={() => {
+                  if (isSpeaking) {
+                    stopSpeaking();
+                    setIsSpeaking(false);
+                  } else {
+                    setIsSpeaking(true);
+                  }
+                }}
+                className={`text-white/80 hover:text-white transition-colors p-1 rounded ${isSpeaking ? 'bg-white/20' : ''}`}
+                title={isSpeaking ? "Auto-speak enabled (click to disable)" : "Enable auto-speak"}
+              >
+                {isSpeaking ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              </button>
+              <button
+                onClick={exportChatHistory}
+                className="text-white/80 hover:text-white transition-colors p-1"
+                title="Export Chat"
+              >
+                <Download size={14} />
+              </button>
+              <button
+                onClick={clearChat}
+                className="text-white/80 hover:text-white transition-colors p-1"
+                title="Clear Chat"
+              >
+                <Eraser size={14} />
+              </button>
+              {screenshotUrl && (
+                <button
+                  onClick={() => setIsDrawing(!isDrawing)}
+                  className={`text-white/80 hover:text-white transition-colors p-1 ${isDrawing ? 'bg-white/20' : ''}`}
+                  title="Annotate Image"
+                >
+                  <Camera size={14} />
+                </button>
+              )}
+              <div className="flex-1"></div>
+              <span className="text-white/60 text-xs">{messages.length - 1} msgs</span>
+            </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {message.role === 'assistant' && (
-                  <img
-                    src={logoImage}
-                    alt="Gradi"
-                    className="w-8 h-8 rounded-full mr-2 flex-shrink-0"
-                  />
-                )}
+          {!isMinimized && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((message, index) => (
                 <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                    message.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-                  }`}
+                  key={index}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} group`}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  {message.role === 'assistant' && (
+                    <img
+                      src={logoImage}
+                      alt="Gradi"
+                      className="w-8 h-8 rounded-full mr-2 flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex flex-col">
+                    <div
+                      className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                        message.role === 'user'
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    </div>
+                    <div className="flex space-x-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => copyToClipboard(message.content)}
+                        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center space-x-1"
+                        title="Copy"
+                      >
+                        <Copy size={12} />
+                        <span>Copy</span>
+                      </button>
+                      {message.role === 'assistant' && (
+                        <button
+                          onClick={() => speakMessage(message.content)}
+                          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center space-x-1"
+                          title="Speak"
+                        >
+                          <Volume2 size={12} />
+                          <span>Speak</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
             {isLoading && (
               <div className="flex justify-start items-start">
                 <img
@@ -640,30 +841,50 @@ User: "${userMessage}"`;
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
-          </div>
+              <div ref={messagesEndRef} />
+            </div>
+          )}
 
           {/* Input */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask me anything..."
-                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                disabled={isLoading}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full text-white disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all duration-300"
-              >
-                <Send size={20} />
-              </button>
+          {!isMinimized && (
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex space-x-2">
+                <button
+                  onClick={isListening ? stopVoiceRecognition : startVoiceRecognition}
+                  className={`p-2 rounded-full ${
+                    isListening
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  } transition-all duration-300`}
+                  title={isListening ? "Stop recording" : "Voice input"}
+                  disabled={isLoading}
+                >
+                  {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                </button>
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask me anything..."
+                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                  disabled={isLoading}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isLoading}
+                  className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full text-white disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all duration-300"
+                >
+                  <Send size={20} />
+                </button>
+              </div>
+              <div className="mt-2 flex items-center justify-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                <span>💡 Tip: Press Enter to send</span>
+                <span>•</span>
+                <span>Click mic for voice input</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
