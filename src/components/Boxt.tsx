@@ -297,35 +297,66 @@ CREATE STUNNING DESIGN:`;
       setGradiMessages(prev => [...prev, { role: 'assistant', content: `🎨 Executing ${actions.length} initial actions...` }]);
       await executeActionsWithProgress(actions);
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '⏳ Rendering design for analysis...' }]);
+
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      drawCanvas();
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const canvas = canvasRef.current;
       if (!canvas) return;
 
       const designSnapshot = canvas.toDataURL('image/png');
 
+      const elementDescriptions = elements.map(el => {
+        if (el.type === 'text') {
+          return `Text: "${el.text}" at (${Math.round(el.x)},${Math.round(el.y)}) - ${el.fontSize}px ${el.fontFamily} ${el.fontWeight || ''} - Color: ${el.fill}`;
+        } else if (el.type === 'rect') {
+          return `Rectangle at (${Math.round(el.x)},${Math.round(el.y)}) - ${Math.round(el.width)}x${Math.round(el.height)}px - Fill: ${el.fill}, Stroke: ${el.stroke || 'none'}`;
+        } else if (el.type === 'circle') {
+          return `Circle at (${Math.round(el.x)},${Math.round(el.y)}) - Radius: ${Math.round(el.width/2)}px - Fill: ${el.fill}, Stroke: ${el.stroke || 'none'}`;
+        } else if (el.type === 'image') {
+          return `Image at (${Math.round(el.x)},${Math.round(el.y)}) - ${Math.round(el.width)}x${Math.round(el.height)}px`;
+        }
+        return '';
+      }).join('\n');
+
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔍 Phase 2: Analyzing design quality...' }]);
 
-      const analysisPrompt = `You are a professional design critic. Analyze this design created for: "${userRequest}"
+      const analysisPrompt = `You are a BRUTAL design critic reviewing: "${userRequest}"
 
-Current elements: ${elements.length} shapes/text
 Canvas: ${canvasWidth}x${canvasHeight}
+Background: ${backgroundColor}
 
-Rate the design (1-10) on:
-1. Visual Hierarchy - Is there a clear focal point?
-2. Color Harmony - Do colors work together professionally?
-3. Typography - Are fonts appropriate and well-sized?
-4. Balance - Is the composition balanced?
-5. Whitespace - Is spacing effective?
-6. Professional Polish - Does it look production-ready?
+CURRENT DESIGN ELEMENTS (${elements.length} total):
+${elementDescriptions}
 
-Provide SPECIFIC improvements needed. Be harsh and demanding. What would make this design truly exceptional?
+SCORE (1-10) these categories:
+1. WOW Factor - Does it stop you in your tracks? (needs 9+ for exceptional)
+2. Color Mastery - Are colors bold, harmonious, and intentional?
+3. Typography Impact - Is text MASSIVE, BOLD, and hierarchical?
+4. Visual Drama - Are there dramatic size contrasts and focal points?
+5. Professional Polish - Magazine-worthy quality?
+6. Composition - Perfect balance and golden ratio usage?
+
+BE EXTREMELY HARSH. Rate like a top design agency would.
+
+What's MISSING for BREATHTAKING quality:
+- Not enough visual drama?
+- Text too small/boring?
+- Colors too safe/bland?
+- No clear focal point?
+- Missing decorative elements?
+- Poor spacing?
+- Lack of size contrast?
 
 Format:
 OVERALL_SCORE: X/10
 IMPROVEMENTS:
-- [specific improvement 1]
-- [specific improvement 2]
-...`;
+- [brutal, specific improvement 1]
+- [brutal, specific improvement 2]
+- [brutal, specific improvement 3]`;
 
       const analysis = await callAI(apiKey, fallbackKey, analysisPrompt);
 
@@ -338,25 +369,33 @@ IMPROVEMENTS:
       if (score < 8) {
         setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Phase 3: Applying improvements...' }]);
 
-        const improvementPrompt = `Current design for "${userRequest}" scored ${score}/10.
+        const improvementPrompt = `EMERGENCY REDESIGN for "${userRequest}" - Current score: ${score}/10 (UNACCEPTABLE)
 
-Analysis feedback:
+Brutal Critique:
 ${analysis}
 
-Current state:
-- ${elements.length} elements on canvas
-- Canvas: ${canvasWidth}x${canvasHeight}
+Current: ${elements.length} elements on ${canvasWidth}x${canvasHeight}
 
-CREATE IMPROVEMENT COMMANDS to address ALL criticisms. Make it EXCEPTIONAL (9-10/10):
+YOUR MISSION: Transform this into a 9-10/10 MASTERPIECE
 
-OUTPUT ONLY COMMANDS:
+REQUIRED IMPROVEMENTS:
+1. Add MASSIVE headline (120-144px, BOLD, Impact/Georgia)
+2. Add dramatic decorative circles (120-180 radius, bold colors)
+3. Add accent rectangles for visual interest
+4. Use BOLD color palette (no boring grays!)
+5. Create SIZE DRAMA (biggest 3x+ bigger than smallest)
+6. Add subtle opacity elements (0.85-0.95) for depth
+7. Position using golden ratio (38% or 62% from edges)
+8. Add call-to-action text (48-60px)
+
+ADD 8-12 POWERFUL ELEMENTS:
 ADD_RECT(x, y, width, height, fillColor, strokeColor)
 ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
 ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
 SEARCH_IMAGE(query)
 SET_BACKGROUND(hexColor)
 
-IMPROVE THE DESIGN:`;
+MAKE IT BREATHTAKING NOW:`;
 
         const improvements = await callAI(apiKey, fallbackKey, improvementPrompt);
         const improvementActions = parseAgentActions(improvements);
@@ -370,14 +409,21 @@ IMPROVE THE DESIGN:`;
 
         setGradiMessages(prev => [...prev, { role: 'assistant', content: '🎯 Phase 4: Final polish pass...' }]);
 
-        const polishPrompt = `Final polish for "${userRequest}". Add finishing touches for professional excellence:
+        const polishPrompt = `FINAL PERFECTION PASS for "${userRequest}"
 
-- Subtle accent elements
-- Perfect spacing adjustments
-- Typography refinements
-- Strategic visual accents
+Current design is GOOD (8/10) - make it LEGENDARY (10/10)
 
-OUTPUT 3-5 POLISH COMMANDS:`;
+Add ONLY finishing touches:
+- One subtle accent circle (small, 40-60 radius, light color)
+- One thin line/rect for sophistication (2-4px stroke)
+- Adjust any text spacing if needed
+- One final color pop accent
+
+ADD 2-4 SUBTLE REFINEMENTS:
+ADD_RECT(x, y, width, height, fillColor, strokeColor)
+ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
+
+PERFECTION NOW:`;
 
         const polish = await callAI(apiKey, fallbackKey, polishPrompt);
         const polishActions = parseAgentActions(polish);
