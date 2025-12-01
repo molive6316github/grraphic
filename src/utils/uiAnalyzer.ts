@@ -1,6 +1,4 @@
 import { UIUpload, UIAnalysis } from '../types';
-import { analyzeImageMetrics } from './imageAnalysisEngine';
-import { generateIntelligentUIAnalysis } from './intelligentUIScorer';
 
 const UI_ANALYSIS_PROMPT = `You are an expert UI/UX analyst and designer. Analyze the provided website/UI screenshot comprehensively based on what you can see visually.
 
@@ -95,12 +93,6 @@ async function fileToBase64(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-}
-
-async function base64ToFile(base64: string, mimeType: string): Promise<File> {
-  const response = await fetch(`data:${mimeType};base64,${base64}`);
-  const blob = await response.blob();
-  return new File([blob], 'screenshot.jpg', { type: mimeType });
 }
 
 export async function analyzeUI(upload: UIUpload, apiKey: string): Promise<UIAnalysis & { screenshotUrl?: string }> {
@@ -228,77 +220,7 @@ Be specific about what you observe in the visual design.`;
     // Convert base64 image to data URL for display
     const screenshotUrl = `data:${mimeType};base64,${base64Image}`;
 
-    try {
-      const imageFile = await base64ToFile(base64Image, mimeType);
-      const metrics = await analyzeImageMetrics(imageFile);
-      const intelligentAnalysis = generateIntelligentUIAnalysis(metrics);
-
-      const mergedAnalysis: UIAnalysis = {
-        overall: Math.round((analysis.overall + intelligentAnalysis.overall) / 2),
-        categories: {
-          usability: {
-            score: Math.round((analysis.categories.usability.score + intelligentAnalysis.categories.usability.score) / 2),
-            feedback: analysis.categories.usability.feedback,
-            improvementIdeas: [
-              ...intelligentAnalysis.categories.usability.improvementIdeas.slice(0, 2),
-              ...analysis.categories.usability.improvementIdeas.slice(0, 2)
-            ].slice(0, 3),
-            references: analysis.categories.usability.references || []
-          },
-          accessibility: {
-            score: Math.round((analysis.categories.accessibility.score + intelligentAnalysis.categories.accessibility.score) / 2),
-            feedback: analysis.categories.accessibility.feedback,
-            improvementIdeas: [
-              ...intelligentAnalysis.categories.accessibility.improvementIdeas.slice(0, 2),
-              ...analysis.categories.accessibility.improvementIdeas.slice(0, 2)
-            ].slice(0, 3),
-            references: analysis.categories.accessibility.references || []
-          },
-          responsiveness: {
-            score: Math.round((analysis.categories.responsiveness.score + intelligentAnalysis.categories.responsiveness.score) / 2),
-            feedback: analysis.categories.responsiveness.feedback,
-            improvementIdeas: [
-              ...intelligentAnalysis.categories.responsiveness.improvementIdeas.slice(0, 2),
-              ...analysis.categories.responsiveness.improvementIdeas.slice(0, 2)
-            ].slice(0, 3),
-            references: analysis.categories.responsiveness.references || []
-          },
-          performance: {
-            score: Math.round((analysis.categories.performance.score + intelligentAnalysis.categories.performance.score) / 2),
-            feedback: analysis.categories.performance.feedback,
-            improvementIdeas: [
-              ...intelligentAnalysis.categories.performance.improvementIdeas.slice(0, 2),
-              ...analysis.categories.performance.improvementIdeas.slice(0, 2)
-            ].slice(0, 3),
-            references: analysis.categories.performance.references || []
-          },
-          semantics: {
-            score: Math.round((analysis.categories.semantics.score + intelligentAnalysis.categories.semantics.score) / 2),
-            feedback: analysis.categories.semantics.feedback,
-            improvementIdeas: [
-              ...intelligentAnalysis.categories.semantics.improvementIdeas.slice(0, 2),
-              ...analysis.categories.semantics.improvementIdeas.slice(0, 2)
-            ].slice(0, 3),
-            references: analysis.categories.semantics.references || []
-          },
-          uxPatterns: {
-            score: Math.round((analysis.categories.uxPatterns.score + intelligentAnalysis.categories.uxPatterns.score) / 2),
-            feedback: analysis.categories.uxPatterns.feedback,
-            improvementIdeas: [
-              ...intelligentAnalysis.categories.uxPatterns.improvementIdeas.slice(0, 2),
-              ...analysis.categories.uxPatterns.improvementIdeas.slice(0, 2)
-            ].slice(0, 3),
-            references: analysis.categories.uxPatterns.references || []
-          }
-        },
-        summary: analysis.summary
-      };
-
-      return { ...mergedAnalysis, screenshotUrl } as UIAnalysis & { screenshotUrl?: string };
-    } catch (intelligentError) {
-      console.warn('Intelligent analysis failed, using Gemini analysis only:', intelligentError);
-      return { ...analysis, screenshotUrl } as UIAnalysis & { screenshotUrl?: string };
-    }
+    return { ...analysis, screenshotUrl } as UIAnalysis & { screenshotUrl?: string };
   } catch (error) {
     console.error('UI analysis error:', error);
     throw error;
