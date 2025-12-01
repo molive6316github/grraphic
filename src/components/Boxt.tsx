@@ -29,6 +29,7 @@ export function Boxt({ userId }: BoxtProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tool, setTool] = useState<'select' | 'rect' | 'circle' | 'text'>('select');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [fillColor, setFillColor] = useState('#3B82F6');
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [canvasWidth, setCanvasWidth] = useState(1920);
@@ -276,17 +277,30 @@ DESIGN RULES:
 
 CRITICAL: OUTPUT ONLY COMMANDS (one per line, NO explanations, NO markdown):
 
+BACKGROUND COMMANDS:
 SET_BACKGROUND(#hexcolor)
-ADD_TEXT(x, y, "text", fontSize, fontFamily, #color, bold, italic)
-ADD_CIRCLE(x, y, radius, #fillColor, #strokeColor)
-ADD_RECT(x, y, width, height, #fillColor, #strokeColor)
-SEARCH_IMAGE(query)
+SET_IMAGE_BACKGROUND(imageUrl)
 
-Example output format:
+SHAPE COMMANDS:
+ADD_RECT(x, y, width, height, #fillColor, #strokeColor)
+ADD_CIRCLE(x, y, radius, #fillColor, #strokeColor)
+
+TEXT COMMANDS:
+ADD_TEXT(x, y, "text", fontSize, fontFamily, #color, bold, italic)
+
+IMAGE COMMANDS:
+SEARCH_IMAGE(query)
+ADD_IMAGE(x, y, width, height, imageUrl)
+
+EFFECTS:
+SET_OPACITY(index, 0.0-1.0)
+
+Example output:
 SET_BACKGROUND(#0f172a)
 ADD_TEXT(200, 300, "AMAZING DESIGN", 144, Impact, #ffffff, true, false)
 ADD_CIRCLE(1600, 300, 150, #3b82f6, #60a5fa)
 ADD_RECT(100, 150, 1720, 400, #3b82f6, none)
+SET_OPACITY(2, 0.85)
 
 Now create 12-15 commands for "${userRequest}":`;
 
@@ -429,15 +443,35 @@ ${analysis}
 CURRENT ELEMENTS (indexed):
 ${currentElementsList}
 
-YOUR COMMANDS (use element indices from list above):
-1. DELETE(index) - Remove visual noise, overlapping elements
-2. MOVE(index, newX, newY) - Reposition for better composition
-3. MODIFY_TEXT(index, newText, newSize, newColor) - Fix typography
-4. MODIFY_COLOR(index, newFillColor, newStrokeColor) - Adjust colors
-5. ADD_RECT(x, y, width, height, fillColor, strokeColor) - New shapes
-6. ADD_CIRCLE(x, y, radius, fillColor, strokeColor) - New circles
-7. ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic) - New text
-8. SEARCH_IMAGE(query) - Add relevant images
+ALL AVAILABLE COMMANDS:
+
+DESTRUCTIVE:
+DELETE(index) - Remove element
+CLEAR_BACKGROUND_IMAGE() - Remove background image
+
+MODIFICATION:
+MOVE(index, newX, newY) - Reposition element
+RESIZE(index, newWidth, newHeight) - Change size
+MODIFY_TEXT(index, newText, newSize, newColor) - Edit text
+MODIFY_COLOR(index, newFillColor, newStrokeColor) - Change colors
+SET_OPACITY(index, 0.0-1.0) - Adjust transparency
+ROTATE(index, degrees) - Rotate element
+
+LAYER MANAGEMENT:
+BRING_FORWARD(index) - Move up in layer order
+SEND_BACK(index) - Move down in layer order
+DUPLICATE(index) - Copy element
+
+CREATION:
+ADD_RECT(x, y, width, height, fillColor, strokeColor) - New rectangle
+ADD_CIRCLE(x, y, radius, fillColor, strokeColor) - New circle
+ADD_TEXT(x, y, text, fontSize, fontFamily, color, bold, italic) - New text
+ADD_IMAGE(x, y, width, height, imageUrl) - New image
+SEARCH_IMAGE(query) - Find and add Pixabay image
+
+BACKGROUND:
+SET_BACKGROUND(#hexcolor) - Set background color
+SET_IMAGE_BACKGROUND(imageUrl) - Set background image
 
 IMPROVEMENT STRATEGY:
 1. DELETE messy/overlapping elements first
@@ -719,6 +753,119 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
 
           case 'SET_BACKGROUND':
             setBackgroundColor(String(params[0]) || '#ffffff');
+            setBackgroundImage(null); // Clear any background image
+            break;
+
+          case 'SET_IMAGE_BACKGROUND':
+            // SET_IMAGE_BACKGROUND(imageUrl) - Set image as background
+            if (params[0]) {
+              setBackgroundImage(String(params[0]));
+            }
+            break;
+
+          case 'CLEAR_BACKGROUND_IMAGE':
+            // CLEAR_BACKGROUND_IMAGE() - Remove background image, keep color
+            setBackgroundImage(null);
+            break;
+
+          case 'RESIZE':
+            // RESIZE(index, newWidth, newHeight) - Resize element
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length) {
+                const newElements = [...prev];
+                newElements[index] = {
+                  ...newElements[index],
+                  width: Number(params[1]),
+                  height: Number(params[2])
+                };
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
+            break;
+
+          case 'SET_OPACITY':
+            // SET_OPACITY(index, opacity) - Set element opacity (0.0 to 1.0)
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length) {
+                const newElements = [...prev];
+                newElements[index] = {
+                  ...newElements[index],
+                  opacity: Math.max(0, Math.min(1, Number(params[1])))
+                };
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
+            break;
+
+          case 'ROTATE':
+            // ROTATE(index, degrees) - Rotate element
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length) {
+                const newElements = [...prev];
+                newElements[index] = {
+                  ...newElements[index],
+                  rotation: Number(params[1]) % 360
+                };
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
+            break;
+
+          case 'DUPLICATE':
+            // DUPLICATE(index) - Duplicate an element
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length) {
+                const original = prev[index];
+                const duplicate = {
+                  ...original,
+                  id: Date.now().toString() + Math.random(),
+                  x: original.x + 20,
+                  y: original.y + 20
+                };
+                const newElements = [...prev, duplicate];
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
+            break;
+
+          case 'BRING_FORWARD':
+            // BRING_FORWARD(index) - Move element up in layer order
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index >= 0 && index < prev.length - 1) {
+                const newElements = [...prev];
+                [newElements[index], newElements[index + 1]] = [newElements[index + 1], newElements[index]];
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
+            break;
+
+          case 'SEND_BACK':
+            // SEND_BACK(index) - Move element down in layer order
+            setElements(prev => {
+              const index = Number(params[0]);
+              if (index > 0 && index < prev.length) {
+                const newElements = [...prev];
+                [newElements[index], newElements[index - 1]] = [newElements[index - 1], newElements[index]];
+                addToHistory(newElements);
+                return newElements;
+              }
+              return prev;
+            });
             break;
 
           case 'MOVE':
@@ -848,8 +995,25 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0, 0, canvasWidth * zoom, canvasHeight * zoom);
+
+    // Draw background (color or image)
+    if (backgroundImage) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvasWidth * zoom, canvasHeight * zoom);
+        drawElements(ctx);
+      };
+      img.src = backgroundImage;
+      return;
+    } else {
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, canvasWidth * zoom, canvasHeight * zoom);
+    }
+
+    drawElements(ctx);
+  };
+
+  const drawElements = (ctx: CanvasRenderingContext2D) => {
 
     if (showGrid) {
       ctx.strokeStyle = '#e0e0e0';

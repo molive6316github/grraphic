@@ -109,18 +109,37 @@ Agent Mode capabilities (when enabled in Boxt):
 - Final polish pass adds 2-4 subtle refinements
 - Can search Pixabay for stock images
 
-Commands Agent Mode uses:
-- SET_BACKGROUND(hexColor) - Set canvas background
+ALL Commands Agent Mode uses (grouped by function):
+
+**CREATION:**
 - ADD_RECT(x, y, width, height, fillColor, strokeColor) - Add rectangle
 - ADD_CIRCLE(x, y, radius, fillColor, strokeColor) - Add circle
 - ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic) - Add text
-- SEARCH_IMAGE(query) - Search Pixabay for images
-- DELETE(index) - Delete element by index (0-based)
-- MOVE(index, newX, newY) - Move element to new position
-- MODIFY_TEXT(index, newText, newSize, newColor) - Modify text element
-- MODIFY_COLOR(index, newFillColor, newStrokeColor) - Change element colors
+- ADD_IMAGE(x, y, width, height, imageUrl) - Add image
+- SEARCH_IMAGE(query) - Search Pixabay and add image
 
-Agent analyzes designs and can DELETE messy elements, MOVE for better composition, and MODIFY to fix issues!
+**BACKGROUND:**
+- SET_BACKGROUND(hexColor) - Set background color
+- SET_IMAGE_BACKGROUND(imageUrl) - Set image as background
+- CLEAR_BACKGROUND_IMAGE() - Remove background image
+
+**MODIFICATION:**
+- MOVE(index, newX, newY) - Reposition element
+- RESIZE(index, newWidth, newHeight) - Change element size
+- MODIFY_TEXT(index, newText, newSize, newColor) - Edit text properties
+- MODIFY_COLOR(index, newFillColor, newStrokeColor) - Change colors
+- SET_OPACITY(index, 0.0-1.0) - Adjust transparency
+- ROTATE(index, degrees) - Rotate element
+
+**LAYER CONTROL:**
+- BRING_FORWARD(index) - Move element up in layers
+- SEND_BACK(index) - Move element down in layers
+- DUPLICATE(index) - Copy element with offset
+
+**DESTRUCTION:**
+- DELETE(index) - Remove element by index
+
+Agent has FULL design control - can create, modify, layer, delete, set backgrounds, adjust opacity, rotate, resize - EVERYTHING a human can do in Boxt!
 
 ## USER TIERS:
 - **Free**: 3 analyses/month, 5 Boxt designs, 50 chat messages
