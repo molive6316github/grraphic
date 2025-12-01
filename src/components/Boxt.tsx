@@ -262,26 +262,65 @@ export function Boxt({ userId }: BoxtProps) {
     const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     try {
-      const initialPrompt = `You are a world-class design agent. User wants: "${userRequest}"
+      const initialPrompt = `You are an ELITE design AI creating BREATHTAKING, AWARD-WINNING designs for: "${userRequest}"
 
 Canvas: ${canvasWidth}x${canvasHeight}
 
-PROFESSIONAL DESIGN REQUIREMENTS:
-- Use design principles: hierarchy, contrast, balance, whitespace
-- Choose sophisticated color palettes
-- Perfect typography (font pairing, sizing, spacing)
-- Strategic use of imagery
-- Visual flow and focal points
-- Professional polish
+CRITICAL DESIGN RULES:
 
-OUTPUT ONLY COMMANDS (one per line):
+COLOR PALETTES (Choose ONE):
+1. Modern Tech: #0f172a bg, #3b82f6 #60a5fa #2dd4bf accents
+2. Luxury Gold: #1a1a1a bg, #d4af37 #f59e0b #fbbf24 accents
+3. Vibrant Energy: #1e1b4b bg, #ec4899 #f472b6 #fb923c accents
+4. Nature Fresh: #064e3b bg, #10b981 #34d399 #6ee7b7 accents
+5. Sunset Warm: #451a03 bg, #f97316 #fb923c #fbbf24 accents
+6. Ocean Deep: #0c4a6e bg, #0ea5e9 #38bdf8 #7dd3fc accents
+
+LAYOUT RULES:
+- Main headline: Top 20% of canvas, HUGE (96-144px)
+- Subheading: Below headline, 40-60px
+- Body text: Middle area, 24-32px
+- Decorative shapes: Use circles/rects as accents
+- Asymmetric balance: 60/40 split
+- Golden ratio positioning (x: 38% or 62% of width)
+
+TYPOGRAPHY EXCELLENCE:
+- Headlines: Impact, Georgia, Palatino (BOLD)
+- Body: Helvetica, Arial, Verdana
+- HUGE contrast in sizes (headline 3x+ body size)
+- Letter spacing for headlines: +2 to +5
+- Use UPPERCASE for impact words
+- Maximum 3 text elements (title, subtitle, call-to-action)
+
+VISUAL HIERARCHY:
+1. DOMINANT focal point (huge text or shape)
+2. Secondary elements (medium, supporting)
+3. Tertiary details (small accents)
+4. Use size contrast: Largest 3x bigger than smallest
+
+SHAPES & DECORATION:
+- Add 3-5 decorative circles (different sizes: 80-200 radius)
+- Add 2-3 rectangles as frames or underlays
+- Use transparency (opacity 0.8-0.95) for depth
+- Overlap elements slightly for modern look
+- Use gradients via multiple similar colors
+
+BREATHTAKING EXECUTION:
+- Every element has PURPOSE
+- Perfect spacing (minimum 40px gaps)
+- Dramatic size variations
+- Bold color contrasts
+- Professional polish
+- Magazine-quality composition
+
+OUTPUT FORMAT (commands only):
 SET_BACKGROUND(hexColor)
 ADD_RECT(x, y, width, height, fillColor, strokeColor)
 ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
 ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
 SEARCH_IMAGE(query)
 
-CREATE STUNNING DESIGN:`;
+CREATE 10-15 ELEMENTS FOR STUNNING DESIGN:`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Phase 1: Generating initial design...' }]);
 
@@ -309,7 +348,24 @@ CREATE STUNNING DESIGN:`;
 
       const designSnapshot = canvas.toDataURL('image/png');
 
-      const elementDescriptions = elements.map(el => {
+      let currentElements: any[] = [];
+      let currentBg = '';
+      setElements(prev => {
+        currentElements = prev;
+        return prev;
+      });
+      setBackgroundColor(prev => {
+        currentBg = prev;
+        return prev;
+      });
+
+      if (currentElements.length === 0) {
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ No elements found after execution. Something went wrong.' }]);
+        setAgentWorking(false);
+        return;
+      }
+
+      const elementDescriptions = currentElements.map(el => {
         if (el.type === 'text') {
           return `Text: "${el.text}" at (${Math.round(el.x)},${Math.round(el.y)}) - ${el.fontSize}px ${el.fontFamily} ${el.fontWeight || ''} - Color: ${el.fill}`;
         } else if (el.type === 'rect') {
@@ -327,9 +383,9 @@ CREATE STUNNING DESIGN:`;
       const analysisPrompt = `You are a BRUTAL design critic reviewing: "${userRequest}"
 
 Canvas: ${canvasWidth}x${canvasHeight}
-Background: ${backgroundColor}
+Background: ${currentBg}
 
-CURRENT DESIGN ELEMENTS (${elements.length} total):
+CURRENT DESIGN ELEMENTS (${currentElements.length} total):
 ${elementDescriptions}
 
 SCORE (1-10) these categories:
