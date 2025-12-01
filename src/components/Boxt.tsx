@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Square, Circle, Type, Image as ImageIcon, Download, Save, Undo, Redo,
-  Trash2, Copy, Layers, ZoomIn, ZoomOut, Grid, Palette, Move,
-  RotateCw, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Menu, X,
-  Plus, FolderOpen, Sparkles
-} from 'lucide-react';
+import { Square, Circle, Type, Image as ImageIcon, Download, Save, Undo, Redo, Trash2, Copy, Layers, ZoomIn, ZoomOut, Grid2x2 as Grid, Palette, Move, RotateCw, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Menu, X, Plus, FolderOpen, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSubscription } from '../hooks/useSubscription';
 
