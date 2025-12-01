@@ -262,77 +262,46 @@ export function Boxt({ userId }: BoxtProps) {
     const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     try {
-      const initialPrompt = `You are an ELITE design AI creating BREATHTAKING, AWARD-WINNING designs for: "${userRequest}"
+      const initialPrompt = `Create a stunning design for: "${userRequest}"
 
 Canvas: ${canvasWidth}x${canvasHeight}
 
-CRITICAL DESIGN RULES:
+DESIGN RULES:
+- Choose a bold color palette (Modern Tech, Luxury, Vibrant, etc.)
+- Main headline: 120-144px, BOLD, Impact or Georgia font
+- Add 2-3 decorative circles (80-180 radius)
+- Add 1-2 accent rectangles
+- Use golden ratio positioning (38% or 62% of canvas width)
+- Create HUGE size contrasts (3x+ between largest and smallest)
 
-COLOR PALETTES (Choose ONE):
-1. Modern Tech: #0f172a bg, #3b82f6 #60a5fa #2dd4bf accents
-2. Luxury Gold: #1a1a1a bg, #d4af37 #f59e0b #fbbf24 accents
-3. Vibrant Energy: #1e1b4b bg, #ec4899 #f472b6 #fb923c accents
-4. Nature Fresh: #064e3b bg, #10b981 #34d399 #6ee7b7 accents
-5. Sunset Warm: #451a03 bg, #f97316 #fb923c #fbbf24 accents
-6. Ocean Deep: #0c4a6e bg, #0ea5e9 #38bdf8 #7dd3fc accents
+CRITICAL: OUTPUT ONLY COMMANDS (one per line, NO explanations, NO markdown):
 
-LAYOUT RULES:
-- Main headline: Top 20% of canvas, HUGE (96-144px)
-- Subheading: Below headline, 40-60px
-- Body text: Middle area, 24-32px
-- Decorative shapes: Use circles/rects as accents
-- Asymmetric balance: 60/40 split
-- Golden ratio positioning (x: 38% or 62% of width)
-
-TYPOGRAPHY EXCELLENCE:
-- Headlines: Impact, Georgia, Palatino (BOLD)
-- Body: Helvetica, Arial, Verdana
-- HUGE contrast in sizes (headline 3x+ body size)
-- Letter spacing for headlines: +2 to +5
-- Use UPPERCASE for impact words
-- Maximum 3 text elements (title, subtitle, call-to-action)
-
-VISUAL HIERARCHY:
-1. DOMINANT focal point (huge text or shape)
-2. Secondary elements (medium, supporting)
-3. Tertiary details (small accents)
-4. Use size contrast: Largest 3x bigger than smallest
-
-SHAPES & DECORATION:
-- Add 3-5 decorative circles (different sizes: 80-200 radius)
-- Add 2-3 rectangles as frames or underlays
-- Use transparency (opacity 0.8-0.95) for depth
-- Overlap elements slightly for modern look
-- Use gradients via multiple similar colors
-
-BREATHTAKING EXECUTION:
-- Every element has PURPOSE
-- Perfect spacing (minimum 40px gaps)
-- Dramatic size variations
-- Bold color contrasts
-- Professional polish
-- Magazine-quality composition
-
-AVAILABLE COMMANDS (output ONLY commands):
-SET_BACKGROUND(hexColor)
-ADD_RECT(x, y, width, height, fillColor, strokeColor)
-ADD_CIRCLE(x, y, radius, fillColor, strokeColor)
-ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic)
+SET_BACKGROUND(#hexcolor)
+ADD_TEXT(x, y, "text", fontSize, fontFamily, #color, bold, italic)
+ADD_CIRCLE(x, y, radius, #fillColor, #strokeColor)
+ADD_RECT(x, y, width, height, #fillColor, #strokeColor)
 SEARCH_IMAGE(query)
-DELETE(index)
-MOVE(index, newX, newY)
-MODIFY_TEXT(index, newText, newSize, newColor)
-MODIFY_COLOR(index, newFillColor, newStrokeColor)
 
-CREATE 12-15 ELEMENTS FOR STUNNING INITIAL DESIGN:`;
+Example output format:
+SET_BACKGROUND(#0f172a)
+ADD_TEXT(200, 300, "AMAZING DESIGN", 144, Impact, #ffffff, true, false)
+ADD_CIRCLE(1600, 300, 150, #3b82f6, #60a5fa)
+ADD_RECT(100, 150, 1720, 400, #3b82f6, none)
+
+Now create 12-15 commands for "${userRequest}":`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Phase 1: Generating initial design...' }]);
 
       let response = await callAI(apiKey, fallbackKey, initialPrompt);
+      console.log('Agent AI Response:', response);
       let actions = parseAgentActions(response);
+      console.log('Parsed Actions:', actions);
 
       if (actions.length === 0) {
-        setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ Failed to generate commands' }]);
+        setGradiMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `❌ Failed to generate commands. AI Response: ${response.substring(0, 200)}...`
+        }]);
         setAgentWorking(false);
         return;
       }
@@ -551,12 +520,12 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: [
-            { role: 'system', content: 'You are an expert design AI. Follow instructions exactly.' },
+            { role: 'system', content: 'You are a design command generator. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.' },
             { role: 'user', content: prompt }
           ],
-          temperature: 0.85,
+          temperature: 0.7,
           max_tokens: 2500,
-          top_p: 0.95,
+          top_p: 0.9,
         }),
       });
 
@@ -598,11 +567,22 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
 
   const parseAgentActions = (response: string): any[] => {
     const actions: any[] = [];
-    const lines = response.split('\n');
+
+    // Remove markdown code blocks if present
+    let cleanedResponse = response.replace(/```[\s\S]*?```/g, (match) => {
+      return match.replace(/```\w*\n?/g, '').replace(/```/g, '');
+    });
+
+    const lines = cleanedResponse.split('\n');
 
     for (const line of lines) {
       const trimmed = line.trim();
+
+      // Skip empty lines, comments, and very short lines
       if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('```') || trimmed.length < 5) continue;
+
+      // Skip lines that don't look like commands
+      if (!trimmed.includes('(') || !trimmed.includes(')')) continue;
 
       const match = trimmed.match(/^(\w+)\s*\((.*)\)\s*$/);
       if (match) {
@@ -631,6 +611,7 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
       }
     }
 
+    console.log('Parsed actions count:', actions.length);
     return actions;
   };
 
