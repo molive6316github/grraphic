@@ -591,9 +591,45 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
   };
 
   const callAI = async (groqKey: string, geminiKey: string, prompt: string): Promise<string> => {
-    // Try Claude 3.5 Sonnet first (best reasoning and creativity)
+    // Try OpenAI GPT-4o first (best multimodal reasoning)
     try {
-      console.log('Attempting Claude 3.5 Sonnet...');
+      console.log('🤖 Attempting OpenAI GPT-4o...');
+      const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (openaiKey) {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: 'You are a professional graphic designer creating design commands. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.85,
+            max_tokens: 3000,
+          }),
+        });
+
+        if (openaiResponse.ok) {
+          const data = await openaiResponse.json();
+          console.log('✅ OpenAI GPT-4o success!');
+          return data.choices[0]?.message?.content || '';
+        } else {
+          console.log('❌ OpenAI GPT-4o failed:', openaiResponse.status);
+        }
+      } else {
+        console.log('⚠️ OpenAI API key not found, skipping...');
+      }
+    } catch (error) {
+      console.log('❌ OpenAI unavailable:', error, 'trying Claude...');
+    }
+
+    // Try Claude 3.5 Sonnet second (best reasoning and creativity)
+    try {
+      console.log('🤖 Attempting Claude 3.5 Sonnet...');
       const anthropicKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
       if (anthropicKey) {
         const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -616,17 +652,21 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
 
         if (anthropicResponse.ok) {
           const data = await anthropicResponse.json();
-          console.log('Claude 3.5 Sonnet success!');
+          console.log('✅ Claude 3.5 Sonnet success!');
           return data.content[0]?.text || '';
+        } else {
+          console.log('❌ Claude 3.5 failed:', anthropicResponse.status);
         }
+      } else {
+        console.log('⚠️ Anthropic API key not found, skipping...');
       }
     } catch (error) {
-      console.log('Claude unavailable, trying Gemini Pro...');
+      console.log('❌ Claude unavailable:', error, 'trying Gemini...');
     }
 
     // Try Gemini 2.0 Flash (advanced multimodal)
     try {
-      console.log('Attempting Gemini 2.0 Flash...');
+      console.log('🤖 Attempting Gemini 2.0 Flash...');
       const geminiResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
         {
@@ -645,16 +685,18 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
 
       if (geminiResponse.ok) {
         const geminiData = await geminiResponse.json();
-        console.log('Gemini 2.0 Flash success!');
+        console.log('✅ Gemini 2.0 Flash success!');
         return geminiData.candidates[0]?.content?.parts[0]?.text || '';
+      } else {
+        console.log('❌ Gemini 2.0 failed:', geminiResponse.status);
       }
     } catch (error) {
-      console.log('Gemini 2.0 unavailable, trying Llama...');
+      console.log('❌ Gemini 2.0 unavailable:', error, 'trying Llama...');
     }
 
     // Fallback to Groq Llama 3.3
     try {
-      console.log('Attempting Groq Llama 3.3 70B...');
+      console.log('🤖 Attempting Groq Llama 3.3 70B...');
       const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -675,15 +717,17 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
 
       if (groqResponse.ok) {
         const data = await groqResponse.json();
-        console.log('Groq Llama 3.3 success!');
+        console.log('✅ Groq Llama 3.3 success!');
         return data.choices[0]?.message?.content || '';
+      } else {
+        console.log('❌ Groq failed:', groqResponse.status);
       }
     } catch (error) {
-      console.log('Groq unavailable, final fallback to Gemini 1.5...');
+      console.log('❌ Groq unavailable:', error, 'final fallback to Gemini 1.5...');
     }
 
     // Final fallback: Gemini 1.5 Flash
-    console.log('Using Gemini 1.5 Flash (final fallback)');
+    console.log('🤖 Using Gemini 1.5 Flash (final fallback)');
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
       {
@@ -696,6 +740,7 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
       }
     );
     const geminiData = await geminiResponse.json();
+    console.log('✅ Gemini 1.5 Flash success!');
     return geminiData.candidates[0]?.content?.parts[0]?.text || '';
   };
 
