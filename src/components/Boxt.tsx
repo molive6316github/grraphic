@@ -24,6 +24,7 @@ const PIXABAY_API_KEY = '53498346-800474751f60780eb0202c736';
 export function Boxt({ userId }: BoxtProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
   const [elements, setElements] = useState<DesignElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -995,7 +996,25 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
     setGrraphicLoading(false);
   };
 
-  const drawCanvas = () => {
+  const loadImage = (url: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      if (imageCache.current.has(url)) {
+        resolve(imageCache.current.get(url)!);
+        return;
+      }
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        imageCache.current.set(url, img);
+        resolve(img);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  };
+
+  const drawCanvas = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -1003,25 +1022,22 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw background (color or image)
+    // Draw background (image or color)
     if (backgroundImage) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvasWidth * zoom, canvasHeight * zoom);
-        drawElements(ctx);
-      };
-      img.src = backgroundImage;
-      return;
+      try {
+        const bgImg = await loadImage(backgroundImage);
+        ctx.drawImage(bgImg, 0, 0, canvasWidth * zoom, canvasHeight * zoom);
+      } catch (e) {
+        console.error('Background image load error:', e);
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, canvasWidth * zoom, canvasHeight * zoom);
+      }
     } else {
       ctx.fillStyle = backgroundColor;
       ctx.fillRect(0, 0, canvasWidth * zoom, canvasHeight * zoom);
     }
 
-    drawElements(ctx);
-  };
-
-  const drawElements = (ctx: CanvasRenderingContext2D) => {
-
+    // Draw grid
     if (showGrid) {
       ctx.strokeStyle = '#e0e0e0';
       ctx.lineWidth = 1;
@@ -1040,55 +1056,86 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
       }
     }
 
-    elements.forEach(element => {
-      ctx.save();
-      ctx.globalAlpha = element.opacity || 1;
+    // Draw elements
+    for (const element of elements) {
+      await drawElement(ctx, element);
+    }
+  };
 
-      if (element.type === 'rect') {
-        ctx.fillStyle = element.fill || fillColor;
+  const drawElement = async (ctx: CanvasRenderingContext2D, element: DesignElement) => {
+    ctx.save();
+
+    // Apply opacity
+    ctx.globalAlpha = element.opacity !== undefined ? element.opacity : 1;
+
+    // Apply rotation if specified
+    if (element.rotation) {
+      const centerX = (element.x + element.width / 2) * zoom;
+      const centerY = (element.y + element.height / 2) * zoom;
+      ctx.translate(centerX, centerY);
+      ctx.rotate((element.rotation * Math.PI) / 180);
+      ctx.translate(-centerX, -centerY);
+    }
+
+    if (element.type === 'rect') {
+      ctx.fillStyle = element.fill || fillColor;
+      ctx.fillRect(element.x * zoom, element.y * zoom, element.width * zoom, element.height * zoom);
+      if (element.stroke && element.stroke !== 'none') {
+        ctx.strokeStyle = element.stroke;
+        ctx.lineWidth = (element.strokeWidth || 2) * zoom;
+        ctx.strokeRect(element.x * zoom, element.y * zoom, element.width * zoom, element.height * zoom);
+      }
+    } else if (element.type === 'circle') {
+      const centerX = (element.x + element.width / 2) * zoom;
+      const centerY = (element.y + element.height / 2) * zoom;
+      const radius = (element.width / 2) * zoom;
+
+      ctx.fillStyle = element.fill || fillColor;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (element.stroke && element.stroke !== 'none') {
+        ctx.strokeStyle = element.stroke;
+        ctx.lineWidth = (element.strokeWidth || 2) * zoom;
+        ctx.stroke();
+      }
+    } else if (element.type === 'text') {
+      const fontSize = (element.fontSize || 24) * zoom;
+      const fontWeight = element.fontWeight || (element.bold ? 'bold' : 'normal');
+      const fontStyle = element.fontStyle || (element.italic ? 'italic' : 'normal');
+      const fontFamily = element.fontFamily || 'Arial';
+
+      ctx.fillStyle = element.fill || '#000000';
+      ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+      ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(element.text || 'Text', element.x * zoom, element.y * zoom);
+    } else if (element.type === 'image' && element.imageUrl) {
+      try {
+        const img = await loadImage(element.imageUrl);
+        ctx.drawImage(img, element.x * zoom, element.y * zoom, element.width * zoom, element.height * zoom);
+      } catch (e) {
+        // Draw placeholder if image fails
+        ctx.fillStyle = '#e0e0e0';
         ctx.fillRect(element.x * zoom, element.y * zoom, element.width * zoom, element.height * zoom);
-        if (element.stroke) {
-          ctx.strokeStyle = element.stroke;
-          ctx.lineWidth = (element.strokeWidth || 1) * zoom;
-          ctx.strokeRect(element.x * zoom, element.y * zoom, element.width * zoom, element.height * zoom);
-        }
-      } else if (element.type === 'circle') {
-        const centerX = (element.x + element.width / 2) * zoom;
-        const centerY = (element.y + element.height / 2) * zoom;
-        ctx.fillStyle = element.fill || fillColor;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, (element.width / 2) * zoom, 0, Math.PI * 2);
-        ctx.fill();
-        if (element.stroke) {
-          ctx.strokeStyle = element.stroke;
-          ctx.lineWidth = (element.strokeWidth || 1) * zoom;
-          ctx.stroke();
-        }
-      } else if (element.type === 'text') {
-        ctx.fillStyle = element.fill || '#000000';
-        ctx.font = `${element.fontStyle || ''} ${element.fontWeight || ''} ${(element.fontSize || 24) * zoom}px ${element.fontFamily || 'Arial'}`;
-        ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
-        ctx.fillText(element.text || 'Text', element.x * zoom, (element.y + (element.fontSize || 24)) * zoom);
-      } else if (element.type === 'image' && element.imageUrl) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = element.imageUrl;
-        img.onload = () => {
-          ctx.drawImage(img, element.x * zoom, element.y * zoom, element.width * zoom, element.height * zoom);
-        };
-        try {
-          ctx.drawImage(img, element.x * zoom, element.y * zoom, element.width * zoom, element.height * zoom);
-        } catch (e) {}
+        ctx.fillStyle = '#666';
+        ctx.font = `16px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Image', (element.x + element.width / 2) * zoom, (element.y + element.height / 2) * zoom);
       }
+    }
 
-      if (selectedId === element.id) {
-        ctx.strokeStyle = '#3B82F6';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(element.x * zoom - 5, element.y * zoom - 5, element.width * zoom + 10, element.height * zoom + 10);
-      }
+    // Draw selection outline
+    if (selectedId === element.id) {
+      ctx.strokeStyle = '#3B82F6';
+      ctx.lineWidth = 2 / zoom;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(element.x * zoom - 2, element.y * zoom - 2, element.width * zoom + 4, element.height * zoom + 4);
+      ctx.setLineDash([]);
+    }
 
-      ctx.restore();
-    });
+    ctx.restore();
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
