@@ -591,113 +591,12 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
   };
 
   const callAI = async (groqKey: string, geminiKey: string, prompt: string): Promise<string> => {
-    // Try OpenAI GPT-4o first (best multimodal reasoning)
+    const systemPrompt = 'You are a professional graphic designer creating design commands. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
+
+    // Try Llama 3.3 70B Versatile (best reasoning)
     try {
-      console.log('🤖 Attempting OpenAI GPT-4o...');
-      const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (openaiKey) {
-        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-              { role: 'system', content: 'You are a professional graphic designer creating design commands. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.' },
-              { role: 'user', content: prompt }
-            ],
-            temperature: 0.85,
-            max_tokens: 3000,
-          }),
-        });
-
-        if (openaiResponse.ok) {
-          const data = await openaiResponse.json();
-          console.log('✅ OpenAI GPT-4o success!');
-          return data.choices[0]?.message?.content || '';
-        } else {
-          console.log('❌ OpenAI GPT-4o failed:', openaiResponse.status);
-        }
-      } else {
-        console.log('⚠️ OpenAI API key not found, skipping...');
-      }
-    } catch (error) {
-      console.log('❌ OpenAI unavailable:', error, 'trying Claude...');
-    }
-
-    // Try Claude 3.5 Sonnet second (best reasoning and creativity)
-    try {
-      console.log('🤖 Attempting Claude 3.5 Sonnet...');
-      const anthropicKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-      if (anthropicKey) {
-        const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': anthropicKey,
-            'anthropic-version': '2023-06-01',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 3000,
-            temperature: 0.8,
-            system: 'You are a professional graphic designer creating design commands. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.',
-            messages: [
-              { role: 'user', content: prompt }
-            ]
-          }),
-        });
-
-        if (anthropicResponse.ok) {
-          const data = await anthropicResponse.json();
-          console.log('✅ Claude 3.5 Sonnet success!');
-          return data.content[0]?.text || '';
-        } else {
-          console.log('❌ Claude 3.5 failed:', anthropicResponse.status);
-        }
-      } else {
-        console.log('⚠️ Anthropic API key not found, skipping...');
-      }
-    } catch (error) {
-      console.log('❌ Claude unavailable:', error, 'trying Gemini...');
-    }
-
-    // Try Gemini 2.0 Flash (advanced multimodal)
-    try {
-      console.log('🤖 Attempting Gemini 2.0 Flash...');
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.9,
-              maxOutputTokens: 3000,
-              topP: 0.95
-            }
-          })
-        }
-      );
-
-      if (geminiResponse.ok) {
-        const geminiData = await geminiResponse.json();
-        console.log('✅ Gemini 2.0 Flash success!');
-        return geminiData.candidates[0]?.content?.parts[0]?.text || '';
-      } else {
-        console.log('❌ Gemini 2.0 failed:', geminiResponse.status);
-      }
-    } catch (error) {
-      console.log('❌ Gemini 2.0 unavailable:', error, 'trying Llama...');
-    }
-
-    // Fallback to Groq Llama 3.3
-    try {
-      console.log('🤖 Attempting Groq Llama 3.3 70B...');
-      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      console.log('🤖 Attempting Llama 3.3 70B Versatile via Groq...');
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${groqKey}`,
@@ -706,7 +605,7 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: [
-            { role: 'system', content: 'You are a design command generator. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.' },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
           temperature: 0.85,
@@ -715,15 +614,111 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
         }),
       });
 
-      if (groqResponse.ok) {
-        const data = await groqResponse.json();
-        console.log('✅ Groq Llama 3.3 success!');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Llama 3.3 70B Versatile success!');
         return data.choices[0]?.message?.content || '';
       } else {
-        console.log('❌ Groq failed:', groqResponse.status);
+        console.log('❌ Llama 3.3 70B failed:', response.status);
       }
     } catch (error) {
-      console.log('❌ Groq unavailable:', error, 'final fallback to Gemini 1.5...');
+      console.log('❌ Llama 3.3 70B unavailable:', error);
+    }
+
+    // Try Llama 3.1 70B Versatile
+    try {
+      console.log('🤖 Attempting Llama 3.1 70B Versatile via Groq...');
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.85,
+          max_tokens: 3000,
+          top_p: 0.95,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Llama 3.1 70B Versatile success!');
+        return data.choices[0]?.message?.content || '';
+      } else {
+        console.log('❌ Llama 3.1 70B failed:', response.status);
+      }
+    } catch (error) {
+      console.log('❌ Llama 3.1 70B unavailable:', error);
+    }
+
+    // Try Mixtral 8x7B
+    try {
+      console.log('🤖 Attempting Mixtral 8x7B via Groq...');
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'mixtral-8x7b-32768',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.85,
+          max_tokens: 3000,
+          top_p: 0.95,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Mixtral 8x7B success!');
+        return data.choices[0]?.message?.content || '';
+      } else {
+        console.log('❌ Mixtral 8x7B failed:', response.status);
+      }
+    } catch (error) {
+      console.log('❌ Mixtral 8x7B unavailable:', error);
+    }
+
+    // Try Gemma2 9B
+    try {
+      console.log('🤖 Attempting Gemma2 9B via Groq...');
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gemma2-9b-it',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.9,
+          max_tokens: 3000,
+          top_p: 0.95,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Gemma2 9B success!');
+        return data.choices[0]?.message?.content || '';
+      } else {
+        console.log('❌ Gemma2 9B failed:', response.status);
+      }
+    } catch (error) {
+      console.log('❌ Gemma2 9B unavailable:', error);
     }
 
     // Final fallback: Gemini 1.5 Flash
