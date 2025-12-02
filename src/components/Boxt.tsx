@@ -385,10 +385,12 @@ CRITICAL ANALYSIS RULES:
 7. Assess overall composition and balance
 
 BE BRUTALLY HONEST. Score harshly:
-- 8-10: Exceptional, magazine-quality
-- 6-7: Good foundation but needs refinement
-- 4-5: Messy, lacks focus, needs major work
-- 1-3: Complete redesign needed
+- 7-10: Professional quality, production-ready (improvement phase SKIPPED)
+- 5-6: Good foundation but needs refinement
+- 3-4: Messy, lacks focus, needs major work
+- 1-2: Complete redesign needed
+
+TARGET: Agent will improve designs scoring below 7/10
 
 PROVIDE SPECIFIC IMPROVEMENTS using element indices:
 - **DELETE elements** that create visual noise: "Delete [index] - overlaps and creates confusion"
@@ -411,8 +413,8 @@ IMPROVEMENTS:
       setGradiMessages(prev => [...prev, { role: 'assistant', content: `📊 Design Score: ${score}/10` }]);
       setGradiMessages(prev => [...prev, { role: 'assistant', content: analysis.substring(0, 300) }]);
 
-      if (score < 8) {
-        setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Phase 3: Applying improvements...' }]);
+      if (score < 7) {
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Phase 3: Applying improvements (target: 7/10)...' }]);
 
         let currentElementsForImprovement: any[] = [];
         setElements(prev => {
@@ -509,7 +511,7 @@ EXECUTE 8-15 COMMANDS TO FIX ISSUES:`;
           return '';
         }).join('\n');
 
-        const polishPrompt = `FINAL POLISH for "${userRequest}" (8/10 → 10/10)
+        const polishPrompt = `FINAL POLISH for "${userRequest}" (7/10 → 9/10)
 
 CURRENT ELEMENTS:
 ${finalElementsList}
@@ -531,6 +533,11 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
         if (polishActions.length > 0) {
           await executeActionsWithProgress(polishActions);
         }
+      } else {
+        setGradiMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `🎉 Initial design already scored ${score}/10! Skipping improvement phase.`
+        }]);
       }
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✅ Professional design complete! This is production-ready.' }]);

@@ -105,8 +105,9 @@ Agent Mode capabilities (when enabled in Boxt):
 - Adds decorative circles and rectangles for visual drama
 - Ensures 3x+ size contrast between largest and smallest elements
 - Analyzes design and scores it (1-10)
-- If score < 8, adds 8-12 improvement elements
-- Final polish pass adds 2-4 subtle refinements
+- **TARGET SCORE: 7/10 - If score < 7, adds 8-15 improvement commands**
+- **If score >= 7, skips improvement phase (already professional quality)**
+- Final polish pass adds 2-4 subtle refinements (only if improvements were needed)
 - Can search Pixabay for stock images
 
 ALL Commands Agent Mode uses (grouped by function):
