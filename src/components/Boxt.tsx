@@ -360,10 +360,10 @@ NOW CREATE "${userRequest}" (8-12 commands, start with SET_BACKGROUND):`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '⏳ Rendering design for analysis...' }]);
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       drawCanvas();
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -373,7 +373,7 @@ NOW CREATE "${userRequest}" (8-12 commands, start with SET_BACKGROUND):`;
       let currentElements: any[] = [];
       let currentBg = '';
       setElements(prev => {
-        currentElements = prev;
+        currentElements = [...prev];
         return prev;
       });
       setBackgroundColor(prev => {
@@ -381,8 +381,11 @@ NOW CREATE "${userRequest}" (8-12 commands, start with SET_BACKGROUND):`;
         return prev;
       });
 
+      console.log('Current elements count:', currentElements.length);
+      console.log('Current elements:', currentElements);
+
       if (currentElements.length === 0) {
-        setGradiMessages(prev => [...prev, { role: 'assistant', content: '❌ No elements found after execution. Something went wrong.' }]);
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: `❌ No elements found after execution. Executed ${actions.length} actions. Check console for details.` }]);
         setAgentWorking(false);
         return;
       }
@@ -630,17 +633,20 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
 
   const executeActionsWithProgress = async (actions: any[]) => {
     for (let i = 0; i < actions.length; i++) {
-      await executeAction(actions[i]);
+      const action = actions[i];
+      console.log(`Executing action ${i + 1}/${actions.length}:`, action.tool, action.params);
+      await executeAction(action);
       await new Promise(resolve => setTimeout(resolve, 600));
       setGradiMessages(prev => {
         const newMessages = [...prev];
         newMessages[newMessages.length - 1] = {
           role: 'assistant',
-          content: `🎨 [${i + 1}/${actions.length}] ${actions[i].tool}(${actions[i].params.slice(0, 2).join(', ')}...)`
+          content: `🎨 [${i + 1}/${actions.length}] ${action.tool}(${action.params.slice(0, 2).join(', ')}...)`
         };
         return newMessages;
       });
     }
+    console.log('All actions executed');
   };
 
   const parseAgentActions = (response: string): any[] => {
@@ -708,6 +714,7 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
+        console.log('Executing:', tool, 'with params:', params);
         switch (tool) {
           case 'ADD_RECT':
             const rect = {
@@ -721,8 +728,10 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
               stroke: String(params[5]) || strokeColor,
               strokeWidth: 2
             };
+            console.log('Adding rect:', rect);
             setElements(prev => {
               const newElements = [...prev, rect];
+              console.log('Elements after ADD_RECT:', newElements.length);
               addToHistory(newElements);
               return newElements;
             });
@@ -765,8 +774,10 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
               fontStyle: params[7] ? 'italic' : 'normal',
               textAlign: textAlign
             };
+            console.log('Adding text:', text);
             setElements(prev => {
               const newElements = [...prev, text];
+              console.log('Elements after ADD_TEXT:', newElements.length);
               addToHistory(newElements);
               return newElements;
             });
@@ -990,6 +1001,10 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
               }
               return prev;
             });
+            break;
+
+          default:
+            console.warn('Unknown command:', tool, params);
             break;
         }
         resolve();
