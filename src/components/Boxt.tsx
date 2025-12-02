@@ -264,46 +264,70 @@ export function Boxt({ userId }: BoxtProps) {
     const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     try {
-      const initialPrompt = `Create a stunning design for: "${userRequest}"
+      const initialPrompt = `You are a professional graphic designer creating a ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
 
-Canvas: ${canvasWidth}x${canvasHeight}
+CRITICAL DESIGN RULES (FOLLOW EXACTLY):
 
-DESIGN RULES:
-- Choose a bold color palette (Modern Tech, Luxury, Vibrant, etc.)
-- Main headline: 120-144px, BOLD, Impact or Georgia font
-- Add 2-3 decorative circles (80-180 radius)
-- Add 1-2 accent rectangles
-- Use golden ratio positioning (38% or 62% of canvas width)
-- Create HUGE size contrasts (3x+ between largest and smallest)
+1. BACKGROUND: Choose ONE high-contrast background color
+   - Dark backgrounds (#0f172a, #1e293b, #18181b, #0c0a09)
+   - Light backgrounds (#ffffff, #f8fafc, #fafafa)
+   - Colorful (#7c3aed, #dc2626, #0284c7, #059669)
 
-CRITICAL: OUTPUT ONLY COMMANDS (one per line, NO explanations, NO markdown):
+2. MAIN HEADLINE (Most Important):
+   - Position: Center or upper-center (y: 200-450)
+   - Size: 96-180px (HUGE!)
+   - Font: Impact, Georgia, or Arial Black
+   - Color: High contrast with background
+   - Use bold=true
 
-BACKGROUND COMMANDS:
+3. SUBTITLE/SUPPORTING TEXT (If needed):
+   - Position: Below headline (y: headline_y + 150-250)
+   - Size: 36-72px (much smaller than headline)
+   - Font: Georgia, Arial, or Helvetica
+   - Color: Complement headline (can be lighter/dimmer)
+
+4. DECORATIVE ELEMENTS (2-4 total):
+   - Large circles (150-300 radius) for visual weight
+   - Position at golden ratio points: x=730 (38%) or x=1190 (62%)
+   - Use semi-transparent colors (opacity 0.3-0.7)
+   - Colors should complement background/headline
+
+5. ACCENT SHAPES (1-2 max):
+   - Thin rectangles for structure (20-80px height, 800-1600px width)
+   - OR medium rectangles for framing (200-400px height, 1000-1600px width)
+   - Position strategically (not overlapping text!)
+
+6. IMAGES (Optional, only if relevant):
+   - Use SEARCH_IMAGE only for specific topics (food, nature, tech, etc.)
+   - Size: 300-600px width/height
+   - Position: Left or right side, not overlapping headline
+
+OUTPUT FORMAT (CRITICAL):
+- One command per line
+- NO explanations, NO markdown, NO comments
+- Use exact command syntax shown below
+- Create 8-12 commands total
+
+AVAILABLE COMMANDS:
 SET_BACKGROUND(#hexcolor)
-SET_IMAGE_BACKGROUND(imageUrl)
-
-SHAPE COMMANDS:
-ADD_RECT(x, y, width, height, #fillColor, #strokeColor)
-ADD_CIRCLE(x, y, radius, #fillColor, #strokeColor)
-
-TEXT COMMANDS:
 ADD_TEXT(x, y, "text", fontSize, fontFamily, #color, bold, italic)
+ADD_CIRCLE(x, y, radius, #fillColor, none)
+ADD_RECT(x, y, width, height, #fillColor, none)
+SET_OPACITY(index, 0.3-0.8)
+SEARCH_IMAGE(specific_query)
 
-IMAGE COMMANDS:
-SEARCH_IMAGE(query)
-ADD_IMAGE(x, y, width, height, imageUrl)
-
-EFFECTS:
-SET_OPACITY(index, 0.0-1.0)
-
-Example output:
+EXAMPLE FOR "Summer Sale":
 SET_BACKGROUND(#0f172a)
-ADD_TEXT(200, 300, "AMAZING DESIGN", 144, Impact, #ffffff, true, false)
-ADD_CIRCLE(1600, 300, 150, #3b82f6, #60a5fa)
-ADD_RECT(100, 150, 1720, 400, #3b82f6, none)
-SET_OPACITY(2, 0.85)
+ADD_TEXT(960, 350, "SUMMER SALE", 180, Impact, #ffffff, true, false)
+ADD_TEXT(960, 550, "Up to 70% Off", 56, Georgia, #60a5fa, false, false)
+ADD_CIRCLE(1500, 400, 200, #f59e0b, none)
+SET_OPACITY(3, 0.4)
+ADD_CIRCLE(400, 600, 150, #3b82f6, none)
+SET_OPACITY(4, 0.5)
+ADD_RECT(100, 750, 1720, 60, #60a5fa, none)
+SET_OPACITY(5, 0.3)
 
-Now create 12-15 commands for "${userRequest}":`;
+NOW CREATE "${userRequest}" (8-12 commands, start with SET_BACKGROUND):`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Phase 1: Generating initial design...' }]);
 
@@ -712,10 +736,12 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
             break;
 
           case 'ADD_TEXT':
+            const textX = Number(params[0]) || 100;
+            const textAlign = (textX >= canvasWidth * 0.4 && textX <= canvasWidth * 0.6) ? 'center' : 'left';
             const text = {
               id: Date.now().toString() + Math.random(),
               type: 'text' as const,
-              x: Number(params[0]) || 100,
+              x: textX,
               y: Number(params[1]) || 100,
               width: 400,
               height: 50,
@@ -724,7 +750,8 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
               fontFamily: String(params[4]) || 'Arial',
               fill: String(params[5]) || '#000000',
               fontWeight: params[6] ? 'bold' : 'normal',
-              fontStyle: params[7] ? 'italic' : 'normal'
+              fontStyle: params[7] ? 'italic' : 'normal',
+              textAlign: textAlign
             };
             setElements(prev => {
               const newElements = [...prev, text];
