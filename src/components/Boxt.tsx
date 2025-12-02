@@ -20,6 +20,8 @@ interface BoxtProps {
 
 const FREE_DESIGN_LIMIT = 5;
 const PIXABAY_API_KEY = '53498346-800474751f60780eb0202c736';
+const FLATICON_API_KEY = 'FPSXa55f69c5febf8aac742b879e83209ffb';
+const FLATICON_WEBHOOK_SECRET = 'a2e442ab2fb7511111a98a4b677996cd';
 
 export function Boxt({ userId }: BoxtProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -297,7 +299,13 @@ CRITICAL DESIGN RULES (FOLLOW EXACTLY):
    - OR medium rectangles for framing (200-400px height, 1000-1600px width)
    - Position strategically (not overlapping text!)
 
-6. IMAGES (Optional, only if relevant):
+6. ICONS (Use strategically 1-3 icons max):
+   - Professional icons from Flaticon
+   - Size: 80-200px (icons should be noticeable but not overwhelming)
+   - Position: Near text for context, or standalone for visual interest
+   - Use SEARCH_ICON for specific concepts (rocket, heart, star, trophy, etc.)
+
+7. IMAGES (Optional, only if relevant):
    - Use SEARCH_IMAGE only for specific topics (food, nature, tech, etc.)
    - Size: 300-600px width/height
    - Position: Left or right side, not overlapping headline
@@ -306,7 +314,7 @@ OUTPUT FORMAT (CRITICAL):
 - One command per line
 - NO explanations, NO markdown, NO comments
 - Use exact command syntax shown below
-- Create 8-12 commands total
+- Create 8-14 commands total
 
 AVAILABLE COMMANDS:
 SET_BACKGROUND(#hexcolor)
@@ -314,18 +322,20 @@ ADD_TEXT(x, y, "text", fontSize, fontFamily, #color, bold, italic)
 ADD_CIRCLE(x, y, radius, #fillColor, none)
 ADD_RECT(x, y, width, height, #fillColor, none)
 SET_OPACITY(index, 0.3-0.8)
+SEARCH_ICON(query, x, y, size)
 SEARCH_IMAGE(specific_query)
 
 EXAMPLE FOR "Summer Sale":
 SET_BACKGROUND(#0f172a)
 ADD_TEXT(960, 350, "SUMMER SALE", 180, Impact, #ffffff, true, false)
 ADD_TEXT(960, 550, "Up to 70% Off", 56, Georgia, #60a5fa, false, false)
+SEARCH_ICON(sun, 200, 300, 150)
 ADD_CIRCLE(1500, 400, 200, #f59e0b, none)
-SET_OPACITY(3, 0.4)
+SET_OPACITY(4, 0.4)
 ADD_CIRCLE(400, 600, 150, #3b82f6, none)
-SET_OPACITY(4, 0.5)
+SET_OPACITY(5, 0.5)
 ADD_RECT(100, 750, 1720, 60, #60a5fa, none)
-SET_OPACITY(5, 0.3)
+SET_OPACITY(6, 0.3)
 
 NOW CREATE "${userRequest}" (8-12 commands, start with SET_BACKGROUND):`;
 
@@ -494,6 +504,7 @@ ADD_RECT(x, y, width, height, fillColor, strokeColor) - New rectangle
 ADD_CIRCLE(x, y, radius, fillColor, strokeColor) - New circle
 ADD_TEXT(x, y, text, fontSize, fontFamily, color, bold, italic) - New text
 ADD_IMAGE(x, y, width, height, imageUrl) - New image
+SEARCH_ICON(query, x, y, size) - Find and add Flaticon icon
 SEARCH_IMAGE(query) - Find and add Pixabay image
 
 BACKGROUND:
@@ -505,8 +516,9 @@ IMPROVEMENT STRATEGY:
 2. MOVE elements for golden ratio positioning (38% or 62%)
 3. MODIFY_TEXT to make headlines HUGE (120-160px, BOLD)
 4. ADD dramatic elements (decorative circles 120-200 radius)
-5. ADD strong typography with massive size contrasts
-6. Ensure clear focal point and visual hierarchy
+5. ADD professional icons for visual interest (80-150px)
+6. ADD strong typography with massive size contrasts
+7. Ensure clear focal point and visual hierarchy
 
 EXECUTE 8-15 COMMANDS TO FIX ISSUES:`;
 
@@ -767,6 +779,15 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
             }
             break;
 
+          case 'SEARCH_ICON':
+            if (params[0]) {
+              const iconX = Number(params[1]) || 100;
+              const iconY = Number(params[2]) || 100;
+              const iconSize = Number(params[3]) || 120;
+              searchFlaticonForAgent(String(params[0]), iconX, iconY, iconSize);
+            }
+            break;
+
           case 'ADD_IMAGE':
             if (params[4]) {
               const image = {
@@ -1001,6 +1022,44 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
       }
     } catch (error) {
       console.error('Agent Pixabay error:', error);
+    }
+  };
+
+  const searchFlaticonForAgent = async (query: string, xPos: number = 100, yPos: number = 100, size: number = 120) => {
+    try {
+      const response = await fetch(
+        `https://api.flaticon.com/v3/search/icons/priority?q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${FLATICON_API_KEY}`
+          }
+        }
+      );
+      const data = await response.json();
+
+      if (data.data && data.data.length > 0) {
+        const icon = data.data[0];
+        const iconUrl = icon.images['512'];
+
+        const iconElement = {
+          id: Date.now().toString() + Math.random(),
+          type: 'image' as const,
+          x: xPos,
+          y: yPos,
+          width: size,
+          height: size,
+          imageUrl: iconUrl
+        };
+
+        setElements(prev => {
+          const newElements = [...prev, iconElement];
+          addToHistory(newElements);
+          return newElements;
+        });
+      }
+    } catch (error) {
+      console.error('Flaticon error:', error);
     }
   };
 

@@ -109,6 +109,7 @@ Agent Mode capabilities (when enabled in Boxt):
 - **If score >= 7, skips improvement phase (already professional quality)**
 - Final polish pass adds 2-4 subtle refinements (only if improvements were needed)
 - Can search Pixabay for stock images
+- **NEW: Can search Flaticon for professional icons!**
 
 ALL Commands Agent Mode uses (grouped by function):
 
@@ -117,6 +118,7 @@ ALL Commands Agent Mode uses (grouped by function):
 - ADD_CIRCLE(x, y, radius, fillColor, strokeColor) - Add circle
 - ADD_TEXT(x, y, text, fontSize, fontFamily, textColor, bold, italic) - Add text
 - ADD_IMAGE(x, y, width, height, imageUrl) - Add image
+- SEARCH_ICON(query, x, y, size) - Search Flaticon and add professional icon
 - SEARCH_IMAGE(query) - Search Pixabay and add image
 
 **BACKGROUND:**
