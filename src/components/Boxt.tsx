@@ -266,78 +266,102 @@ export function Boxt({ userId }: BoxtProps) {
     const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     try {
-      const initialPrompt = `You are a professional graphic designer creating a ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
+      const initialPrompt = `You are an expert in creating VIBRANT, EYE-CATCHING, NEON-STYLE designs for: "${userRequest}"
 
-CRITICAL DESIGN RULES (FOLLOW EXACTLY):
+🎨 DESIGN PHILOSOPHY:
+Create a STUNNING, COLORFUL, MULTI-LAYERED design with NEON aesthetics. Think vibrant gaming artwork, neon signs, cyberpunk vibes. Use MANY elements, BOLD colors, and complex compositions!
 
-1. BACKGROUND: Choose ONE high-contrast background color
-   - Dark backgrounds (#0f172a, #1e293b, #18181b, #0c0a09)
-   - Light backgrounds (#ffffff, #f8fafc, #fafafa)
-   - Colorful (#7c3aed, #dc2626, #0284c7, #059669)
+CRITICAL RULES:
 
-2. MAIN HEADLINE (Most Important):
-   - Position: Center or upper-center (y: 200-450)
-   - Size: 96-180px (HUGE!)
-   - Font: Impact, Georgia, or Arial Black
-   - Color: High contrast with background
-   - Use bold=true
+1. BACKGROUND: Dark, rich colors for contrast
+   - Deep dark: #0a0e27, #0f0a1f, #0d1117, #000000, #0f172a, #1a0b2e
+   - Dark purple/blue: #16213e, #1e1e2e, #2d1b3d
 
-3. SUBTITLE/SUPPORTING TEXT (If needed):
-   - Position: Below headline (y: headline_y + 150-250)
-   - Size: 36-72px (much smaller than headline)
-   - Font: Georgia, Arial, or Helvetica
-   - Color: Complement headline (can be lighter/dimmer)
+2. COLOR PALETTE (Use 4-6 vibrant neon colors):
+   - Neon cyan: #00fff0, #4dfff3, #00d9ff, #0ff0fc
+   - Neon pink/magenta: #ff006e, #ff0080, #ff1493, #ff007f, #e91e63
+   - Neon green: #00ff41, #39ff14, #00ff00, #7cff00
+   - Electric blue: #0080ff, #00b4d8, #0096ff, #00d4ff
+   - Neon orange: #ff6500, #ff8500, #ffaa00, #ff9500
+   - Neon yellow: #ffff00, #ffea00, #ffd700
+   - Purple: #8b00ff, #9d00ff, #b721ff, #c77dff
 
-4. DECORATIVE ELEMENTS (2-4 total):
-   - Large circles (150-300 radius) for visual weight
-   - Position at golden ratio points: x=730 (38%) or x=1190 (62%)
-   - Use semi-transparent colors (opacity 0.3-0.7)
-   - Colors should complement background/headline
+3. MAIN TEXT (2-3 text elements):
+   - HUGE headline: 140-220px (y: 300-500)
+   - Font: Impact, Georgia, Arial Black
+   - Colors: Bright neon white (#ffffff), cyan (#00fff0), pink (#ff006e)
+   - ALL TEXT MUST BE BOLD (bold=true)
+   - Add subtitle with complementary neon color
 
-5. ACCENT SHAPES (1-2 max):
-   - Thin rectangles for structure (20-80px height, 800-1600px width)
-   - OR medium rectangles for framing (200-400px height, 1000-1600px width)
-   - Position strategically (not overlapping text!)
+4. NEON CIRCLES (Create 4-8 circles):
+   - Large glowing circles: radius 150-280px
+   - Medium accents: radius 80-150px
+   - Scatter across canvas (various x: 150-1800, y: 150-900)
+   - Colors: Mix of neon cyan, pink, green, purple, orange
+   - ALWAYS set opacity 0.25-0.65 for glow effect
 
-6. ICONS (Use strategically 1-3 icons max):
-   - Professional icons from Flaticon
-   - Size: 80-200px (icons should be noticeable but not overwhelming)
-   - Position: Near text for context, or standalone for visual interest
-   - Use SEARCH_ICON for specific concepts (rocket, heart, star, trophy, etc.)
+5. RECTANGLES (Add 2-4 for structure):
+   - Thin horizontal lines: height 30-80px, width 1200-1800px
+   - OR vertical strips: width 80-200px, height 600-900px
+   - Neon colors with opacity 0.2-0.5
+   - Position creatively (y: 200-900, x: 50-1800)
 
-7. IMAGES (Optional, only if relevant):
-   - Use SEARCH_IMAGE only for specific topics (food, nature, tech, etc.)
-   - Size: 300-600px width/height
-   - Position: Left or right side, not overlapping headline
+6. ICONS (MUST use 3-6 relevant icons):
+   - Size: 100-180px
+   - Position around the design (x: 150-1700, y: 200-900)
+   - Search for relevant keywords based on topic
+   - Gaming: gamepad, controller, keyboard, mouse, headphones, joystick
+   - Tech: rocket, cpu, circuit, robot, microchip, wifi
+   - Music: music, headphones, microphone, speaker, guitar
+   - Sports: trophy, medal, star, crown, flame
+   - Food: pizza, burger, coffee, ice-cream
+   - Nature: leaf, flower, tree, mountain, sun
 
-OUTPUT FORMAT (CRITICAL):
-- One command per line
+7. LAYERING STRATEGY:
+   - Background color first
+   - Large shapes/circles in back (with opacity)
+   - Medium shapes
+   - Icons scattered
+   - Text on top (always visible)
+
+OUTPUT REQUIREMENTS:
+- Create 15-25 commands total (COMPLEX DESIGN!)
 - NO explanations, NO markdown, NO comments
-- Use exact command syntax shown below
-- Create 8-14 commands total
+- One command per line
+- Start with SET_BACKGROUND
 
-AVAILABLE COMMANDS:
+COMMANDS:
 SET_BACKGROUND(#hexcolor)
 ADD_TEXT(x, y, "text", fontSize, fontFamily, #color, bold, italic)
 ADD_CIRCLE(x, y, radius, #fillColor, none)
 ADD_RECT(x, y, width, height, #fillColor, none)
-SET_OPACITY(index, 0.3-0.8)
-SEARCH_ICON(query, x, y, size)
-SEARCH_IMAGE(specific_query)
+SET_OPACITY(index, 0.2-0.7)
+SEARCH_ICON(keyword, x, y, size)
 
-EXAMPLE FOR "Summer Sale":
-SET_BACKGROUND(#0f172a)
-ADD_TEXT(960, 350, "SUMMER SALE", 180, Impact, #ffffff, true, false)
-ADD_TEXT(960, 550, "Up to 70% Off", 56, Georgia, #60a5fa, false, false)
-SEARCH_ICON(sun, 200, 300, 150)
-ADD_CIRCLE(1500, 400, 200, #f59e0b, none)
-SET_OPACITY(4, 0.4)
-ADD_CIRCLE(400, 600, 150, #3b82f6, none)
-SET_OPACITY(5, 0.5)
-ADD_RECT(100, 750, 1720, 60, #60a5fa, none)
-SET_OPACITY(6, 0.3)
+EXAMPLE "Gaming Tournament":
+SET_BACKGROUND(#0a0e27)
+ADD_CIRCLE(300, 350, 250, #00fff0, none)
+SET_OPACITY(1, 0.35)
+ADD_CIRCLE(1600, 400, 220, #ff006e, none)
+SET_OPACITY(2, 0.4)
+ADD_CIRCLE(900, 750, 200, #00ff41, none)
+SET_OPACITY(3, 0.3)
+ADD_CIRCLE(500, 650, 160, #8b00ff, none)
+SET_OPACITY(4, 0.45)
+ADD_RECT(100, 250, 1720, 60, #00d9ff, none)
+SET_OPACITY(5, 0.25)
+SEARCH_ICON(gamepad, 250, 350, 140)
+SEARCH_ICON(trophy, 1650, 400, 120)
+SEARCH_ICON(headphones, 900, 200, 110)
+SEARCH_ICON(joystick, 1450, 650, 100)
+ADD_TEXT(960, 400, "GAMING CHAMPIONSHIP", 200, Impact, #ffffff, true, false)
+ADD_TEXT(960, 600, "Win $50,000 Prize", 64, Georgia, #00fff0, true, false)
+ADD_CIRCLE(1400, 800, 140, #ffaa00, none)
+SET_OPACITY(13, 0.5)
+ADD_RECT(800, 700, 320, 80, #ff006e, none)
+SET_OPACITY(14, 0.35)
 
-NOW CREATE "${userRequest}" (8-12 commands, start with SET_BACKGROUND):`;
+NOW CREATE "${userRequest}" - Make it VIBRANT, NEON, COMPLEX! (15-25 commands):`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Phase 1: Generating initial design...' }]);
 
@@ -473,57 +497,60 @@ IMPROVEMENTS:
           return '';
         }).join('\n');
 
-        const improvementPrompt = `REDESIGN MISSION for "${userRequest}" - Current score: ${score}/10
+        const improvementPrompt = `REDESIGN MISSION: Transform to VIBRANT NEON MASTERPIECE! "${userRequest}" - Current: ${score}/10, Target: 7+/10
 
 Canvas: ${canvasWidth}x${canvasHeight}
 
-BRUTAL CRITIQUE:
+CRITIQUE:
 ${analysis}
 
-CURRENT ELEMENTS (indexed):
+CURRENT ELEMENTS:
 ${currentElementsList}
 
-ALL AVAILABLE COMMANDS:
+🎨 TRANSFORMATION GOALS:
+Create a STUNNING, NEON-STYLE design with:
+- VIBRANT neon colors (#00fff0 cyan, #ff006e pink, #00ff41 green, #0080ff blue, #ff6500 orange, #8b00ff purple)
+- MULTIPLE glowing circles (4-8 total) with opacity 0.25-0.65
+- LARGE, BOLD text (140-220px headlines)
+- 3-6 relevant icons scattered throughout
+- Complex layered composition
+
+COMMANDS AVAILABLE:
 
 DESTRUCTIVE:
-DELETE(index) - Remove element
-CLEAR_BACKGROUND_IMAGE() - Remove background image
+DELETE(index)
+CLEAR_BACKGROUND_IMAGE()
 
-MODIFICATION:
-MOVE(index, newX, newY) - Reposition element
-RESIZE(index, newWidth, newHeight) - Change size
-MODIFY_TEXT(index, newText, newSize, newColor) - Edit text
-MODIFY_COLOR(index, newFillColor, newStrokeColor) - Change colors
-SET_OPACITY(index, 0.0-1.0) - Adjust transparency
-ROTATE(index, degrees) - Rotate element
+MODIFY:
+MOVE(index, newX, newY)
+RESIZE(index, newWidth, newHeight)
+MODIFY_TEXT(index, newText, newSize, newColor)
+MODIFY_COLOR(index, newFillColor, newStrokeColor)
+SET_OPACITY(index, 0.2-0.7)
+ROTATE(index, degrees)
+BRING_FORWARD(index)
+SEND_BACK(index)
+DUPLICATE(index)
 
-LAYER MANAGEMENT:
-BRING_FORWARD(index) - Move up in layer order
-SEND_BACK(index) - Move down in layer order
-DUPLICATE(index) - Copy element
-
-CREATION:
-ADD_RECT(x, y, width, height, fillColor, strokeColor) - New rectangle
-ADD_CIRCLE(x, y, radius, fillColor, strokeColor) - New circle
-ADD_TEXT(x, y, text, fontSize, fontFamily, color, bold, italic) - New text
-ADD_IMAGE(x, y, width, height, imageUrl) - New image
-SEARCH_ICON(query, x, y, size) - Find and add Flaticon icon
-SEARCH_IMAGE(query) - Find and add Pixabay image
-
-BACKGROUND:
-SET_BACKGROUND(#hexcolor) - Set background color
-SET_IMAGE_BACKGROUND(imageUrl) - Set background image
+CREATE:
+ADD_CIRCLE(x, y, radius, fillColor, none) - NEON circles!
+ADD_RECT(x, y, width, height, fillColor, none) - Structure
+ADD_TEXT(x, y, text, fontSize, fontFamily, color, bold, italic)
+SEARCH_ICON(keyword, x, y, size) - Gaming: gamepad/controller/headphones/joystick, Tech: rocket/cpu/circuit, Music: music/speaker, Sports: trophy/medal/star, Food: pizza/burger/coffee
+SET_BACKGROUND(#hexcolor) - Dark: #0a0e27, #0f0a1f, #1a0b2e
 
 IMPROVEMENT STRATEGY:
-1. DELETE messy/overlapping elements first
-2. MOVE elements for golden ratio positioning (38% or 62%)
-3. MODIFY_TEXT to make headlines HUGE (120-160px, BOLD)
-4. ADD dramatic elements (decorative circles 120-200 radius)
-5. ADD professional icons for visual interest (80-150px)
-6. ADD strong typography with massive size contrasts
-7. Ensure clear focal point and visual hierarchy
+1. DELETE boring/weak elements
+2. MODIFY_TEXT headlines to 160-220px with neon colors
+3. MODIFY_COLOR shapes to vibrant neon (#00fff0, #ff006e, #00ff41, etc)
+4. ADD 3-6 large glowing circles (radius 150-250) with SET_OPACITY
+5. ADD 3-6 relevant SEARCH_ICON elements
+6. ADD neon rectangles for structure
+7. SET_OPACITY on all circles/shapes (0.25-0.65)
+8. MOVE elements for better composition
+9. Ensure text is always on top and visible
 
-EXECUTE 8-15 COMMANDS TO FIX ISSUES:`;
+EXECUTE 10-20 COMMANDS - Make it EPIC and NEON! Output commands only, no explanations:`;
 
         const improvements = await callAI(apiKey, fallbackKey, improvementPrompt);
         const improvementActions = parseAgentActions(improvements);
@@ -591,7 +618,7 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
   };
 
   const callAI = async (groqKey: string, geminiKey: string, prompt: string): Promise<string> => {
-    const systemPrompt = 'You are a professional graphic designer creating design commands. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
+    const systemPrompt = 'You are an expert graphic designer specializing in VIBRANT, NEON-STYLE artwork. Create stunning, colorful, multi-layered designs. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
 
     // Try Llama 3.3 70B Versatile (best reasoning)
     try {
@@ -608,9 +635,9 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          temperature: 0.85,
-          max_tokens: 3000,
-          top_p: 0.95,
+          temperature: 0.95,
+          max_tokens: 4000,
+          top_p: 0.98,
         }),
       });
 
@@ -640,9 +667,9 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          temperature: 0.85,
-          max_tokens: 3000,
-          top_p: 0.95,
+          temperature: 0.95,
+          max_tokens: 4000,
+          top_p: 0.98,
         }),
       });
 
@@ -672,9 +699,9 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          temperature: 0.85,
-          max_tokens: 3000,
-          top_p: 0.95,
+          temperature: 0.95,
+          max_tokens: 4000,
+          top_p: 0.98,
         }),
       });
 
@@ -704,9 +731,9 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          temperature: 0.9,
-          max_tokens: 3000,
-          top_p: 0.95,
+          temperature: 1.0,
+          max_tokens: 4000,
+          top_p: 0.98,
         }),
       });
 
@@ -730,7 +757,7 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.85, maxOutputTokens: 2500 }
+          generationConfig: { temperature: 0.95, maxOutputTokens: 3500, topP: 0.98 }
         })
       }
     );
