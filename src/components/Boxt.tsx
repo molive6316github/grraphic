@@ -266,102 +266,92 @@ export function Boxt({ userId }: BoxtProps) {
     const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     try {
-      const initialPrompt = `You are an expert in creating VIBRANT, EYE-CATCHING, NEON-STYLE designs for: "${userRequest}"
+      const initialPrompt = `Create a WORLD-CLASS ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
 
-🎨 DESIGN PHILOSOPHY:
-Create a STUNNING, COLORFUL, MULTI-LAYERED design with NEON aesthetics. Think vibrant gaming artwork, neon signs, cyberpunk vibes. Use MANY elements, BOLD colors, and complex compositions!
+STEP 1: Analyze the request and identify the best style:
+- Gaming/Esports/Tech → Bold neon cyberpunk
+- Business/Corporate → Clean modern professional
+- Wedding/Luxury → Elegant sophisticated
+- Kids/Fun → Playful colorful
+- Food/Restaurant → Appetizing vibrant
+- Fitness/Sports → Energetic dynamic
+- Music/Party → Vibrant electric
+- Nature/Eco → Organic earthy
 
-CRITICAL RULES:
+STEP 2: Apply style rules:
 
-1. BACKGROUND: Dark, rich colors for contrast
-   - Deep dark: #0a0e27, #0f0a1f, #0d1117, #000000, #0f172a, #1a0b2e
-   - Dark purple/blue: #16213e, #1e1e2e, #2d1b3d
+NEON/GAMING/TECH STYLE:
+Background: Dark #0a0e27, #0f172a, #1a0b2e
+Colors: Neon cyan #00fff0, pink #ff006e, green #00ff41, blue #0080ff, purple #8b00ff, orange #ff6500
+Shapes: 5-8 large glowing circles (200-300 radius) + thin accent rects, opacity 0.3-0.6
+Icons: 4-6 icons at 130-180px (gamepad, trophy, rocket, headphones, joystick, star)
+Text: MASSIVE 200-250px bold Impact headlines, 60-80px subtitles, white/cyan/pink
+Elements: 18-25 total commands
 
-2. COLOR PALETTE (Use 4-6 vibrant neon colors):
-   - Neon cyan: #00fff0, #4dfff3, #00d9ff, #0ff0fc
-   - Neon pink/magenta: #ff006e, #ff0080, #ff1493, #ff007f, #e91e63
-   - Neon green: #00ff41, #39ff14, #00ff00, #7cff00
-   - Electric blue: #0080ff, #00b4d8, #0096ff, #00d4ff
-   - Neon orange: #ff6500, #ff8500, #ffaa00, #ff9500
-   - Neon yellow: #ffff00, #ffea00, #ffd700
-   - Purple: #8b00ff, #9d00ff, #b721ff, #c77dff
+PROFESSIONAL/BUSINESS STYLE:
+Background: Clean white #ffffff, light gray #f8fafc, or navy #0f172a
+Colors: Corporate blue #2563eb, green #059669, red #dc2626, purple #7c3aed
+Shapes: 2-4 subtle geometric circles/rects (150-220 radius), opacity 0.15-0.35
+Icons: 1-3 icons at 100-140px (briefcase, chart, handshake, target, lightbulb)
+Text: Large 140-180px bold Georgia/Arial headlines, 50-70px subtitles, high contrast
+Elements: 10-15 total commands
 
-3. MAIN TEXT (2-3 text elements):
-   - HUGE headline: 140-220px (y: 300-500)
-   - Font: Impact, Georgia, Arial Black
-   - Colors: Bright neon white (#ffffff), cyan (#00fff0), pink (#ff006e)
-   - ALL TEXT MUST BE BOLD (bold=true)
-   - Add subtitle with complementary neon color
+ELEGANT/LUXURY STYLE:
+Background: Soft pastels #fdf4ff, #fef3f2, or elegant dark #1e1e1e
+Colors: Gold #d4af37, rose gold #e6b8af, champagne #f7e7ce, lavender #c9a0dc
+Shapes: 3-5 refined circles/rects (160-240 radius), opacity 0.2-0.4
+Icons: 1-2 icons at 90-130px (crown, rings, heart, diamond, flower, champagne)
+Text: Graceful 130-170px Georgia headlines, 45-65px subtitles, refined colors
+Elements: 12-18 total commands
 
-4. NEON CIRCLES (Create 4-8 circles):
-   - Large glowing circles: radius 150-280px
-   - Medium accents: radius 80-150px
-   - Scatter across canvas (various x: 150-1800, y: 150-900)
-   - Colors: Mix of neon cyan, pink, green, purple, orange
-   - ALWAYS set opacity 0.25-0.65 for glow effect
+PLAYFUL/KIDS STYLE:
+Background: Bright pastels #fef3c7, #dbeafe, #fce7f3, #dcfce7
+Colors: Rainbow red #ef4444, orange #f59e0b, yellow #eab308, green #22c55e, blue #3b82f6, purple #a855f7
+Shapes: 5-7 fun circles/rects (140-240 radius), opacity 0.3-0.5
+Icons: 3-5 icons at 110-160px (balloon, star, ice-cream, rocket, rainbow, smiley)
+Text: Friendly 160-200px bold Arial/Impact, 55-75px subtitles, vibrant colors
+Elements: 15-22 total commands
 
-5. RECTANGLES (Add 2-4 for structure):
-   - Thin horizontal lines: height 30-80px, width 1200-1800px
-   - OR vertical strips: width 80-200px, height 600-900px
-   - Neon colors with opacity 0.2-0.5
-   - Position creatively (y: 200-900, x: 50-1800)
+CRITICAL DESIGN RULES (ALL STYLES):
 
-6. ICONS (MUST use 3-6 relevant icons):
-   - Size: 100-180px
-   - Position around the design (x: 150-1700, y: 200-900)
-   - Search for relevant keywords based on topic
-   - Gaming: gamepad, controller, keyboard, mouse, headphones, joystick
-   - Tech: rocket, cpu, circuit, robot, microchip, wifi
-   - Music: music, headphones, microphone, speaker, guitar
-   - Sports: trophy, medal, star, crown, flame
-   - Food: pizza, burger, coffee, ice-cream
-   - Nature: leaf, flower, tree, mountain, sun
+1. HIERARCHY: Main text MUST be 2.5-3x larger than subtitle
+2. BOLD TEXT: Always use bold=true for headlines
+3. CONTRAST: Text must be highly visible against background
+4. SPACING: Don't overlap text with text or icons
+5. BALANCE: Distribute shapes/icons on both left and right
+6. FOCAL POINT: Center main headline or use rule-of-thirds (x: 640, 960, 1280)
+7. DEPTH: Layer background shapes → icons → text (front)
+8. ICONS: MUST include relevant icons for context
+9. OPACITY: ALWAYS set opacity on decorative shapes
+10. COMPLEXITY: Use 10-25 commands for rich professional look
 
-7. LAYERING STRATEGY:
-   - Background color first
-   - Large shapes/circles in back (with opacity)
-   - Medium shapes
-   - Icons scattered
-   - Text on top (always visible)
+POSITIONING GUIDE:
+- Headlines: y: 350-500 (center vertical)
+- Subtitles: y: headline_y + 180-250
+- Large circles: x: 200-1700, y: 200-800 (spread out)
+- Icons: x: 150-1750, y: 150-850 (scattered, not clustered)
 
-OUTPUT REQUIREMENTS:
-- Create 15-25 commands total (COMPLEX DESIGN!)
-- NO explanations, NO markdown, NO comments
-- One command per line
-- Start with SET_BACKGROUND
+ICON KEYWORDS BY TOPIC:
+Gaming: gamepad, controller, trophy, joystick, headphones, keyboard, mouse
+Business: briefcase, chart, handshake, target, lightbulb, graph, presentation
+Wedding: rings, heart, crown, diamond, flower, champagne, cake
+Kids: balloon, star, ice-cream, rocket, rainbow, smiley, candy
+Food: pizza, burger, coffee, ice-cream, chef-hat, fork, apple
+Fitness: dumbbell, trophy, medal, running, bicycle, heart, flame
+Music: music, headphones, microphone, speaker, guitar, drums
+Nature: leaf, flower, tree, mountain, sun, water, plant
 
 COMMANDS:
 SET_BACKGROUND(#hexcolor)
 ADD_TEXT(x, y, "text", fontSize, fontFamily, #color, bold, italic)
 ADD_CIRCLE(x, y, radius, #fillColor, none)
 ADD_RECT(x, y, width, height, #fillColor, none)
-SET_OPACITY(index, 0.2-0.7)
+SET_OPACITY(index, 0.15-0.7)
 SEARCH_ICON(keyword, x, y, size)
 
-EXAMPLE "Gaming Tournament":
-SET_BACKGROUND(#0a0e27)
-ADD_CIRCLE(300, 350, 250, #00fff0, none)
-SET_OPACITY(1, 0.35)
-ADD_CIRCLE(1600, 400, 220, #ff006e, none)
-SET_OPACITY(2, 0.4)
-ADD_CIRCLE(900, 750, 200, #00ff41, none)
-SET_OPACITY(3, 0.3)
-ADD_CIRCLE(500, 650, 160, #8b00ff, none)
-SET_OPACITY(4, 0.45)
-ADD_RECT(100, 250, 1720, 60, #00d9ff, none)
-SET_OPACITY(5, 0.25)
-SEARCH_ICON(gamepad, 250, 350, 140)
-SEARCH_ICON(trophy, 1650, 400, 120)
-SEARCH_ICON(headphones, 900, 200, 110)
-SEARCH_ICON(joystick, 1450, 650, 100)
-ADD_TEXT(960, 400, "GAMING CHAMPIONSHIP", 200, Impact, #ffffff, true, false)
-ADD_TEXT(960, 600, "Win $50,000 Prize", 64, Georgia, #00fff0, true, false)
-ADD_CIRCLE(1400, 800, 140, #ffaa00, none)
-SET_OPACITY(13, 0.5)
-ADD_RECT(800, 700, 320, 80, #ff006e, none)
-SET_OPACITY(14, 0.35)
+OUTPUT: 10-25 commands, NO explanations, one per line, start with SET_BACKGROUND
 
-NOW CREATE "${userRequest}" - Make it VIBRANT, NEON, COMPLEX! (15-25 commands):`;
+NOW CREATE "${userRequest}":`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Phase 1: Generating initial design...' }]);
 
@@ -497,7 +487,7 @@ IMPROVEMENTS:
           return '';
         }).join('\n');
 
-        const improvementPrompt = `REDESIGN MISSION: Transform to VIBRANT NEON MASTERPIECE! "${userRequest}" - Current: ${score}/10, Target: 7+/10
+        const improvementPrompt = `IMPROVEMENT MISSION: "${userRequest}" - Current: ${score}/10, Target: 7+/10
 
 Canvas: ${canvasWidth}x${canvasHeight}
 
@@ -507,50 +497,62 @@ ${analysis}
 CURRENT ELEMENTS:
 ${currentElementsList}
 
-🎨 TRANSFORMATION GOALS:
-Create a STUNNING, NEON-STYLE design with:
-- VIBRANT neon colors (#00fff0 cyan, #ff006e pink, #00ff41 green, #0080ff blue, #ff6500 orange, #8b00ff purple)
-- MULTIPLE glowing circles (4-8 total) with opacity 0.25-0.65
-- LARGE, BOLD text (140-220px headlines)
-- 3-6 relevant icons scattered throughout
-- Complex layered composition
+TRANSFORMATION RULES:
+Fix the issues to reach 7+/10 by applying APPROPRIATE improvements based on the topic style.
 
-COMMANDS AVAILABLE:
+COMMANDS:
+DELETE(index) | MOVE(index, x, y) | RESIZE(index, w, h)
+MODIFY_TEXT(index, text, size, color) | MODIFY_COLOR(index, fill, stroke)
+SET_OPACITY(index, 0.15-0.7) | ROTATE(index, degrees)
+BRING_FORWARD(index) | SEND_BACK(index) | DUPLICATE(index)
+ADD_CIRCLE(x, y, radius, color, none) | ADD_RECT(x, y, w, h, color, none)
+ADD_TEXT(x, y, text, size, font, color, bold, italic)
+SEARCH_ICON(keyword, x, y, size)
+SET_BACKGROUND(#hexcolor)
 
-DESTRUCTIVE:
-DELETE(index)
-CLEAR_BACKGROUND_IMAGE()
+IMPROVEMENT STRATEGIES BY STYLE:
 
-MODIFY:
-MOVE(index, newX, newY)
-RESIZE(index, newWidth, newHeight)
-MODIFY_TEXT(index, newText, newSize, newColor)
-MODIFY_COLOR(index, newFillColor, newStrokeColor)
-SET_OPACITY(index, 0.2-0.7)
-ROTATE(index, degrees)
-BRING_FORWARD(index)
-SEND_BACK(index)
-DUPLICATE(index)
+GAMING/TECH/MUSIC (Vibrant Energy):
+- DELETE weak elements, keep 15-25 total
+- MODIFY_TEXT headlines to 200-250px bold Impact
+- MODIFY_COLOR to neon: #00fff0 cyan, #ff006e pink, #00ff41 green, #8b00ff purple
+- ADD 4-6 glowing circles (radius 200-280) + SET_OPACITY 0.3-0.6
+- ADD 4-6 relevant icons at 130-180px (gamepad, trophy, rocket, headphones)
+- SET_BACKGROUND dark: #0a0e27, #0f172a
 
-CREATE:
-ADD_CIRCLE(x, y, radius, fillColor, none) - NEON circles!
-ADD_RECT(x, y, width, height, fillColor, none) - Structure
-ADD_TEXT(x, y, text, fontSize, fontFamily, color, bold, italic)
-SEARCH_ICON(keyword, x, y, size) - Gaming: gamepad/controller/headphones/joystick, Tech: rocket/cpu/circuit, Music: music/speaker, Sports: trophy/medal/star, Food: pizza/burger/coffee
-SET_BACKGROUND(#hexcolor) - Dark: #0a0e27, #0f0a1f, #1a0b2e
+BUSINESS/CORPORATE (Professional Polish):
+- DELETE clutter, keep 10-15 total
+- MODIFY_TEXT headlines to 140-180px bold Georgia
+- MODIFY_COLOR to corporate: #2563eb blue, #059669 green, #dc2626 red
+- ADD 2-4 subtle circles (radius 150-220) + SET_OPACITY 0.15-0.35
+- ADD 1-3 professional icons at 100-140px (briefcase, chart, target)
+- SET_BACKGROUND clean: #ffffff, #f8fafc, or navy #0f172a
 
-IMPROVEMENT STRATEGY:
-1. DELETE boring/weak elements
-2. MODIFY_TEXT headlines to 160-220px with neon colors
-3. MODIFY_COLOR shapes to vibrant neon (#00fff0, #ff006e, #00ff41, etc)
-4. ADD 3-6 large glowing circles (radius 150-250) with SET_OPACITY
-5. ADD 3-6 relevant SEARCH_ICON elements
-6. ADD neon rectangles for structure
-7. SET_OPACITY on all circles/shapes (0.25-0.65)
-8. MOVE elements for better composition
-9. Ensure text is always on top and visible
+ELEGANT/LUXURY (Sophisticated Beauty):
+- DELETE excess, keep 12-18 total
+- MODIFY_TEXT headlines to 130-170px Georgia
+- MODIFY_COLOR to refined: #d4af37 gold, #e6b8af rose gold, #c9a0dc lavender
+- ADD 3-5 elegant circles (radius 160-240) + SET_OPACITY 0.2-0.4
+- ADD 1-2 classy icons at 90-130px (crown, rings, diamond)
+- SET_BACKGROUND soft: #fdf4ff, #fef3f2, or dark #1e1e1e
 
-EXECUTE 10-20 COMMANDS - Make it EPIC and NEON! Output commands only, no explanations:`;
+PLAYFUL/KIDS (Fun Energy):
+- MODIFY_TEXT headlines to 160-200px bold Arial/Impact
+- MODIFY_COLOR to rainbow: #ef4444 red, #f59e0b orange, #22c55e green, #3b82f6 blue
+- ADD 5-7 fun circles (radius 140-240) + SET_OPACITY 0.3-0.5
+- ADD 3-5 playful icons at 110-160px (balloon, star, ice-cream)
+- SET_BACKGROUND bright: #fef3c7, #dbeafe, #fce7f3
+
+UNIVERSAL FIXES:
+1. DELETE overlapping/messy elements
+2. MODIFY_TEXT: Make headlines 2.5-3x larger than subtitles, use bold=true
+3. MOVE elements to golden ratio positions for balance
+4. ADD missing focal point or icons if design feels empty
+5. SET_OPACITY on all decorative shapes
+6. MODIFY_COLOR for better contrast with background
+7. Ensure text is always readable (high contrast)
+
+EXECUTE 8-18 COMMANDS to fix issues. Output commands only, no explanations:`;
 
         const improvements = await callAI(apiKey, fallbackKey, improvementPrompt);
         const improvementActions = parseAgentActions(improvements);
@@ -618,7 +620,7 @@ ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
   };
 
   const callAI = async (groqKey: string, geminiKey: string, prompt: string): Promise<string> => {
-    const systemPrompt = 'You are an expert graphic designer specializing in VIBRANT, NEON-STYLE artwork. Create stunning, colorful, multi-layered designs. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
+    const systemPrompt = 'You are a world-class graphic designer who creates stunning, professional designs in ANY style. You analyze each request and choose the perfect aesthetic - whether neon gaming, elegant luxury, corporate professional, or playful colorful. You create complex, multi-layered, beautiful compositions. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
 
     // Try Llama 3.3 70B Versatile (best reasoning)
     try {
