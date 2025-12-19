@@ -788,6 +788,7 @@ function App() {
             onDeleteAnalysis={deleteAnalysis}
             onViewAnalysis={handleViewAnalysis}
             onTogglePublic={togglePublic}
+            userId={user.id}
           />
         )}
 
