@@ -1,121 +1,159 @@
-import React, { useState, useEffect } from 'react';
-import { Monitor, Smartphone, Tablet, ScreenShare, Upload, Save, Trash2, Grid3x3, Layout, Maximize2, Filter, Search, Play, Film, Image as ImageIcon, Shirt, FileText, Share2, Download, Settings, Sparkles, Video, Clock, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  Monitor, Smartphone, Tablet, Laptop, Watch, Tv,
+  Film, Play, Pause, SkipBack, SkipForward,
+  Upload, Download, Save, Trash2, Copy,
+  Grid3x3, Layout, Layers, Type, Image as ImageIcon,
+  Sparkles, Wand2, Palette, Settings, ChevronRight,
+  Plus, X, Check, Search, Filter, SlidersHorizontal,
+  Shirt, Coffee, ShoppingBag, FileText, Share2,
+  Video, Camera, Zap, Star, Crown, Lock,
+  RotateCcw, ZoomIn, ZoomOut, Move, Eye, EyeOff,
+  Sun, Moon, Droplet, Wind, Flame, Snowflake
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { VideoTimeline, TimelineClip } from './mockup/VideoTimeline';
+import { DeviceMockup, deviceConfigs, DeviceConfig } from './mockup/DeviceMockup';
+import { LogoAnimator, logoAnimationPresets, LogoAnimationConfig, LogoAnimation } from './mockup/LogoAnimator';
+import { TextAnimator, textAnimationPresets, TextAnimationConfig, fontOptions } from './mockup/TextAnimator';
+import { SceneBuilder, sceneTemplates, SceneConfig, SceneElement } from './mockup/SceneBuilder';
+import { SlideshowMaker, SlideConfig } from './mockup/SlideshowMaker';
 
-interface MockupTemplate {
+type StudioMode = 'home' | 'device' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel';
+type ProjectType = 'mockup' | 'video' | 'logo' | 'slideshow';
+
+interface Project {
   id: string;
   name: string;
-  category: string;
-  subcategory?: string;
-  is_video: boolean;
-  preview_image_url?: string;
-  description: string;
-  dimensions: any;
-  settings: any;
-  is_premium: boolean;
-  tags: string[];
-}
-
-interface MockupProject {
-  id: string;
-  title: string;
-  design_url: string;
-  mockup_type: string;
-  mockup_data: any;
-  rendered_url?: string;
-  is_public: boolean;
-  category: string;
-  is_video: boolean;
-  video_duration: number;
-  template_data: any;
-  preview_url?: string;
-  export_settings: any;
-  created_at: string;
-  user_id: string;
+  type: ProjectType;
+  thumbnail?: string;
+  data: any;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface MockupStudioProps {
   userId?: string;
 }
 
-const categoryIcons: Record<string, any> = {
-  device: Monitor,
-  apparel: Shirt,
-  print: FileText,
-  video: Film,
-  social: Share2
+const modeConfig = {
+  home: { icon: Grid3x3, label: 'Home', color: 'from-slate-600 to-slate-700' },
+  device: { icon: Smartphone, label: 'Device Mockups', color: 'from-blue-600 to-cyan-600' },
+  video: { icon: Film, label: 'Video Maker', color: 'from-green-600 to-emerald-600' },
+  logo: { icon: Sparkles, label: 'Logo Animation', color: 'from-amber-600 to-orange-600' },
+  text: { icon: Type, label: 'Text Animation', color: 'from-rose-600 to-pink-600' },
+  slideshow: { icon: ImageIcon, label: 'Slideshow', color: 'from-purple-600 to-violet-600' },
+  social: { icon: Share2, label: 'Social Media', color: 'from-sky-600 to-blue-600' },
+  apparel: { icon: Shirt, label: 'Apparel & Merch', color: 'from-teal-600 to-cyan-600' }
 };
 
-const categoryColors: Record<string, string> = {
-  device: 'from-blue-500 to-cyan-500',
-  apparel: 'from-purple-500 to-pink-500',
-  print: 'from-orange-500 to-red-500',
-  video: 'from-green-500 to-emerald-500',
-  social: 'from-yellow-500 to-amber-500'
-};
+const socialFormats = [
+  { id: 'instagram-post', name: 'Instagram Post', width: 1080, height: 1080, icon: Camera },
+  { id: 'instagram-story', name: 'Instagram Story', width: 1080, height: 1920, icon: Video },
+  { id: 'instagram-reel', name: 'Instagram Reel', width: 1080, height: 1920, icon: Film },
+  { id: 'tiktok', name: 'TikTok', width: 1080, height: 1920, icon: Video },
+  { id: 'youtube-video', name: 'YouTube Video', width: 1920, height: 1080, icon: Video },
+  { id: 'youtube-short', name: 'YouTube Short', width: 1080, height: 1920, icon: Film },
+  { id: 'facebook-post', name: 'Facebook Post', width: 1200, height: 630, icon: ImageIcon },
+  { id: 'twitter-post', name: 'Twitter/X Post', width: 1200, height: 675, icon: ImageIcon },
+  { id: 'linkedin-post', name: 'LinkedIn Post', width: 1200, height: 628, icon: ImageIcon },
+  { id: 'pinterest-pin', name: 'Pinterest Pin', width: 1000, height: 1500, icon: ImageIcon }
+];
+
+const apparelItems = [
+  { id: 'tshirt-front', name: 'T-Shirt Front', icon: Shirt },
+  { id: 'tshirt-back', name: 'T-Shirt Back', icon: Shirt },
+  { id: 'hoodie-front', name: 'Hoodie Front', icon: Shirt },
+  { id: 'hoodie-back', name: 'Hoodie Back', icon: Shirt },
+  { id: 'tank-top', name: 'Tank Top', icon: Shirt },
+  { id: 'mug', name: 'Coffee Mug', icon: Coffee },
+  { id: 'tote-bag', name: 'Tote Bag', icon: ShoppingBag },
+  { id: 'cap', name: 'Baseball Cap', icon: Crown },
+  { id: 'phone-case', name: 'Phone Case', icon: Smartphone },
+  { id: 'poster', name: 'Wall Poster', icon: FileText }
+];
 
 export function MockupStudio({ userId }: MockupStudioProps) {
-  const [projects, setProjects] = useState<MockupProject[]>([]);
-  const [templates, setTemplates] = useState<MockupTemplate[]>([]);
+  const [mode, setMode] = useState<StudioMode>('home');
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'gallery' | 'templates' | 'editor'>('gallery');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedTemplate, setSelectedTemplate] = useState<MockupTemplate | null>(null);
-  const [designFile, setDesignFile] = useState<File | null>(null);
-  const [designPreview, setDesignPreview] = useState<string>('');
-  const [projectTitle, setProjectTitle] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [exportingProject, setExportingProject] = useState<MockupProject | null>(null);
-  const [mockupSettings, setMockupSettings] = useState({
-    scale: 100,
-    rotation: 0,
-    offsetX: 0,
-    offsetY: 0,
-    backgroundColor: '#f8fafc',
-    showShadow: true,
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(10);
+  const animationRef = useRef<number>();
+  const lastTimeRef = useRef<number>(0);
+
+  const [selectedDevice, setSelectedDevice] = useState<DeviceConfig>(deviceConfigs[0]);
+  const [deviceSettings, setDeviceSettings] = useState({
+    angle: { x: 0, y: 0, z: 0 },
+    shadow: true,
     shadowIntensity: 50,
-    borderRadius: 0
-  });
-  const [videoSettings, setVideoSettings] = useState({
-    duration: 5,
-    animation: 'fade',
-    loop: true
+    reflection: false,
+    glare: true,
+    environment: 'floating' as const,
+    backgroundColor: '#0f172a',
+    screenImage: ''
   });
 
+  const [logoSettings, setLogoSettings] = useState<LogoAnimationConfig>({
+    ...logoAnimationPresets['elegant-fade'],
+    color: '#ffffff'
+  });
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoText, setLogoText] = useState('YOUR LOGO');
+
+  const [textSettings, setTextSettings] = useState<TextAnimationConfig>({
+    animation: 'fade-in-up',
+    duration: 1,
+    delay: 0.2,
+    staggerDelay: 0.05,
+    easing: 'ease-out',
+    color: '#ffffff',
+    fontSize: 72,
+    fontWeight: 700,
+    fontFamily: 'Inter, sans-serif',
+    textAlign: 'center',
+    letterSpacing: 0,
+    lineHeight: 1.2
+  });
+  const [animatedText, setAnimatedText] = useState('Amazing Text');
+
+  const [slides, setSlides] = useState<SlideConfig[]>([]);
+
+  const [timelineClips, setTimelineClips] = useState<TimelineClip[]>([]);
+  const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
+
+  const [currentScene, setCurrentScene] = useState<SceneConfig | null>(null);
+
   useEffect(() => {
-    loadTemplates();
     if (userId) loadProjects();
+    else setLoading(false);
   }, [userId]);
 
   useEffect(() => {
-    if (designFile) {
-      const url = URL.createObjectURL(designFile);
-      setDesignPreview(url);
-      return () => URL.revokeObjectURL(url);
+    if (isPlaying) {
+      lastTimeRef.current = performance.now();
+      const animate = (timestamp: number) => {
+        const delta = (timestamp - lastTimeRef.current) / 1000;
+        lastTimeRef.current = timestamp;
+        setCurrentTime(prev => {
+          const next = prev + delta;
+          if (next >= duration) {
+            setIsPlaying(false);
+            return 0;
+          }
+          return next;
+        });
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
     }
-  }, [designFile]);
-
-  const loadTemplates = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('mockup_templates')
-        .select('*')
-        .order('usage_count', { ascending: false });
-
-      if (error) throw error;
-      setTemplates(data || []);
-    } catch (error) {
-      console.error('Error loading templates:', error);
-    }
-  };
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [isPlaying, duration]);
 
   const loadProjects = async () => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -124,8 +162,17 @@ export function MockupStudio({ userId }: MockupStudioProps) {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setProjects(data || []);
+      if (!error && data) {
+        setProjects(data.map((p: any) => ({
+          id: p.id,
+          name: p.title,
+          type: p.is_video ? 'video' : 'mockup',
+          thumbnail: p.design_url,
+          data: p.mockup_data,
+          createdAt: new Date(p.created_at),
+          updatedAt: new Date(p.updated_at || p.created_at)
+        })));
+      }
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {
@@ -133,141 +180,59 @@ export function MockupStudio({ userId }: MockupStudioProps) {
     }
   };
 
-  const createMockup = async () => {
-    if (!userId || !selectedTemplate || !designFile) {
-      alert('Please select a template and upload a design');
-      return;
-    }
+  const togglePlay = useCallback(() => {
+    if (currentTime >= duration) setCurrentTime(0);
+    setIsPlaying(prev => !prev);
+  }, [currentTime, duration]);
 
-    try {
-      const fileExt = designFile.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${userId}/${fileName}`;
+  const handleTimeChange = useCallback((time: number) => {
+    setCurrentTime(Math.max(0, Math.min(duration, time)));
+  }, [duration]);
 
-      const { error: uploadError } = await supabase.storage
-        .from('mockup-designs')
-        .upload(filePath, designFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('mockup-designs')
-        .getPublicUrl(filePath);
-
-      await supabase
-        .from('mockup_templates')
-        .update({ usage_count: (selectedTemplate as any).usage_count + 1 })
-        .eq('id', selectedTemplate.id);
-
-      const { error: insertError } = await supabase
-        .from('mockup_projects')
-        .insert([{
-          user_id: userId,
-          title: projectTitle || `${selectedTemplate.name} Mockup`,
-          design_url: publicUrl,
-          mockup_type: selectedTemplate.id,
-          mockup_data: mockupSettings,
-          category: selectedTemplate.category,
-          is_video: selectedTemplate.is_video,
-          video_duration: selectedTemplate.is_video ? videoSettings.duration : 0,
-          template_data: selectedTemplate,
-          export_settings: {
-            quality: 'high',
-            format: selectedTemplate.is_video ? 'mp4' : 'png',
-            resolution: '1920x1080'
-          },
-          is_public: false
-        }]);
-
-      if (insertError) throw insertError;
-
-      setView('gallery');
-      setDesignFile(null);
-      setDesignPreview('');
-      setProjectTitle('');
-      setSelectedTemplate(null);
-      await loadProjects();
-    } catch (error) {
-      console.error('Error creating mockup:', error);
-      alert('Failed to create mockup. Make sure the mockup-designs bucket exists in Supabase Storage.');
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'screen' | 'logo') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    if (target === 'screen') {
+      setDeviceSettings(prev => ({ ...prev, screenImage: url }));
+    } else {
+      setLogoUrl(url);
     }
   };
 
-  const deleteMockup = async (projectId: string) => {
-    if (!confirm('Delete this mockup?')) return;
+  const handleClipUpdate = useCallback((clip: TimelineClip) => {
+    setTimelineClips(prev => prev.map(c => c.id === clip.id ? clip : c));
+  }, []);
 
-    try {
-      const { error } = await supabase
-        .from('mockup_projects')
-        .delete()
-        .eq('id', projectId);
+  const handleClipDelete = useCallback((clipId: string) => {
+    setTimelineClips(prev => prev.filter(c => c.id !== clipId));
+    if (selectedClipId === clipId) setSelectedClipId(null);
+  }, [selectedClipId]);
 
-      if (error) throw error;
-      await loadProjects();
-    } catch (error) {
-      console.error('Error deleting mockup:', error);
-    }
-  };
+  const handleClipDuplicate = useCallback((clip: TimelineClip) => {
+    const newClip = { ...clip, id: `clip-${Date.now()}`, startTime: clip.startTime + clip.duration };
+    setTimelineClips(prev => [...prev, newClip]);
+  }, []);
 
-  const handleTemplateSelect = (template: MockupTemplate) => {
-    setSelectedTemplate(template);
-    setView('editor');
-    if (template.is_video) {
-      setVideoSettings({
-        ...videoSettings,
-        duration: template.dimensions?.duration || 5
-      });
-    }
-  };
-
-  const exportMockup = async (project: MockupProject) => {
-    setExportingProject(project);
-    setShowExportModal(true);
-  };
-
-  const downloadMockup = () => {
-    if (exportingProject) {
-      window.open(exportingProject.design_url, '_blank');
-      setShowExportModal(false);
-      setExportingProject(null);
-    }
-  };
-
-  const filteredTemplates = templates.filter(template => {
-    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
-    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
-
-  const categories = [
-    { id: 'all', name: 'All Templates', icon: Grid3x3 },
-    { id: 'device', name: 'Devices', icon: Monitor },
-    { id: 'apparel', name: 'Apparel', icon: Shirt },
-    { id: 'print', name: 'Print', icon: FileText },
-    { id: 'video', name: 'Video', icon: Film },
-    { id: 'social', name: 'Social Media', icon: Share2 }
-  ];
-
-  const getMockupFrame = (template: MockupTemplate | any) => {
-    const isDevice = template.category === 'device' || template.subcategory;
-    const dimensions = template.dimensions || {};
-
-    return {
-      width: dimensions.width || 1920,
-      height: dimensions.height || 1080,
-      borderRadius: dimensions.borderRadius || 0,
-      border: isDevice ? '12px solid #1f2937' : 'none',
-      shadow: mockupSettings.showShadow ? `0 ${20 + mockupSettings.shadowIntensity}px ${60 + mockupSettings.shadowIntensity}px rgba(0,0,0,${0.3 * (mockupSettings.shadowIntensity / 100)})` : 'none'
+  const addClip = (type: TimelineClip['type'], data: any) => {
+    const newClip: TimelineClip = {
+      id: `clip-${Date.now()}`,
+      type,
+      startTime: timelineClips.reduce((max, c) => Math.max(max, c.startTime + c.duration), 0),
+      duration: 3,
+      layer: 0,
+      data
     };
+    setTimelineClips(prev => [...prev, newClip]);
+    setDuration(prev => Math.max(prev, newClip.startTime + newClip.duration + 2));
   };
 
   if (!userId) {
     return (
       <div className="glass-card p-12 text-center animate-fade-in">
-        <Monitor size={48} className="mx-auto text-slate-400 mb-4" />
+        <Film size={48} className="mx-auto text-slate-400 mb-4" />
         <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50 mb-2">Sign In Required</h3>
-        <p className="text-slate-600 dark:text-slate-400">Please sign in to use MockupStudio</p>
+        <p className="text-slate-600 dark:text-slate-400">Please sign in to access MockupStudio Pro</p>
       </div>
     );
   }
@@ -276,504 +241,914 @@ export function MockupStudio({ userId }: MockupStudioProps) {
     return (
       <div className="glass-card p-8 animate-fade-in">
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-3 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
     );
   }
 
-  if (view === 'editor') {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="glass-card p-8">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className={`p-3 bg-gradient-to-br ${categoryColors[selectedTemplate?.category || 'device']} rounded-xl shadow-soft`}>
-                {selectedTemplate?.is_video ? <Film size={28} className="text-white" /> : <Monitor size={28} className="text-white" />}
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Create Mockup</h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{selectedTemplate?.name}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setView('templates')}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors"
-              >
-                Change Template
-              </button>
-              <button
-                onClick={() => setView('gallery')}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+  const renderHome = () => (
+    <div className="space-y-8 animate-fade-in">
+      <div className="glass-card p-8">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="p-4 bg-gradient-to-br from-primary-600 to-accent-600 rounded-2xl shadow-lg">
+            <Wand2 size={32} className="text-white" />
           </div>
-
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Project Title
-                </label>
-                <input
-                  type="text"
-                  value={projectTitle}
-                  onChange={(e) => setProjectTitle(e.target.value)}
-                  placeholder="My Awesome Mockup"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  {selectedTemplate?.is_video ? 'Upload Video or Image' : 'Upload Design'}
-                </label>
-                <input
-                  type="file"
-                  accept={selectedTemplate?.is_video ? "image/*,video/*" : "image/*"}
-                  onChange={(e) => setDesignFile(e.target.files?.[0] || null)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100"
-                />
-                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                  Recommended: {selectedTemplate?.dimensions?.width}x{selectedTemplate?.dimensions?.height}px
-                </p>
-              </div>
-
-              {selectedTemplate?.is_video && (
-                <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-3 flex items-center gap-2">
-                    <Video size={18} />
-                    Video Settings
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Duration (seconds)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="60"
-                        value={videoSettings.duration}
-                        onChange={(e) => setVideoSettings({ ...videoSettings, duration: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Animation
-                      </label>
-                      <select
-                        value={videoSettings.animation}
-                        onChange={(e) => setVideoSettings({ ...videoSettings, animation: e.target.value })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
-                      >
-                        <option value="fade">Fade In</option>
-                        <option value="slide">Slide In</option>
-                        <option value="zoom">Zoom In</option>
-                        <option value="rotate">Rotate In</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-3 flex items-center gap-2">
-                  <Settings size={18} />
-                  Customization
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Background Color
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={mockupSettings.backgroundColor}
-                        onChange={(e) => setMockupSettings({ ...mockupSettings, backgroundColor: e.target.value })}
-                        className="w-16 h-10 rounded-lg cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={mockupSettings.backgroundColor}
-                        onChange={(e) => setMockupSettings({ ...mockupSettings, backgroundColor: e.target.value })}
-                        className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Scale: {mockupSettings.scale}%
-                    </label>
-                    <input
-                      type="range"
-                      min="50"
-                      max="150"
-                      value={mockupSettings.scale}
-                      onChange={(e) => setMockupSettings({ ...mockupSettings, scale: parseInt(e.target.value) })}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Rotation: {mockupSettings.rotation}°
-                    </label>
-                    <input
-                      type="range"
-                      min="-45"
-                      max="45"
-                      value={mockupSettings.rotation}
-                      onChange={(e) => setMockupSettings({ ...mockupSettings, rotation: parseInt(e.target.value) })}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Shadow Intensity: {mockupSettings.shadowIntensity}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={mockupSettings.shadowIntensity}
-                      onChange={(e) => setMockupSettings({ ...mockupSettings, shadowIntensity: parseInt(e.target.value) })}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={createMockup}
-                disabled={!selectedTemplate || !designFile}
-                className="w-full px-6 py-4 bg-gradient-to-r from-accent-600 to-primary-600 hover:from-accent-700 hover:to-primary-700 text-white font-semibold rounded-xl transition-all shadow-soft disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Save size={20} />
-                {selectedTemplate?.is_video ? 'Create Video Mockup' : 'Create Mockup'}
-              </button>
-            </div>
-
-            <div className="glass-card p-6">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-                <Sparkles size={20} />
-                Live Preview
-              </h3>
-              <div
-                className="w-full aspect-video rounded-xl flex items-center justify-center overflow-hidden relative"
-                style={{ backgroundColor: mockupSettings.backgroundColor }}
-              >
-                {designPreview && selectedTemplate ? (
-                  <div className="relative flex items-center justify-center w-full h-full">
-                    {selectedTemplate.is_video && (
-                      <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/70 text-white rounded-full text-xs font-medium">
-                        <Clock size={14} />
-                        {videoSettings.duration}s
-                      </div>
-                    )}
-                    <div
-                      className="relative"
-                      style={{
-                        ...getMockupFrame(selectedTemplate),
-                        transform: `scale(${mockupSettings.scale / 300}) rotate(${mockupSettings.rotation}deg)`,
-                        boxShadow: getMockupFrame(selectedTemplate).shadow,
-                        maxWidth: '90%',
-                        maxHeight: '90%'
-                      }}
-                    >
-                      {designFile?.type?.startsWith('video/') ? (
-                        <video
-                          src={designPreview}
-                          className="w-full h-full object-cover"
-                          style={{ borderRadius: getMockupFrame(selectedTemplate).borderRadius }}
-                          autoPlay
-                          loop
-                          muted
-                        />
-                      ) : (
-                        <img
-                          src={designPreview}
-                          alt="Design preview"
-                          className="w-full h-full object-cover"
-                          style={{ borderRadius: getMockupFrame(selectedTemplate).borderRadius }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-slate-400">
-                    <Maximize2 size={48} className="mx-auto mb-3" />
-                    <p>Upload design to preview</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (view === 'templates') {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="glass-card p-8">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-accent-500 to-primary-500 rounded-xl shadow-soft">
-                <Layout size={28} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Choose Template</h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{filteredTemplates.length} templates available</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setView('gallery')}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors"
-            >
-              Back to Gallery
-            </button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <div className="flex-1 relative">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search templates..."
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-slate-100"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-            {categories.map(category => {
-              const Icon = category.icon;
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium whitespace-nowrap transition-all ${
-                    selectedCategory === category.id
-                      ? 'bg-gradient-to-r ' + (categoryColors[category.id] || 'from-primary-600 to-accent-600') + ' text-white shadow-soft'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  <Icon size={18} />
-                  {category.name}
-                </button>
-              );
-            })}
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">MockupStudio Pro</h1>
+            <p className="text-slate-600 dark:text-slate-400">Professional mockups, videos & animations</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredTemplates.map(template => {
-            const Icon = categoryIcons[template.category] || Monitor;
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {(Object.keys(modeConfig) as StudioMode[]).filter(m => m !== 'home').map(m => {
+            const config = modeConfig[m];
+            const Icon = config.icon;
             return (
               <button
-                key={template.id}
-                onClick={() => handleTemplateSelect(template)}
-                className="glass-card p-5 text-left card-hover group"
+                key={m}
+                onClick={() => setMode(m)}
+                className="group p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-700"
               >
-                <div className="relative w-full aspect-video rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 mb-4 overflow-hidden flex items-center justify-center">
-                  {template.is_video && (
-                    <div className="absolute top-2 right-2 px-2 py-1 bg-green-500 text-white text-xs font-bold rounded flex items-center gap-1">
-                      <Play size={12} />
-                      VIDEO
-                    </div>
-                  )}
-                  <Icon size={48} className={`text-slate-400 bg-gradient-to-r ${categoryColors[template.category]} bg-clip-text text-transparent`} />
+                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
+                  <Icon size={28} className="text-white" />
                 </div>
-
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                  {template.name}
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2 capitalize">
-                  {template.subcategory || template.category}
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {template.tags.slice(0, 2).map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                <h3 className="font-semibold text-slate-900 dark:text-slate-50 text-left">{config.label}</h3>
               </button>
             );
           })}
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-accent-500 to-primary-500 rounded-xl shadow-soft">
-              <Monitor size={28} className="text-white" />
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <Smartphone size={20} className="text-blue-600 dark:text-blue-400" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">MockupStudio</h1>
-              <p className="text-slate-600 dark:text-slate-400">Professional mockups & video templates</p>
-            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-50">Device Mockups</h3>
           </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            Showcase your app on 15+ realistic 3D device frames including iPhone, iPad, MacBook, and more.
+          </p>
           <button
-            onClick={() => setView('templates')}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-600 to-primary-600 hover:from-accent-700 hover:to-primary-700 text-white font-semibold rounded-xl transition-all shadow-soft"
+            onClick={() => setMode('device')}
+            className="text-sm text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 hover:gap-2 transition-all"
           >
-            <Upload size={20} />
-            New Mockup
+            Create Mockup <ChevronRight size={16} />
+          </button>
+        </div>
+
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <Film size={20} className="text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-50">Video Editor</h3>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            Create stunning videos with timeline editing, scenes, transitions, and professional effects.
+          </p>
+          <button
+            onClick={() => setMode('video')}
+            className="text-sm text-green-600 dark:text-green-400 font-medium flex items-center gap-1 hover:gap-2 transition-all"
+          >
+            Create Video <ChevronRight size={16} />
+          </button>
+        </div>
+
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+              <Sparkles size={20} className="text-amber-600 dark:text-amber-400" />
+            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-50">Logo Animation</h3>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            Animate your logo with 25+ stunning effects including neon glow, particles, 3D flip, and more.
+          </p>
+          <button
+            onClick={() => setMode('logo')}
+            className="text-sm text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1 hover:gap-2 transition-all"
+          >
+            Animate Logo <ChevronRight size={16} />
+          </button>
+        </div>
+
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-lg">
+              <Type size={20} className="text-rose-600 dark:text-rose-400" />
+            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-50">Text Animation</h3>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            Create kinetic typography with 20+ text animations for intros, promos, and social content.
+          </p>
+          <button
+            onClick={() => setMode('text')}
+            className="text-sm text-rose-600 dark:text-rose-400 font-medium flex items-center gap-1 hover:gap-2 transition-all"
+          >
+            Animate Text <ChevronRight size={16} />
+          </button>
+        </div>
+
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+              <ImageIcon size={20} className="text-purple-600 dark:text-purple-400" />
+            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-50">Slideshow Maker</h3>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            Create photo slideshows with transitions, Ken Burns effects, filters, and text overlays.
+          </p>
+          <button
+            onClick={() => setMode('slideshow')}
+            className="text-sm text-purple-600 dark:text-purple-400 font-medium flex items-center gap-1 hover:gap-2 transition-all"
+          >
+            Create Slideshow <ChevronRight size={16} />
+          </button>
+        </div>
+
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-sky-100 dark:bg-sky-900/30 rounded-lg">
+              <Share2 size={20} className="text-sky-600 dark:text-sky-400" />
+            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-50">Social Media</h3>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            Create content for Instagram, TikTok, YouTube, Facebook, Twitter, and more platforms.
+          </p>
+          <button
+            onClick={() => setMode('social')}
+            className="text-sm text-sky-600 dark:text-sky-400 font-medium flex items-center gap-1 hover:gap-2 transition-all"
+          >
+            Create Content <ChevronRight size={16} />
           </button>
         </div>
       </div>
 
-      {projects.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <Grid3x3 size={48} className="mx-auto text-slate-400 mb-4" />
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50 mb-2">No mockups yet</h3>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">Create professional mockups in seconds!</p>
-          <button
-            onClick={() => setView('templates')}
-            className="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl transition-all"
-          >
-            Browse Templates
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <div key={project.id} className="glass-card p-5 card-hover group">
-              <div
-                className="w-full aspect-video rounded-xl mb-4 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative"
-                style={{ backgroundColor: project.mockup_data?.backgroundColor || '#f8fafc' }}
-              >
-                {project.is_video && (
-                  <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                    <Film size={12} />
-                    VIDEO
+      {projects.length > 0 && (
+        <div className="glass-card p-6">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-50 mb-4">Recent Projects</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {projects.slice(0, 6).map(project => (
+              <div key={project.id} className="group relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 aspect-video">
+                {project.thumbnail ? (
+                  <img src={project.thumbnail} alt={project.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Film size={24} className="text-slate-400" />
                   </div>
                 )}
-                <div
-                  className="relative"
-                  style={{
-                    ...getMockupFrame(project.template_data || {}),
-                    transform: 'scale(0.15)',
-                    boxShadow: getMockupFrame(project.template_data || {}).shadow
-                  }}
-                >
-                  <img
-                    src={project.design_url}
-                    alt={project.title}
-                    className="w-full h-full object-cover"
-                    style={{ borderRadius: getMockupFrame(project.template_data || {}).borderRadius }}
-                  />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                  <span className="text-white text-sm font-medium truncate">{project.name}</span>
                 </div>
               </div>
-
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-50 mb-1">{project.title}</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 capitalize">
-                    {project.template_data?.name || project.mockup_type}
-                  </p>
-                </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => exportMockup(project)}
-                    className="p-2 text-slate-400 hover:text-primary-500 rounded-lg transition-colors"
-                    title="Export"
-                  >
-                    <Download size={16} />
-                  </button>
-                  <button
-                    onClick={() => deleteMockup(project.id)}
-                    className="p-2 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-xs text-slate-500 dark:text-slate-500">
-                {new Date(project.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
+    </div>
+  );
 
-      {showExportModal && exportingProject && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="glass-card p-8 max-w-md w-full">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Export Mockup</h2>
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
+  const renderDeviceMockups = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMode('home')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <ChevronRight size={20} className="rotate-180 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="p-3 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl">
+              <Smartphone size={24} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Device Mockups</h2>
+          </div>
+          <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium rounded-xl flex items-center gap-2">
+            <Download size={18} />
+            Export
+          </button>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div
+              className="w-full aspect-video rounded-2xl flex items-center justify-center overflow-hidden relative"
+              style={{ backgroundColor: deviceSettings.backgroundColor }}
+            >
+              <DeviceMockup
+                device={selectedDevice}
+                screenContent={
+                  deviceSettings.screenImage ? (
+                    <img src={deviceSettings.screenImage} alt="Screen" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                      <span className="text-slate-500">Upload Screenshot</span>
+                    </div>
+                  )
+                }
+                angle={deviceSettings.angle}
+                shadow={deviceSettings.shadow}
+                shadowIntensity={deviceSettings.shadowIntensity}
+                reflection={deviceSettings.reflection}
+                glare={deviceSettings.glare}
+                environment={deviceSettings.environment}
+                scale={selectedDevice.type === 'laptop' || selectedDevice.type === 'desktop' ? 0.7 : 0.9}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Device</label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {deviceConfigs.map(device => (
+                  <button
+                    key={device.id}
+                    onClick={() => setSelectedDevice(device)}
+                    className={`p-2 rounded-lg text-left text-sm transition-all ${
+                      selectedDevice.id === device.id
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {device.name}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Format
-                </label>
-                <select className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100">
-                  <option>{exportingProject.is_video ? 'MP4' : 'PNG'}</option>
-                  {!exportingProject.is_video && <option>JPG</option>}
-                  {exportingProject.is_video && <option>WebM</option>}
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Screenshot</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'screen')}
+                className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Quality
-                </label>
-                <select className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100">
-                  <option>High (1920x1080)</option>
-                  <option>Medium (1280x720)</option>
-                  <option>Low (854x480)</option>
-                </select>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Background</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={deviceSettings.backgroundColor}
+                  onChange={(e) => setDeviceSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                  className="w-12 h-10 rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={deviceSettings.backgroundColor}
+                  onChange={(e) => setDeviceSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                  className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+                />
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Rotation X: {deviceSettings.angle.x}
+              </label>
+              <input
+                type="range"
+                min="-30"
+                max="30"
+                value={deviceSettings.angle.x}
+                onChange={(e) => setDeviceSettings(prev => ({ ...prev, angle: { ...prev.angle, x: parseInt(e.target.value) } }))}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Rotation Y: {deviceSettings.angle.y}
+              </label>
+              <input
+                type="range"
+                min="-30"
+                max="30"
+                value={deviceSettings.angle.y}
+                onChange={(e) => setDeviceSettings(prev => ({ ...prev, angle: { ...prev.angle, y: parseInt(e.target.value) } }))}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Shadow: {deviceSettings.shadowIntensity}%
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={deviceSettings.shadowIntensity}
+                onChange={(e) => setDeviceSettings(prev => ({ ...prev, shadowIntensity: parseInt(e.target.value) }))}
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               <button
-                onClick={downloadMockup}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white font-semibold rounded-xl transition-all shadow-soft flex items-center justify-center gap-2"
+                onClick={() => setDeviceSettings(prev => ({ ...prev, glare: !prev.glare }))}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  deviceSettings.glare ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800'
+                }`}
               >
-                <Download size={20} />
-                Download
+                Glare
               </button>
               <button
-                onClick={() => setShowExportModal(false)}
-                className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-colors"
+                onClick={() => setDeviceSettings(prev => ({ ...prev, reflection: !prev.reflection }))}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  deviceSettings.reflection ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800'
+                }`}
               >
-                Cancel
+                Reflection
               </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+
+  const renderLogoAnimation = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMode('home')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <ChevronRight size={20} className="rotate-180 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="p-3 bg-gradient-to-br from-amber-600 to-orange-600 rounded-xl">
+              <Sparkles size={24} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Logo Animation</h2>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setCurrentTime(0); setIsPlaying(false); }}
+              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
+            >
+              <RotateCcw size={18} />
+            </button>
+            <button
+              onClick={togglePlay}
+              className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-medium rounded-xl flex items-center gap-2"
+            >
+              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+              {isPlaying ? 'Pause' : 'Preview'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-slate-900">
+              <LogoAnimator
+                logoUrl={logoUrl}
+                logoText={!logoUrl ? logoText : undefined}
+                config={logoSettings}
+                isPlaying={isPlaying}
+                currentTime={currentTime}
+                backgroundColor="#0a0a0a"
+                width={800}
+                height={450}
+              />
+            </div>
+            <div className="mt-4 flex items-center gap-4">
+              <span className="text-sm text-slate-500 font-mono">{currentTime.toFixed(2)}s</span>
+              <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all"
+                  style={{ width: `${(currentTime / (logoSettings.delay + logoSettings.duration + 1)) * 100}%` }}
+                />
+              </div>
+              <span className="text-sm text-slate-500 font-mono">{(logoSettings.delay + logoSettings.duration + 1).toFixed(2)}s</span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Logo Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'logo')}
+                className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Or Text Logo</label>
+              <input
+                type="text"
+                value={logoText}
+                onChange={(e) => setLogoText(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+                placeholder="YOUR BRAND"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Animation Style</label>
+              <select
+                value={logoSettings.animation}
+                onChange={(e) => {
+                  const preset = Object.entries(logoAnimationPresets).find(([_, p]) => p.animation === e.target.value)?.[1];
+                  if (preset) setLogoSettings({ ...logoSettings, ...preset });
+                  else setLogoSettings({ ...logoSettings, animation: e.target.value as LogoAnimation });
+                }}
+                className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+              >
+                <optgroup label="Fade & Reveal">
+                  <option value="fade-in">Fade In</option>
+                  <option value="zoom-in">Zoom In</option>
+                  <option value="zoom-out">Zoom Out</option>
+                  <option value="slide-up">Slide Up</option>
+                  <option value="slide-down">Slide Down</option>
+                </optgroup>
+                <optgroup label="3D Effects">
+                  <option value="flip-x">Flip X</option>
+                  <option value="flip-y">Flip Y</option>
+                  <option value="rotate-in">Rotate In</option>
+                  <option value="3d-flip">3D Flip</option>
+                </optgroup>
+                <optgroup label="Dynamic">
+                  <option value="bounce">Bounce</option>
+                  <option value="elastic">Elastic</option>
+                  <option value="wave">Wave</option>
+                  <option value="ripple">Ripple</option>
+                </optgroup>
+                <optgroup label="Special Effects">
+                  <option value="glitch">Glitch</option>
+                  <option value="neon-glow">Neon Glow</option>
+                  <option value="particles">Particles</option>
+                  <option value="electric">Electric</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Color</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={logoSettings.color || '#ffffff'}
+                  onChange={(e) => setLogoSettings({ ...logoSettings, color: e.target.value })}
+                  className="w-12 h-10 rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={logoSettings.color || '#ffffff'}
+                  onChange={(e) => setLogoSettings({ ...logoSettings, color: e.target.value })}
+                  className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Duration: {logoSettings.duration}s
+              </label>
+              <input
+                type="range"
+                min="0.5"
+                max="3"
+                step="0.1"
+                value={logoSettings.duration}
+                onChange={(e) => setLogoSettings({ ...logoSettings, duration: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Delay: {logoSettings.delay}s
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={logoSettings.delay}
+                onChange={(e) => setLogoSettings({ ...logoSettings, delay: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            {logoSettings.animation === 'neon-glow' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Glow Intensity: {logoSettings.glowIntensity || 20}
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="50"
+                  value={logoSettings.glowIntensity || 20}
+                  onChange={(e) => setLogoSettings({ ...logoSettings, glowIntensity: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTextAnimation = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMode('home')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <ChevronRight size={20} className="rotate-180 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="p-3 bg-gradient-to-br from-rose-600 to-pink-600 rounded-xl">
+              <Type size={24} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Text Animation</h2>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setCurrentTime(0); setIsPlaying(false); }}
+              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
+            >
+              <RotateCcw size={18} />
+            </button>
+            <button
+              onClick={togglePlay}
+              className="px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-600 text-white font-medium rounded-xl flex items-center gap-2"
+            >
+              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+              {isPlaying ? 'Pause' : 'Preview'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+              <TextAnimator
+                text={animatedText}
+                config={textSettings}
+                isPlaying={isPlaying}
+                currentTime={currentTime}
+                width={800}
+                height={200}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Text</label>
+              <textarea
+                value={animatedText}
+                onChange={(e) => setAnimatedText(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm resize-none"
+                placeholder="Enter your text..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Animation</label>
+              <select
+                value={textSettings.animation}
+                onChange={(e) => {
+                  const preset = Object.entries(textAnimationPresets).find(([_, p]) => p.animation === e.target.value)?.[1];
+                  if (preset) setTextSettings({ ...textSettings, ...preset } as TextAnimationConfig);
+                  else setTextSettings({ ...textSettings, animation: e.target.value as any });
+                }}
+                className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+              >
+                <optgroup label="Simple">
+                  <option value="fade-in">Fade In</option>
+                  <option value="fade-in-up">Fade In Up</option>
+                  <option value="fade-in-down">Fade In Down</option>
+                  <option value="zoom-in">Zoom In</option>
+                </optgroup>
+                <optgroup label="Character-by-Character">
+                  <option value="typewriter">Typewriter</option>
+                  <option value="letter-by-letter">Letter by Letter</option>
+                  <option value="wave">Wave</option>
+                  <option value="blur-in">Blur In</option>
+                </optgroup>
+                <optgroup label="Word-by-Word">
+                  <option value="word-by-word">Word by Word</option>
+                  <option value="split-reveal">Split Reveal</option>
+                </optgroup>
+                <optgroup label="Dynamic">
+                  <option value="kinetic-pop">Kinetic Pop</option>
+                  <option value="elastic-bounce">Elastic Bounce</option>
+                  <option value="flip-in">Flip In</option>
+                  <option value="rotate-in">Rotate In</option>
+                </optgroup>
+                <optgroup label="Special">
+                  <option value="scramble">Scramble Decode</option>
+                  <option value="neon-flicker">Neon Flicker</option>
+                  <option value="slide-reveal">Slide Reveal</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Font</label>
+              <select
+                value={textSettings.fontFamily}
+                onChange={(e) => setTextSettings({ ...textSettings, fontFamily: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+              >
+                {fontOptions.map(font => (
+                  <option key={font.value} value={font.value}>{font.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Size</label>
+                <input
+                  type="number"
+                  min="12"
+                  max="200"
+                  value={textSettings.fontSize}
+                  onChange={(e) => setTextSettings({ ...textSettings, fontSize: parseInt(e.target.value) })}
+                  className="w-full px-2 py-1.5 bg-slate-100 dark:bg-slate-800 rounded text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Weight</label>
+                <select
+                  value={textSettings.fontWeight}
+                  onChange={(e) => setTextSettings({ ...textSettings, fontWeight: parseInt(e.target.value) })}
+                  className="w-full px-2 py-1.5 bg-slate-100 dark:bg-slate-800 rounded text-sm"
+                >
+                  <option value="300">Light</option>
+                  <option value="400">Regular</option>
+                  <option value="500">Medium</option>
+                  <option value="600">Semibold</option>
+                  <option value="700">Bold</option>
+                  <option value="900">Black</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Color</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={textSettings.color}
+                  onChange={(e) => setTextSettings({ ...textSettings, color: e.target.value })}
+                  className="w-12 h-10 rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={textSettings.color}
+                  onChange={(e) => setTextSettings({ ...textSettings, color: e.target.value })}
+                  className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Duration: {textSettings.duration}s
+              </label>
+              <input
+                type="range"
+                min="0.3"
+                max="3"
+                step="0.1"
+                value={textSettings.duration}
+                onChange={(e) => setTextSettings({ ...textSettings, duration: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Stagger: {textSettings.staggerDelay}s
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="0.2"
+                step="0.01"
+                value={textSettings.staggerDelay}
+                onChange={(e) => setTextSettings({ ...textSettings, staggerDelay: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderVideoEditor = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMode('home')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <ChevronRight size={20} className="rotate-180 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="p-3 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl">
+              <Film size={24} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Video Editor</h2>
+          </div>
+          <button className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl flex items-center gap-2">
+            <Download size={18} />
+            Export Video
+          </button>
+        </div>
+
+        <div className="grid lg:grid-cols-4 gap-6 mb-6">
+          <div className="lg:col-span-3">
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-slate-900 flex items-center justify-center">
+              {currentScene ? (
+                <SceneBuilder
+                  scene={currentScene}
+                  currentTime={currentTime}
+                  isPlaying={isPlaying}
+                  scale={0.5}
+                />
+              ) : (
+                <div className="text-center text-slate-500">
+                  <Film size={48} className="mx-auto mb-3 opacity-50" />
+                  <p>Add a scene to get started</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-slate-100 dark:bg-slate-900 rounded-xl p-4">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-50 mb-3">Scene Templates</h3>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {sceneTemplates.map(template => (
+                <button
+                  key={template.id}
+                  onClick={() => {
+                    setCurrentScene(template);
+                    addClip('scene', { sceneId: template.id, name: template.name });
+                  }}
+                  className="w-full p-3 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-left transition-colors"
+                >
+                  <div className="font-medium text-sm text-slate-900 dark:text-slate-50">{template.name}</div>
+                  <div className="text-xs text-slate-500">{template.width}x{template.height} - {template.duration}s</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <VideoTimeline
+          clips={timelineClips}
+          duration={duration}
+          currentTime={currentTime}
+          isPlaying={isPlaying}
+          onTimeChange={handleTimeChange}
+          onPlayPause={togglePlay}
+          onClipSelect={(clip) => setSelectedClipId(clip?.id || null)}
+          onClipUpdate={handleClipUpdate}
+          onClipDelete={handleClipDelete}
+          onClipDuplicate={handleClipDuplicate}
+          selectedClipId={selectedClipId}
+        />
+      </div>
+    </div>
+  );
+
+  const renderSlideshow = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="glass-card p-6 min-h-[600px]">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMode('home')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <ChevronRight size={20} className="rotate-180 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="p-3 bg-gradient-to-br from-purple-600 to-violet-600 rounded-xl">
+              <ImageIcon size={24} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Slideshow Maker</h2>
+          </div>
+          <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-medium rounded-xl flex items-center gap-2">
+            <Download size={18} />
+            Export Video
+          </button>
+        </div>
+
+        <SlideshowMaker
+          slides={slides}
+          onSlidesChange={setSlides}
+          currentTime={currentTime}
+          isPlaying={isPlaying}
+          onPlayPause={togglePlay}
+        />
+      </div>
+    </div>
+  );
+
+  const renderSocialMedia = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMode('home')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <ChevronRight size={20} className="rotate-180 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="p-3 bg-gradient-to-br from-sky-600 to-blue-600 rounded-xl">
+              <Share2 size={24} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Social Media Templates</h2>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {socialFormats.map(format => {
+            const Icon = format.icon;
+            const isVertical = format.height > format.width;
+            return (
+              <button
+                key={format.id}
+                className="group p-4 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-700"
+              >
+                <div className={`mx-auto mb-3 rounded-lg bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center ${
+                  isVertical ? 'w-12 h-20' : 'w-20 h-12'
+                }`}>
+                  <Icon size={20} className="text-slate-500" />
+                </div>
+                <div className="text-sm font-medium text-slate-900 dark:text-slate-50">{format.name}</div>
+                <div className="text-xs text-slate-500">{format.width} x {format.height}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderApparel = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMode('home')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <ChevronRight size={20} className="rotate-180 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="p-3 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-xl">
+              <Shirt size={24} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Apparel & Merchandise</h2>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {apparelItems.map(item => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                className="group p-6 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-700"
+              >
+                <div className="w-16 h-16 mx-auto mb-3 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Icon size={28} className="text-slate-500" />
+                </div>
+                <div className="text-sm font-medium text-slate-900 dark:text-slate-50 text-center">{item.name}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderContent = () => {
+    switch (mode) {
+      case 'home': return renderHome();
+      case 'device': return renderDeviceMockups();
+      case 'video': return renderVideoEditor();
+      case 'logo': return renderLogoAnimation();
+      case 'text': return renderTextAnimation();
+      case 'slideshow': return renderSlideshow();
+      case 'social': return renderSocialMedia();
+      case 'apparel': return renderApparel();
+      default: return renderHome();
+    }
+  };
+
+  return (
+    <div className="min-h-screen">
+      {renderContent()}
     </div>
   );
 }
