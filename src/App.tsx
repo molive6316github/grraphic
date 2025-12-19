@@ -5,7 +5,7 @@ import { FileUpload } from './components/FileUpload';
 import { LoadingAnalysis } from './components/LoadingAnalysis';
 import { AnalysisResults } from './components/AnalysisResults';
 import { ModeToggle } from './components/ModeToggle';
-import { UIUpload } from './components/UIUpload';
+import { UIUploadComponent } from './components/UIUpload';
 import { UIAnalysisResults } from './components/UIAnalysisResults';
 import { DarkModeToggle } from './components/DarkModeToggle';
 import { AuthModal } from './components/AuthModal';
@@ -775,7 +775,7 @@ function App() {
                 onShowAuth={() => setShowAuthModal(true)}
               />
             ) : (
-              <UIUpload
+              <UIUploadComponent
                 onUpload={handleUIUpload}
                 uploadedUI={uploadedUI}
                 onRemove={handleRemoveUI}

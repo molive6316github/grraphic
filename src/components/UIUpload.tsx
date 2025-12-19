@@ -12,7 +12,7 @@ interface UIUploadProps {
   onShowAuth: () => void;
 }
 
-export function UIUpload({
+export function UIUploadComponent({
   onUpload,
   uploadedUI,
   onRemove,
