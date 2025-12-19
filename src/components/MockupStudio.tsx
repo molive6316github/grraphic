@@ -8,6 +8,27 @@ import { TextAnimator, textAnimationPresets, TextAnimationConfig, fontOptions } 
 import { SceneBuilder, sceneTemplates, SceneConfig, SceneElement } from './mockup/SceneBuilder';
 import { SlideshowMaker, SlideConfig } from './mockup/SlideshowMaker';
 
+const Flag = ({ size, className }: { size: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+    <line x1="4" y1="22" x2="4" y2="15"/>
+  </svg>
+);
+
+const Wine = ({ size, className }: { size: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M8 22h8M12 18v4M12 18a6 6 0 0 0 6-6V2H6v10a6 6 0 0 0 6 6z"/>
+  </svg>
+);
+
+const Beer = ({ size, className }: { size: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M17 11h1a3 3 0 0 1 0 6h-1"/>
+    <path d="M5 6v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/>
+    <path d="M5 6h12l-1-4H6L5 6z"/>
+  </svg>
+);
+
 export type StudioSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments' | 'packages' | 'print' | 'signage' | 'frames' | 'tech' | 'vehicles' | 'food' | 'nature';
 
 type ProjectType = 'mockup' | 'video' | 'logo' | 'slideshow';
@@ -210,27 +231,6 @@ const apparelItems = [
   { id: 'sticker-sheet', name: 'Sticker Sheet', icon: Sticker, colors: ['white'] },
   { id: 'pillow', name: 'Throw Pillow', icon: Home, colors: ['white', 'gray', 'black'] }
 ];
-
-const Flag = ({ size, className }: { size: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-    <line x1="4" y1="22" x2="4" y2="15"/>
-  </svg>
-);
-
-const Wine = ({ size, className }: { size: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-    <path d="M8 22h8M12 18v4M12 18a6 6 0 0 0 6-6V2H6v10a6 6 0 0 0 6 6z"/>
-  </svg>
-);
-
-const Beer = ({ size, className }: { size: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-    <path d="M17 11h1a3 3 0 0 1 0 6h-1"/>
-    <path d="M5 6v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/>
-    <path d="M5 6h12l-1-4H6L5 6z"/>
-  </svg>
-);
 
 export function MockupStudio({ userId, initialSection = 'home', onNavigate }: MockupStudioProps) {
   const [section, setSection] = useState<StudioSection>(initialSection);
