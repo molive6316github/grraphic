@@ -41,6 +41,8 @@ import { STRIPE_PRODUCTS } from './stripe-config';
 
 type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'boxt' | 'palettex' | 'mockup' | 'assets';
 
+type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
+
 function App() {
   const [mode, setMode] = useState<AnalysisMode>('design');
   const [state, setState] = useState<AppState>('upload');
@@ -60,6 +62,7 @@ function App() {
   const [headingOffset, setHeadingOffset] = useState(150);
   const [isRecentering, setIsRecentering] = useState(false);
   const [confettiActive, setConfettiActive] = useState(false);
+  const [mockupSection, setMockupSection] = useState<MockupSection>('home');
   const { isDark, toggleDarkMode } = useDarkMode();
   const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
   const { analyses, loading: historyLoading, saveAnalysis, deleteAnalysis, togglePublic, getPublicAnalysis } = useAnalysisHistory(user?.id);
@@ -116,6 +119,15 @@ function App() {
       return;
     } else if (path === '/boxt') {
       setState('boxt');
+      return;
+    } else if (path.startsWith('/mockup')) {
+      setState('mockup');
+      const section = path.split('/')[2] as MockupSection;
+      if (section && ['devices', 'intros', 'products', 'scenes', 'video', 'logo', 'text', 'slideshow', 'social', 'apparel', 'environments'].includes(section)) {
+        setMockupSection(section);
+      } else {
+        setMockupSection('home');
+      }
       return;
     }
 
@@ -525,7 +537,11 @@ function App() {
                     <span className="hidden sm:inline font-medium text-primary-700 dark:text-primary-300">PaletteX</span>
                   </button>
                   <button
-                    onClick={() => setState('mockup')}
+                    onClick={() => {
+                      setState('mockup');
+                      setMockupSection('home');
+                      window.history.pushState({}, '', '/mockup');
+                    }}
                     className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent-100 to-primary-100 dark:from-accent-900/30 dark:to-primary-900/30 hover:from-accent-200 hover:to-primary-200 dark:hover:from-accent-800/40 dark:hover:to-primary-800/40 border border-accent-200/50 dark:border-accent-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
                   >
                     <Monitor size={18} className="text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform duration-300" />
@@ -821,7 +837,15 @@ function App() {
         )}
 
         {state === 'mockup' && (
-          <MockupStudio userId={user?.id} />
+          <MockupStudio
+            userId={user?.id}
+            initialSection={mockupSection}
+            onNavigate={(section) => {
+              setMockupSection(section);
+              const newPath = section === 'home' ? '/mockup' : `/mockup/${section}`;
+              window.history.pushState({}, '', newPath);
+            }}
+          />
         )}
 
         {state === 'assets' && (
