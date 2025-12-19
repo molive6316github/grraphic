@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
-import { Sparkles, User, History, Shield, Palette, Layout, Type, Zap } from 'lucide-react';
+import { Sparkles, User, History, Shield, Palette, Layout, Type, Zap, Package, Monitor } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { LoadingAnalysis } from './components/LoadingAnalysis';
 import { AnalysisResults } from './components/AnalysisResults';
@@ -22,6 +22,9 @@ import { TermsOfService } from './components/TermsOfService';
 import { AIAssistant } from './components/AIAssistant';
 import { GradiChat } from './components/GradiChat';
 import { Boxt } from './components/Boxt';
+import { PaletteX } from './components/PaletteX';
+import { MockupStudio } from './components/MockupStudio';
+import { AssetVault } from './components/AssetVault';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { analyzeUI } from './utils/uiAnalyzer';
 import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode } from './types';
@@ -36,7 +39,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'boxt';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'boxt' | 'palettex' | 'mockup' | 'assets';
 
 function App() {
   const [mode, setMode] = useState<AnalysisMode>('design');
@@ -514,6 +517,27 @@ function App() {
                     <History size={18} className="text-slate-600 dark:text-slate-300 group-hover:scale-110 transition-transform duration-300" />
                     <span className="hidden sm:inline font-medium text-slate-700 dark:text-slate-200">History</span>
                   </button>
+                  <button
+                    onClick={() => setState('palettex')}
+                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary-100 to-accent-100 dark:from-primary-900/30 dark:to-accent-900/30 hover:from-primary-200 hover:to-accent-200 dark:hover:from-primary-800/40 dark:hover:to-accent-800/40 border border-primary-200/50 dark:border-primary-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
+                  >
+                    <Palette size={18} className="text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="hidden sm:inline font-medium text-primary-700 dark:text-primary-300">PaletteX</span>
+                  </button>
+                  <button
+                    onClick={() => setState('mockup')}
+                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent-100 to-primary-100 dark:from-accent-900/30 dark:to-primary-900/30 hover:from-accent-200 hover:to-primary-200 dark:hover:from-accent-800/40 dark:hover:to-primary-800/40 border border-accent-200/50 dark:border-accent-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
+                  >
+                    <Monitor size={18} className="text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="hidden sm:inline font-medium text-accent-700 dark:text-accent-300">Mockups</span>
+                  </button>
+                  <button
+                    onClick={() => setState('assets')}
+                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-success-100 to-primary-100 dark:from-success-900/30 dark:to-primary-900/30 hover:from-success-200 hover:to-primary-200 dark:hover:from-success-800/40 dark:hover:to-primary-800/40 border border-success-200/50 dark:border-success-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
+                  >
+                    <Package size={18} className="text-success-600 dark:text-success-400 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="hidden sm:inline font-medium text-success-700 dark:text-success-300">Assets</span>
+                  </button>
                   {isAdmin && (
                     <button
                       onClick={() => setState('admin')}
@@ -790,6 +814,18 @@ function App() {
             onTogglePublic={togglePublic}
             userId={user.id}
           />
+        )}
+
+        {state === 'palettex' && (
+          <PaletteX userId={user?.id} />
+        )}
+
+        {state === 'mockup' && (
+          <MockupStudio userId={user?.id} />
+        )}
+
+        {state === 'assets' && (
+          <AssetVault userId={user?.id} />
         )}
 
         {state === 'public' && publicAnalysis && (
