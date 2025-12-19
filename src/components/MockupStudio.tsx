@@ -1,16 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Monitor, Smartphone, Tablet, Laptop, Watch, Tv,
-  Film, Play, Pause, SkipBack, SkipForward,
-  Upload, Download, Save, Trash2, Copy,
-  Grid3x3, Layout, Layers, Type, Image as ImageIcon,
-  Sparkles, Wand2, Palette, Settings, ChevronRight,
-  Plus, X, Check, Search, Filter, SlidersHorizontal,
-  Shirt, Coffee, ShoppingBag, FileText, Share2,
-  Video, Camera, Zap, Star, Crown, Lock,
-  RotateCcw, ZoomIn, ZoomOut, Move, Eye, EyeOff,
-  Sun, Moon, Droplet, Wind, Flame, Snowflake
-} from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Laptop, Watch, Tv, Film, Play, Pause, SkipBack, SkipForward, Upload, Download, Save, Trash2, Copy, Grid3x3, LayoutGrid as Layout, Layers, Type, Image as ImageIcon, Sparkles, Wand2, Palette, Settings, ChevronRight, Plus, X, Check, Search, Filter, SlidersHorizontal, Shirt, Coffee, ShoppingBag, FileText, Share2, Video, Camera, Zap, Star, Crown, Lock, RotateCcw, ZoomIn, ZoomOut, Move, Eye, EyeOff, Sun, Moon, Droplet, Wind, Flame, Snowflake } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { VideoTimeline, TimelineClip } from './mockup/VideoTimeline';
 import { DeviceMockup, deviceConfigs, DeviceConfig } from './mockup/DeviceMockup';
