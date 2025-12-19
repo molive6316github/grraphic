@@ -4,11 +4,43 @@
 
 @layer base {
   * {
-    @apply transition-colors duration-200;
+    @apply transition-colors duration-300;
   }
 
   html {
-    @apply scroll-smooth;
+    @apply scroll-smooth antialiased;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply text-slate-900 dark:text-slate-100;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+  }
+
+  button {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
+  }
+
+  input, textarea {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400;
   }
 }
 
@@ -93,15 +125,30 @@
 }
 
 .glass-effect {
-  @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800/50;
+  @apply bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-soft;
+}
+
+.glass-card {
+  @apply bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/40 rounded-2xl shadow-soft-lg;
 }
 
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 via-accent-600 to-primary-700;
+}
+
+.gradient-border {
+  position: relative;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #0ea5e9, #d946ef) border-box;
+  border: 2px solid transparent;
 }
 
 .hover-lift {
-  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+  @apply transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-soft-xl;
+}
+
+.hover-glow {
+  @apply transition-all duration-500 hover:shadow-glow;
 }
 
 .smooth-shadow {
@@ -110,6 +157,44 @@
 
 .smooth-shadow-lg {
   box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.interactive-scale {
+  @apply transition-transform duration-300 hover:scale-105 active:scale-95;
+}
+
+.btn-primary {
+  @apply px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold rounded-xl shadow-soft hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-0.5;
+}
+
+.btn-secondary {
+  @apply px-8 py-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-semibold rounded-xl shadow-soft hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-0.5;
+}
+
+.card-hover {
+  @apply transition-all duration-500 hover:-translate-y-1 hover:shadow-soft-xl;
+}
+
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
 }
 
 @keyframes blob {

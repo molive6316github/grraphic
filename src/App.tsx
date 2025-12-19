@@ -453,11 +453,18 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 dark:from-blue-900 dark:via-blue-800 dark:to-slate-900 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-all duration-500 relative">
+      {/* Animated background gradient orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-60">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-gradient-to-br from-primary-400/30 to-accent-400/20 dark:from-primary-600/20 dark:to-accent-600/10 rounded-full blur-3xl animate-blob"></div>
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-gradient-to-tl from-accent-400/30 to-primary-400/20 dark:from-accent-600/20 dark:to-primary-600/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-primary-300/20 to-accent-300/20 dark:from-primary-700/10 dark:to-accent-700/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white/80 dark:bg-black/20 backdrop-blur-sm border-b border-gray-200 dark:border-white/10 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <header className="sticky top-0 z-50 glass-effect border-b border-slate-200/60 dark:border-slate-700/50 shadow-soft">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex items-center justify-between h-20">
             <button
               onClick={() => {
                 startNewAnalysis();
@@ -467,63 +474,63 @@ function App() {
                   setClickCount(0);
                 }
               }}
-              className="flex items-center space-x-3 hover:opacity-80 transition-all duration-300 hover:scale-105"
+              className="group flex items-center space-x-3 hover:scale-105 transition-all duration-500"
             >
-              <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg animate-bounce-slow">
-                <Sparkles size={20} className="text-white" />
+              <div className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-primary-500 via-accent-500 to-primary-600 rounded-xl shadow-soft-lg group-hover:shadow-glow transition-all duration-500 group-hover:rotate-12">
+                <Sparkles size={22} className="text-white group-hover:scale-110 transition-transform duration-500" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Grraphic</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 dark:from-slate-100 dark:via-primary-400 dark:to-slate-100 bg-clip-text text-transparent">Grraphic</h1>
             </button>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-3">
               {user ? (
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
                       setState('boxt');
                       window.history.pushState({}, '', '/boxt');
                     }}
-                    className="flex items-center space-x-2 px-3 py-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-accent-100 dark:hover:bg-accent-900/30 border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
                     title="Design Editor"
                   >
-                    <Palette size={16} />
-                    <span className="hidden sm:inline">Boxt</span>
+                    <Palette size={18} className="text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="hidden sm:inline font-medium text-slate-700 dark:text-slate-200">Boxt</span>
                   </button>
                   <button
                     onClick={() => {
                       setState('gradi');
                       window.history.pushState({}, '', '/gradi');
                     }}
-                    className="flex items-center space-x-2 px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-primary-100 dark:hover:bg-primary-900/30 border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
                     title="Chat with Gradi AI"
                   >
-                    <Sparkles size={16} />
-                    <span className="hidden sm:inline">Gradi AI</span>
+                    <Sparkles size={18} className="text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="hidden sm:inline font-medium text-slate-700 dark:text-slate-200">Gradi AI</span>
                   </button>
                   <button
                     onClick={() => setState('history')}
-                    className="flex items-center space-x-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
                   >
-                    <History size={16} />
-                    <span className="hidden sm:inline">History</span>
+                    <History size={18} className="text-slate-600 dark:text-slate-300 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="hidden sm:inline font-medium text-slate-700 dark:text-slate-200">History</span>
                   </button>
                   {isAdmin && (
                     <button
                       onClick={() => setState('admin')}
-                      className="flex items-center space-x-2 px-3 py-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                      className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent-100/80 dark:bg-accent-900/30 hover:bg-accent-200/80 dark:hover:bg-accent-800/40 border border-accent-200/50 dark:border-accent-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
                       title="Admin Panel"
                     >
-                      <Shield size={16} />
-                      <span className="hidden sm:inline">Admin</span>
+                      <Shield size={18} className="text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="hidden sm:inline font-medium text-accent-700 dark:text-accent-300">Admin</span>
                     </button>
                   )}
                   <button
                     onClick={() => setShowUsernameModal(true)}
-                    className="flex items-center space-x-2 px-3 py-2 bg-gray-100 dark:bg-white/10 rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 glass-card hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-0.5"
                     title="Edit username"
                   >
-                    <User size={16} className="text-gray-600 dark:text-gray-300" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200 hidden sm:inline">
+                    <User size={18} className="text-slate-600 dark:text-slate-300" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 hidden sm:inline">
                       @{username || 'user'}
                     </span>
                   </button>
@@ -531,9 +538,9 @@ function App() {
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300"
+                  className="flex items-center gap-2 btn-primary"
                 >
-                  <User size={16} />
+                  <User size={18} />
                   <span>Sign In</span>
                 </button>
               )}
@@ -547,7 +554,7 @@ function App() {
         {/* Cursor follower effect */}
         {state === 'upload' && (
           <div
-            className="fixed w-8 h-8 rounded-full bg-gradient-to-r from-blue-500/30 to-purple-500/30 blur-xl pointer-events-none z-50 transition-all duration-300"
+            className="fixed w-12 h-12 rounded-full bg-gradient-to-r from-primary-500/40 to-accent-500/40 blur-2xl pointer-events-none z-50 transition-all duration-500"
             style={{
               left: `${cursorPosition.x}px`,
               top: `${cursorPosition.y}px`,
@@ -558,32 +565,32 @@ function App() {
 
         {/* Floating shapes background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300/20 dark:bg-blue-500/10 rounded-full blur-3xl animate-blob"></div>
-          <div className="absolute top-40 right-10 w-72 h-72 bg-purple-300/20 dark:bg-purple-500/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-          <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-300/20 dark:bg-pink-500/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+          <div className="absolute top-20 left-10 w-80 h-80 bg-primary-400/20 dark:bg-primary-600/10 rounded-full blur-3xl animate-blob"></div>
+          <div className="absolute top-40 right-10 w-80 h-80 bg-accent-400/20 dark:bg-accent-600/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+          <div className="absolute bottom-20 left-1/2 w-80 h-80 bg-primary-300/15 dark:bg-primary-700/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
 
           {state === 'upload' && (
             <>
-              <div className="absolute top-32 left-1/4 text-blue-400/30 dark:text-blue-300/20 animate-bounce-slow">
-                <Palette size={48} />
+              <div className="absolute top-32 left-1/4 text-primary-400/30 dark:text-primary-400/20 animate-float">
+                <Palette size={52} />
               </div>
-              <div className="absolute top-48 right-1/3 text-purple-400/30 dark:text-purple-300/20 animate-bounce-slow animation-delay-2000">
-                <Layout size={56} />
+              <div className="absolute top-48 right-1/3 text-accent-400/30 dark:text-accent-400/20 animate-float animation-delay-2000">
+                <Layout size={60} />
               </div>
-              <div className="absolute bottom-32 left-1/3 text-pink-400/30 dark:text-pink-300/20 animate-bounce-slow animation-delay-4000">
-                <Type size={52} />
+              <div className="absolute bottom-32 left-1/3 text-primary-300/30 dark:text-primary-500/20 animate-float animation-delay-4000">
+                <Type size={56} />
               </div>
-              <div className="absolute top-64 right-1/4 text-blue-300/30 dark:text-blue-400/20 animate-bounce-slow animation-delay-2000">
-                <Zap size={44} />
+              <div className="absolute top-64 right-1/4 text-accent-300/30 dark:text-accent-500/20 animate-float animation-delay-2000">
+                <Zap size={48} />
               </div>
             </>
           )}
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center relative z-10">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 pt-24 pb-16 text-center relative z-10">
           <div className="relative group">
             <h1
-              className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 transition-all duration-300 cursor-pointer"
+              className="text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-slate-50 mb-8 transition-all duration-500 cursor-pointer leading-tight tracking-tight"
               style={{
                 transform: isRecentering ? 'translateX(0)' : `translateX(${headingOffset}px)`,
                 transition: isRecentering ? 'transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55)' : 'none'
@@ -602,13 +609,13 @@ function App() {
                 }
               }}
             >
-              Get AI-Powered
+              <span className="block text-balance">Get AI-Powered</span>
               <span
-                className={`text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 transition-all duration-500 ${
-                  isHoveringHeader ? 'animate-pulse-glow inline-block scale-110' : ''
+                className={`block text-transparent bg-clip-text bg-gradient-to-r from-primary-600 via-accent-600 to-primary-700 dark:from-primary-400 dark:via-accent-400 dark:to-primary-500 transition-all duration-500 ${
+                  isHoveringHeader ? 'scale-105' : ''
                 }`}
               >
-                {mode === 'design' ? ' Design Feedback' : ' UI Analysis'}
+                {mode === 'design' ? 'Design Feedback' : 'UI Analysis'}
               </span>
             </h1>
 
@@ -639,19 +646,19 @@ function App() {
               </div>
             )}
           </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto transition-colors duration-300">
+          <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-12 max-w-3xl mx-auto transition-colors duration-500 leading-relaxed text-balance">
             {mode === 'design'
               ? 'Upload your graphic design and receive comprehensive feedback on typography, color harmony, composition, and more. Improve your designs with professional insights.'
               : 'Upload HTML or enter a website URL to receive comprehensive UI/UX analysis covering usability, accessibility, responsiveness, and performance.'}
           </p>
-          
+
           {(state === 'results' || state === 'history' || state === 'success') && (
             <>
               <button
                 onClick={startNewAnalysis}
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl mb-8"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary-600 via-accent-600 to-primary-700 hover:from-primary-700 hover:via-accent-700 hover:to-primary-800 text-white text-lg font-semibold rounded-xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 shadow-soft-lg hover:shadow-glow mb-10"
               >
-                <Sparkles size={20} className="mr-2" />
+                <Sparkles size={22} className="animate-pulse" />
                 Analyze New Design
               </button>
               {user && state !== 'success' && (

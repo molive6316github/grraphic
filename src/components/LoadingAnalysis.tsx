@@ -143,34 +143,34 @@ export function LoadingAnalysis({ mode = 'design' }: LoadingAnalysisProps) {
   const CurrentStepIcon = steps[currentStep].icon;
 
   return (
-    <div className="glass-effect rounded-xl smooth-shadow-lg p-8 animate-scale-in overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 animate-pulse"></div>
+    <div className="glass-card p-10 animate-scale-in overflow-hidden relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-accent-500/5 to-primary-500/5 animate-pulse"></div>
 
       <div className="relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-full mb-6 shadow-2xl relative">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 opacity-20 animate-ping"></div>
-            <CurrentStepIcon size={40} className="text-blue-600 dark:text-blue-400 animate-bounce" />
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-28 h-28 bg-gradient-to-br from-primary-500/20 via-accent-500/20 to-primary-600/20 rounded-2xl mb-8 shadow-soft-xl relative">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary-500 via-accent-500 to-primary-600 opacity-20 animate-ping"></div>
+            <CurrentStepIcon size={48} className="text-primary-600 dark:text-primary-400 animate-bounce-slow" />
           </div>
-          <h2 className={`text-3xl font-bold bg-gradient-to-r ${modeColor} bg-clip-text text-transparent mb-3`}>
+          <h2 className={`text-4xl font-bold bg-gradient-to-r ${modeColor} bg-clip-text text-transparent mb-4 tracking-tight`}>
             {modeTitle}
           </h2>
-          <p className="text-gray-700 dark:text-gray-200 text-lg font-medium">
+          <p className="text-slate-700 dark:text-slate-200 text-xl font-medium">
             {steps[currentStep].label}
           </p>
         </div>
 
-        <div className="mb-8">
-          <div className="relative h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+        <div className="mb-10">
+          <div className="relative h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner-soft">
             <div
-              className={`absolute inset-y-0 left-0 bg-gradient-to-r ${modeColor} rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2`}
+              className={`absolute inset-y-0 left-0 bg-gradient-to-r ${modeColor} rounded-full transition-all duration-700 ease-out flex items-center justify-end pr-1.5 shadow-glow`}
               style={{ width: `${progress}%` }}
             >
-              <div className="w-4 h-4 bg-white rounded-full shadow-lg animate-pulse"></div>
+              <div className="w-2 h-2 bg-white rounded-full shadow-soft animate-pulse"></div>
             </div>
           </div>
-          <div className="text-right mt-2">
-            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{progress}%</span>
+          <div className="text-right mt-3">
+            <span className="text-base font-bold text-slate-700 dark:text-slate-300">{progress}%</span>
           </div>
         </div>
 

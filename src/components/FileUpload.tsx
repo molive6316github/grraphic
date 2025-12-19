@@ -113,25 +113,25 @@ export function FileUpload({
 
   if (uploadedFile) {
     return (
-      <div className="glass-effect rounded-xl smooth-shadow-lg p-6 animate-scale-in hover-lift">
+      <div className="glass-card p-8 animate-scale-in card-hover">
         <div className="relative">
           <button
             onClick={onRemoveFile}
-            className="absolute top-3 right-3 z-10 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-all duration-200 hover:scale-110 shadow-lg"
+            className="absolute -top-3 -right-3 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-3 transition-all duration-300 hover:scale-110 shadow-soft-lg hover:shadow-red-500/50"
             aria-label="Remove file"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
-          <div className="aspect-video bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-xl overflow-hidden mb-4 shadow-inner ring-1 ring-gray-200/50 dark:ring-gray-700/50">
+          <div className="aspect-video bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 rounded-2xl overflow-hidden mb-6 shadow-inner-soft ring-2 ring-slate-200/60 dark:ring-slate-700/50">
             <img
               src={uploadedFile.preview}
               alt={uploadedFile.name}
-              className="w-full h-full object-contain p-2"
+              className="w-full h-full object-contain p-4"
             />
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-gray-900 dark:text-white truncate pr-2">{uploadedFile.name}</span>
-            <span className="text-gray-600 dark:text-gray-400 font-medium">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+          <div className="flex items-center justify-between">
+            <span className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate pr-4">{uploadedFile.name}</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</span>
           </div>
         </div>
       </div>
@@ -139,13 +139,13 @@ export function FileUpload({
   }
 
   return (
-    <div className="glass-effect rounded-xl smooth-shadow-lg p-6 animate-fade-in">
+    <div className="glass-card p-8 animate-fade-in">
       <div
         className={`
-          relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 cursor-pointer
+          relative border-3 border-dashed rounded-2xl p-16 text-center transition-all duration-500 cursor-pointer group
           ${dragActive
-            ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-500/20 dark:to-purple-500/20 scale-[1.02] shadow-lg'
-            : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
+            ? 'border-primary-500 bg-gradient-to-br from-primary-50 via-accent-50/50 to-primary-50 dark:from-primary-500/20 dark:via-accent-500/10 dark:to-primary-500/20 scale-[1.02] shadow-soft-xl'
+            : 'border-slate-300 dark:border-slate-600 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
           }
         `}
         onDrop={handleDrop}
@@ -161,49 +161,49 @@ export function FileUpload({
           onChange={handleFileSelect}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
-        
-        <div className="flex flex-col items-center space-y-5">
+
+        <div className="flex flex-col items-center space-y-6">
           <div className={`
-            p-4 rounded-full transition-all duration-300 transform
+            p-6 rounded-2xl transition-all duration-500 transform
             ${dragActive
-              ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white scale-110 shadow-2xl'
-              : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-500 dark:text-gray-400 hover:scale-105 shadow-md'
+              ? 'bg-gradient-to-br from-primary-500 via-accent-500 to-primary-600 text-white scale-110 shadow-soft-xl rotate-6'
+              : 'bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-700 text-slate-500 dark:text-slate-400 group-hover:scale-110 group-hover:rotate-3 shadow-soft-lg'
             }
           `}>
-            {dragActive ? <Image size={40} className="animate-pulse" /> : <Upload size={40} />}
+            {dragActive ? <Image size={48} className="animate-pulse" /> : <Upload size={48} />}
           </div>
 
           <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-50 mb-3">
               Upload your design
             </h3>
-            <p className="text-base text-gray-700 dark:text-gray-200 mb-3 font-medium">
+            <p className="text-lg text-slate-700 dark:text-slate-200 mb-4 font-medium leading-relaxed">
               Drag and drop your graphic design here, or click to browse
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
-              Supports JPG, PNG, GIF, WebP 
+            <p className="text-sm text-slate-600 dark:text-slate-400 transition-colors duration-500">
+              Supports JPG, PNG, GIF, WebP
               {isProSubscriber ? ' (unlimited with Pro subscription)' :
-               isAuthenticated && hasProCredits ? ' (max 10MB with pro credits)' : 
+               isAuthenticated && hasProCredits ? ' (max 10MB with pro credits)' :
                isAuthenticated ? ' (max 3MB - no pro credits remaining)' :
                ' (max 3MB free, 10MB with pro credits, unlimited with Pro)'}
             </p>
             {isAuthenticated && (
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                {isProSubscriber ? 'Pro subscriber: Unlimited large files' : 
+              <p className="text-xs text-primary-600 dark:text-primary-400 mt-2 font-medium">
+                {isProSubscriber ? 'Pro subscriber: Unlimited large files' :
                  `Pro credits: ${hasProCredits ? 'Available' : '0'}/10 • Resets monthly`}
               </p>
             )}
           </div>
         </div>
       </div>
-      
+
       {error && (
-        <div className="mt-4 p-3 bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 rounded-lg transition-colors duration-300">
-          <p className="text-red-700 dark:text-red-300 text-sm transition-colors duration-300">{error}</p>
+        <div className="mt-6 p-5 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-500/30 rounded-xl transition-all duration-500 shadow-soft animate-slide-down">
+          <p className="text-red-700 dark:text-red-300 text-sm font-medium transition-colors duration-500">{error}</p>
           {showUpgradePrompt && (
             <button
               onClick={onShowAuth}
-              className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-300"
+              className="mt-3 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-lg transition-all duration-300 hover:-translate-y-0.5 shadow-soft"
             >
               Sign Up for Free Pro Credits
             </button>
