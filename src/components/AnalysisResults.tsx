@@ -12,7 +12,11 @@ interface AnalysisResultsProps {
   userId?: string;
 }
 
-function VisualReference({ imageUrl, boundingBox, description }: { imageUrl: string; boundingBox: { x: number; y: number; width: number; height: number }; description: string }) {
+function VisualReference({ imageUrl, boundingBox, description }: { 
+  imageUrl: string; 
+  boundingBox: { x: number; y: number; width: number; height: number }; 
+  description: string 
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -33,12 +37,7 @@ function VisualReference({ imageUrl, boundingBox, description }: { imageUrl: str
 
       canvas.width = cropWidth;
       canvas.height = cropHeight;
-
-      ctx.drawImage(
-        img,
-        cropX, cropY, cropWidth, cropHeight,
-        0, 0, cropWidth, cropHeight
-      );
+      ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
       setIsLoaded(true);
     };
     img.src = imageUrl;
@@ -48,12 +47,12 @@ function VisualReference({ imageUrl, boundingBox, description }: { imageUrl: str
     <div className="relative group">
       <canvas
         ref={canvasRef}
-        className="rounded-lg border-2 border-blue-300 dark:border-blue-700 shadow-md max-w-full h-auto"
+        className="rounded-lg border border-primary-200 dark:border-primary-800 shadow-soft max-w-full h-auto"
         style={{ maxHeight: '120px' }}
       />
       {isLoaded && (
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-          <p className="text-white text-xs font-medium px-2 text-center">{description}</p>
+        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center p-2">
+          <p className="text-white text-xs font-medium text-center">{description}</p>
         </div>
       )}
     </div>
@@ -61,52 +60,52 @@ function VisualReference({ imageUrl, boundingBox, description }: { imageUrl: str
 }
 
 function ScoreCircle({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' | 'lg' }) {
-  const sizeClasses = {
-    sm: 'w-12 h-12',
-    md: 'w-16 h-16',
-    lg: 'w-20 h-20'
+  const sizeConfig = {
+    sm: { class: 'w-14 h-14', radius: 20, stroke: 3, fontSize: 'text-sm' },
+    md: { class: 'w-18 h-18', radius: 28, stroke: 4, fontSize: 'text-lg' },
+    lg: { class: 'w-24 h-24', radius: 40, stroke: 5, fontSize: 'text-2xl' }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 80) return 'text-blue-600';
-    if (score >= 70) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const circumference = 2 * Math.PI * 20;
-  const strokeDasharray = circumference;
+  const config = sizeConfig[size];
+  const circumference = 2 * Math.PI * config.radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return { ring: 'text-success-500', text: 'text-success-600 dark:text-success-400' };
+    if (score >= 80) return { ring: 'text-primary-500', text: 'text-primary-600 dark:text-primary-400' };
+    if (score >= 70) return { ring: 'text-warning-500', text: 'text-warning-600 dark:text-warning-400' };
+    return { ring: 'text-error-500', text: 'text-error-600 dark:text-error-400' };
+  };
+
+  const colors = getScoreColor(score);
+
   return (
-    <div className={`${sizeClasses[size]} relative`}>
+    <div className={`${config.class} relative`}>
       <svg className="transform -rotate-90 w-full h-full">
         <circle
           cx="50%"
           cy="50%"
-          r="20"
+          r={config.radius}
           stroke="currentColor"
-          strokeWidth="3"
+          strokeWidth={config.stroke}
           fill="transparent"
-          className="text-gray-200"
+          className="text-slate-200 dark:text-slate-700"
         />
         <circle
           cx="50%"
           cy="50%"
-          r="20"
+          r={config.radius}
           stroke="currentColor"
-          strokeWidth="3"
+          strokeWidth={config.stroke}
           fill="transparent"
-          strokeDasharray={strokeDasharray}
+          strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          className={`transition-all duration-1000 ease-out ${getScoreColor(score)}`}
+          className={`transition-all duration-1000 ease-out ${colors.ring}`}
           strokeLinecap="round"
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`font-bold ${size === 'lg' ? 'text-lg' : 'text-sm'} ${getScoreColor(score)}`}>
-          {score}
-        </span>
+        <span className={`font-bold ${config.fontSize} ${colors.text}`}>{score}</span>
       </div>
     </div>
   );
@@ -116,12 +115,7 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
   const categories = Object.entries(analysis.categories);
 
   const exportReport = () => {
-    const report = {
-      fileName,
-      analysis,
-      generatedAt: new Date().toISOString()
-    };
-    
+    const report = { fileName, analysis, generatedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -133,72 +127,67 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
     URL.revokeObjectURL(url);
   };
 
+  const getScoreLabel = (score: number) => {
+    if (score >= 90) return 'Excellent';
+    if (score >= 80) return 'Very Good';
+    if (score >= 70) return 'Good';
+    return 'Needs Improvement';
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in-up">
       {/* Image Preview */}
       {(imagePreview || (analysis as any).image_url) && (
-        <div className="glass-effect rounded-xl smooth-shadow-lg p-6 hover-lift">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-            <Image size={22} className="mr-2 text-blue-600 dark:text-blue-400" />
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <Image className="w-5 h-5 text-primary-500" />
             Analyzed Design
           </h3>
-          <div className="aspect-video bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-xl overflow-hidden shadow-inner ring-1 ring-gray-200/50 dark:ring-gray-700/50">
+          <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700">
             <img
               src={imagePreview || (analysis as any).image_url}
               alt={fileName}
               className="w-full h-full object-contain p-2"
             />
           </div>
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mt-3">
-            {fileName}
-          </p>
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mt-3">{fileName}</p>
         </div>
       )}
 
       {/* Overall Score */}
-      <div className="glass-effect rounded-xl smooth-shadow-lg p-8 hover-lift">
-        <div className="flex items-center justify-between mb-8">
+      <div className="card p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-3xl font-bold gradient-text mb-3">Analysis Complete</h2>
-            <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">
-              Here's your comprehensive design review
+            <h2 className="text-2xl sm:text-3xl font-bold gradient-text mb-2">Analysis Complete</h2>
+            <p className="text-slate-600 dark:text-slate-400">
+              Here&apos;s your comprehensive design review
               {analysis.designContext && (
                 <span className="block text-sm mt-1">
-                  {analysis.designContext.designType} • Target: {analysis.designContext.targetAudience}
+                  {analysis.designContext.designType} - Target: {analysis.designContext.targetAudience}
                 </span>
               )}
             </p>
           </div>
-          <button
-            onClick={exportReport}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all duration-300 border border-gray-200 dark:border-white/20"
-          >
-            <Download size={16} />
-            <span>Export Report</span>
+          <button onClick={exportReport} className="btn-secondary flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            Export
           </button>
         </div>
 
-        <div className="flex items-center justify-center mb-6">
-          <div className="text-center">
-            <ScoreCircle score={analysis.overall} size="lg" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 transition-colors duration-300">Overall Score</h3>
-            <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">
-              {analysis.overall >= 90 ? 'Excellent' : 
-               analysis.overall >= 80 ? 'Very Good' : 
-               analysis.overall >= 70 ? 'Good' : 'Needs Improvement'}
-            </p>
-          </div>
+        <div className="flex flex-col items-center mb-8">
+          <ScoreCircle score={analysis.overall} size="lg" />
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mt-4">Overall Score</h3>
+          <p className="text-slate-600 dark:text-slate-400">{getScoreLabel(analysis.overall)}</p>
         </div>
 
-        {/* Category Scores */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {/* Category Scores Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {categories.map(([key, category]) => (
-            <div key={key} className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm rounded-lg p-4 text-center border border-gray-200 dark:border-white/10 transition-colors duration-300">
+            <div key={key} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 text-center">
               <ScoreCircle score={category.score} size="sm" />
-              <h4 className="font-semibold text-gray-900 dark:text-white mt-2 capitalize transition-colors duration-300">
+              <h4 className="font-medium text-slate-900 dark:text-white mt-2 capitalize text-sm">
                 {key === 'colorHarmony' ? 'Color Harmony' : key}
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">{category.score}/100</p>
             </div>
           ))}
         </div>
@@ -206,44 +195,41 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
 
       {/* Design Context */}
       {analysis.designContext && (
-        <div className="glass-effect rounded-xl smooth-shadow-lg p-6 hover-lift">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-            Design Context & Purpose
-          </h3>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Perceived Goal</h4>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">{analysis.designContext.perceivedGoal}</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Target Audience</h4>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">{analysis.designContext.targetAudience}</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Design Type</h4>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">{analysis.designContext.designType}</p>
-            </div>
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Design Context</h3>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {[
+              { label: 'Perceived Goal', value: analysis.designContext.perceivedGoal },
+              { label: 'Target Audience', value: analysis.designContext.targetAudience },
+              { label: 'Design Type', value: analysis.designContext.designType }
+            ].map((item) => (
+              <div key={item.label} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+                <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">{item.label}</h4>
+                <p className="text-slate-900 dark:text-white font-medium">{item.value}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Detailed Analysis */}
+      {/* Detailed Category Analysis */}
       <div className="grid md:grid-cols-2 gap-6">
         {categories.map(([key, category]) => (
-          <div key={key} className="glass-effect rounded-xl smooth-shadow p-6 hover-lift transition-all duration-300">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white capitalize">
+          <div key={key} className="card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white capitalize">
                 {key === 'colorHarmony' ? 'Color Harmony' : key}
               </h3>
               <ScoreCircle score={category.score} size="sm" />
             </div>
 
-            <p className="text-gray-700 dark:text-gray-200 mb-5 leading-relaxed">{category.feedback}</p>
+            <p className="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">{category.feedback}</p>
 
+            {/* Visual References */}
             {category.visualReferences && category.visualReferences.length > 0 && (imagePreview || (analysis as any).image_url) && (
-              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h5 className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2 uppercase tracking-wide flex items-center">
-                  <Crop size={14} className="mr-1" />
+              <div className="mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800/50">
+                <h5 className="text-xs font-semibold text-primary-700 dark:text-primary-300 mb-2 uppercase tracking-wide flex items-center gap-1">
+                  <Crop className="w-3 h-3" />
                   Visual References
                 </h5>
                 <div className="grid grid-cols-2 gap-3">
@@ -254,48 +240,47 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
                         boundingBox={ref.boundingBox}
                         description={ref.description}
                       />
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{ref.description}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{ref.description}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
+            {/* Referenced Elements */}
             {category.references && category.references.length > 0 && (
-              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                <h5 className="text-xs font-semibold text-gray-800 dark:text-gray-300 mb-2 uppercase tracking-wide">Referenced Elements</h5>
+              <div className="mb-4">
+                <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Referenced Elements</h5>
                 <div className="flex flex-wrap gap-2">
                   {category.references.map((ref, idx) => (
-                    <span
-                      key={idx}
-                      className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-900/40 text-gray-700 dark:text-gray-200 rounded-full border border-gray-300 dark:border-gray-700"
-                    >
-                      {ref}
-                    </span>
+                    <span key={idx} className="badge-primary">{ref}</span>
                   ))}
                 </div>
               </div>
             )}
 
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-900 dark:text-white flex items-center transition-colors duration-300">
-                <TrendingUp size={16} className="mr-2 text-blue-500" />
-                Improvement Ideas
-              </h4>
-              <ul className="space-y-1">
-                {category.improvementIdeas?.map((idea, idx) => (
-                  <li key={idx} className="text-sm text-gray-600 dark:text-gray-300 flex items-start transition-colors duration-300">
-                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                    {idea}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {/* Improvement Ideas */}
+            {category.improvementIdeas && category.improvementIdeas.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-4 h-4 text-primary-500" />
+                  Improvement Ideas
+                </h4>
+                <ul className="space-y-1.5">
+                  {category.improvementIdeas.map((idea, idx) => (
+                    <li key={idx} className="text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 bg-primary-500 rounded-full mt-1.5 flex-shrink-0" />
+                      {idea}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* AI Autofix Suggestions */}
+      {/* AI Improvement Ideas */}
       <ImprovementIdeas 
         analysis={analysis}
         fileName={fileName}
@@ -304,32 +289,32 @@ export function AnalysisResults({ analysis, fileName, imagePreview, isProSubscri
         userId={userId}
       />
 
-      {/* Summary */}
+      {/* Strengths & Improvements Summary */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center transition-colors duration-300">
-            <CheckCircle size={20} className="mr-2 text-green-600" />
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-success-500" />
             Strengths
           </h3>
           <ul className="space-y-2">
             {analysis.strengths.map((strength, idx) => (
-              <li key={idx} className="text-gray-600 dark:text-gray-300 flex items-start transition-colors duration-300">
-                <span className="w-1.5 h-1.5 bg-green-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              <li key={idx} className="text-slate-600 dark:text-slate-400 flex items-start gap-2">
+                <span className="w-1.5 h-1.5 bg-success-500 rounded-full mt-2 flex-shrink-0" />
                 {strength}
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center transition-colors duration-300">
-            <AlertCircle size={20} className="mr-2 text-yellow-600" />
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-warning-500" />
             Areas for Improvement
           </h3>
           <ul className="space-y-2">
             {analysis.improvements.map((improvement, idx) => (
-              <li key={idx} className="text-gray-600 dark:text-gray-300 flex items-start transition-colors duration-300">
-                <span className="w-1.5 h-1.5 bg-yellow-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              <li key={idx} className="text-slate-600 dark:text-slate-400 flex items-start gap-2">
+                <span className="w-1.5 h-1.5 bg-warning-500 rounded-full mt-2 flex-shrink-0" />
                 {improvement}
               </li>
             ))}

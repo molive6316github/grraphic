@@ -9,28 +9,34 @@ export function Footer({ onPrivacyClick, onTermsClick }: FooterProps) {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-white/80 dark:bg-black/20 backdrop-blur-sm border-t border-gray-200 dark:border-white/10 transition-colors duration-300 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-gray-600 dark:text-gray-300">
-            © {currentYear} Grraphic. All rights reserved.
+    <footer className="relative border-t border-white/10 mt-auto">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">G</span>
+            </div>
+            <span className="text-sm text-gray-400">
+              {currentYear} Grraphic. All rights reserved.
+            </span>
           </div>
-          <div className="flex items-center space-x-6 text-sm">
+          <div className="flex items-center gap-8 text-sm">
             <button
               onClick={onPrivacyClick}
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors duration-200"
             >
-              Privacy Policy
+              Privacy
             </button>
             <button
               onClick={onTermsClick}
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors duration-200"
             >
-              Terms of Service
+              Terms
             </button>
             <a
               href="mailto:support@grraphic.com"
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors duration-200"
             >
               Contact
             </a>

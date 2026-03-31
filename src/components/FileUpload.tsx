@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Upload, X, Image } from 'lucide-react';
+import { Upload, X, ImageIcon, AlertCircle } from 'lucide-react';
 import { UploadedFile } from '../types';
 
 interface FileUploadProps {
@@ -25,113 +25,88 @@ export function FileUpload({
   const [error, setError] = useState<string>('');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
-  const MAX_FREE_SIZE = 3 * 1024 * 1024; // 3MB
-  const MAX_PRO_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FREE_SIZE = 3 * 1024 * 1024;
+  const MAX_PRO_SIZE = 10 * 1024 * 1024;
+
+  const validateFile = useCallback((file: File): string | null => {
+    if (!file.type.startsWith('image/')) {
+      return 'Please upload an image file (JPG, PNG, GIF, WebP)';
+    }
+
+    if (file.size > MAX_FREE_SIZE && !isProSubscriber && (!isAuthenticated || !hasProCredits)) {
+      if (!isAuthenticated) {
+        setShowUpgradePrompt(true);
+        return 'Files over 3MB require a free account with pro credits, or upgrade to Pro for unlimited large files!';
+      }
+      return 'File size exceeds 3MB and you have no pro credits remaining. Upgrade to Pro for unlimited large files.';
+    }
+
+    if (file.size > MAX_PRO_SIZE) {
+      return 'File size must be less than 10MB';
+    }
+
+    return null;
+  }, [hasProCredits, isProSubscriber, isAuthenticated]);
+
+  const processFile = useCallback((file: File) => {
+    setError('');
+    setShowUpgradePrompt(false);
+
+    const validationError = validateFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    const preview = URL.createObjectURL(file);
+    onFileUpload({
+      file,
+      preview,
+      name: file.name,
+      size: file.size
+    });
+  }, [onFileUpload, validateFile]);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragActive(false);
-    setError('');
-    setShowUpgradePrompt(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    const file = files[0];
-
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file (JPG, PNG, GIF, WebP)');
-      return;
-    }
-
-    // Check file size limits
-    if (file.size > MAX_FREE_SIZE && !isProSubscriber && (!isAuthenticated || !hasProCredits)) {
-      if (!isAuthenticated) {
-        setShowUpgradePrompt(true);
-        setError('Files over 3MB require a free account with pro credits, or upgrade to Pro for unlimited large files!');
-        return;
-      } else {
-        setError('File size exceeds 3MB and you have no pro credits remaining. Upgrade to Pro for unlimited large files, or wait for monthly credit reset.');
-        return;
-      }
-    }
-
-    if (file.size > MAX_PRO_SIZE) {
-      setError('File size must be less than 10MB');
-      return;
-    }
-
-    const preview = URL.createObjectURL(file);
-    onFileUpload({
-      file,
-      preview,
-      name: file.name,
-      size: file.size
-    });
-  }, [onFileUpload, hasProCredits, isProSubscriber, isAuthenticated]);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  }, [processFile]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    setError('');
-    setShowUpgradePrompt(false);
-
-    // Clear the input to prevent file path exposure
     e.target.value = '';
-
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file (JPG, PNG, GIF, WebP)');
-      return;
-    }
-
-    // Check file size limits
-    if (file.size > MAX_FREE_SIZE && !isProSubscriber && (!isAuthenticated || !hasProCredits)) {
-      if (!isAuthenticated) {
-        setShowUpgradePrompt(true);
-        setError('Files over 3MB require a free account with pro credits, or upgrade to Pro for unlimited large files!');
-        return;
-      } else {
-        setError('File size exceeds 3MB and you have no pro credits remaining. Upgrade to Pro for unlimited large files, or wait for monthly credit reset.');
-        return;
-      }
-    }
-
-    if (file.size > MAX_PRO_SIZE) {
-      setError('File size must be less than 10MB');
-      return;
-    }
-
-    const preview = URL.createObjectURL(file);
-    onFileUpload({
-      file,
-      preview,
-      name: file.name,
-      size: file.size
-    });
-  }, [onFileUpload, hasProCredits, isProSubscriber, isAuthenticated]);
+    if (file) processFile(file);
+  }, [processFile]);
 
   if (uploadedFile) {
     return (
-      <div className="glass-card p-8 animate-scale-in card-hover">
+      <div className="card p-6 animate-scale-in">
         <div className="relative">
           <button
             onClick={onRemoveFile}
-            className="absolute -top-3 -right-3 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-3 transition-all duration-300 hover:scale-110 shadow-soft-lg hover:shadow-red-500/50"
+            className="absolute -top-2 -right-2 z-10 w-8 h-8 flex items-center justify-center bg-error-500 hover:bg-error-600 text-white rounded-full transition-all duration-200 hover:scale-110 shadow-soft"
             aria-label="Remove file"
           >
-            <X size={20} />
+            <X className="w-4 h-4" />
           </button>
-          <div className="aspect-video bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 rounded-2xl overflow-hidden mb-6 shadow-inner-soft ring-2 ring-slate-200/60 dark:ring-slate-700/50">
+          
+          <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden mb-4 ring-1 ring-slate-200 dark:ring-slate-700">
             <img
               src={uploadedFile.preview}
               alt={uploadedFile.name}
               className="w-full h-full object-contain p-4"
             />
           </div>
+          
           <div className="flex items-center justify-between">
-            <span className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate pr-4">{uploadedFile.name}</span>
-            <span className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+            <span className="text-sm font-medium text-slate-900 dark:text-white truncate pr-4">
+              {uploadedFile.name}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+            </span>
           </div>
         </div>
       </div>
@@ -139,20 +114,17 @@ export function FileUpload({
   }
 
   return (
-    <div className="glass-card p-8 animate-fade-in">
+    <div className="card p-6">
       <div
         className={`
-          relative border-3 border-dashed rounded-2xl p-16 text-center transition-all duration-500 cursor-pointer group
+          relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 cursor-pointer group
           ${dragActive
-            ? 'border-primary-500 bg-gradient-to-br from-primary-50 via-accent-50/50 to-primary-50 dark:from-primary-500/20 dark:via-accent-500/10 dark:to-primary-500/20 scale-[1.02] shadow-soft-xl'
-            : 'border-slate-300 dark:border-slate-600 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+            ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/10 scale-[1.01]'
+            : 'border-slate-300 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-600 hover:bg-slate-50 dark:hover:bg-slate-800/50'
           }
         `}
         onDrop={handleDrop}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragActive(true);
-        }}
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
         onDragLeave={() => setDragActive(false)}
       >
         <input
@@ -162,52 +134,52 @@ export function FileUpload({
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
 
-        <div className="flex flex-col items-center space-y-6">
+        <div className="flex flex-col items-center gap-4">
           <div className={`
-            p-6 rounded-2xl transition-all duration-500 transform
+            w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300
             ${dragActive
-              ? 'bg-gradient-to-br from-primary-500 via-accent-500 to-primary-600 text-white scale-110 shadow-soft-xl rotate-6'
-              : 'bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-700 text-slate-500 dark:text-slate-400 group-hover:scale-110 group-hover:rotate-3 shadow-soft-lg'
+              ? 'bg-primary-500 text-white scale-110 rotate-3'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:scale-105 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-400'
             }
           `}>
-            {dragActive ? <Image size={48} className="animate-pulse" /> : <Upload size={48} />}
+            {dragActive ? <ImageIcon className="w-8 h-8" /> : <Upload className="w-8 h-8" />}
           </div>
 
           <div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-50 mb-3">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
               Upload your design
             </h3>
-            <p className="text-lg text-slate-700 dark:text-slate-200 mb-4 font-medium leading-relaxed">
+            <p className="text-slate-600 dark:text-slate-400 mb-3">
               Drag and drop your graphic design here, or click to browse
             </p>
-            <p className="text-sm text-slate-600 dark:text-slate-400 transition-colors duration-500">
+            <p className="text-xs text-slate-500 dark:text-slate-500">
               Supports JPG, PNG, GIF, WebP
-              {isProSubscriber ? ' (unlimited with Pro subscription)' :
-               isAuthenticated && hasProCredits ? ' (max 10MB with pro credits)' :
-               isAuthenticated ? ' (max 3MB - no pro credits remaining)' :
-               ' (max 3MB free, 10MB with pro credits, unlimited with Pro)'}
+              {isProSubscriber 
+                ? ' - Unlimited with Pro' 
+                : isAuthenticated && hasProCredits 
+                  ? ' - Up to 10MB with pro credits' 
+                  : ' - Up to 3MB free'}
             </p>
-            {isAuthenticated && (
-              <p className="text-xs text-primary-600 dark:text-primary-400 mt-2 font-medium">
-                {isProSubscriber ? 'Pro subscriber: Unlimited large files' :
-                 `Pro credits: ${hasProCredits ? 'Available' : '0'}/10 • Resets monthly`}
-              </p>
-            )}
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="mt-6 p-5 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-500/30 rounded-xl transition-all duration-500 shadow-soft animate-slide-down">
-          <p className="text-red-700 dark:text-red-300 text-sm font-medium transition-colors duration-500">{error}</p>
-          {showUpgradePrompt && (
-            <button
-              onClick={onShowAuth}
-              className="mt-3 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-lg transition-all duration-300 hover:-translate-y-0.5 shadow-soft"
-            >
-              Sign Up for Free Pro Credits
-            </button>
-          )}
+        <div className="mt-4 p-4 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800/50 rounded-xl animate-fade-in">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-error-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-error-700 dark:text-error-300">{error}</p>
+              {showUpgradePrompt && (
+                <button
+                  onClick={onShowAuth}
+                  className="mt-3 btn-primary text-sm py-2"
+                >
+                  Sign Up for Free Pro Credits
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

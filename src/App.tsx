@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
-import { Sparkles, User, History, Shield, Palette, Layout, Type, Zap, Package, Monitor } from 'lucide-react';
+import { Sparkles, User, History, Shield, Package, Monitor } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { LoadingAnalysis } from './components/LoadingAnalysis';
 import { AnalysisResults } from './components/AnalysisResults';
@@ -56,12 +56,6 @@ function App() {
   const [publicAnalysis, setPublicAnalysis] = useState<any>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
-  const [isHoveringHeader, setIsHoveringHeader] = useState(false);
-  const [clickCount, setClickCount] = useState(0);
-  const [headingOffset, setHeadingOffset] = useState(150);
-  const [isRecentering, setIsRecentering] = useState(false);
-  const [confettiActive, setConfettiActive] = useState(false);
   const [mockupSection, setMockupSection] = useState<MockupSection>('home');
   const { isDark, toggleDarkMode } = useDarkMode();
   const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
@@ -85,14 +79,7 @@ function App() {
     }
   }, [user]);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setCursorPosition({ x: e.clientX, y: e.clientY });
-    };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   // Check for shared analysis and custom pages in URL on component mount
   useEffect(() => {
@@ -468,119 +455,90 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-all duration-500 relative">
-      {/* Animated background gradient orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-60">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-gradient-to-br from-primary-400/30 to-accent-400/20 dark:from-primary-600/20 dark:to-accent-600/10 rounded-full blur-3xl animate-blob"></div>
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-gradient-to-tl from-accent-400/30 to-primary-400/20 dark:from-accent-600/20 dark:to-primary-600/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-primary-300/20 to-accent-300/20 dark:from-primary-700/10 dark:to-accent-700/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen bg-[#0a0a0f] text-white relative">
+      {/* Subtle background gradient */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-blue-600/10 via-transparent to-transparent rounded-full blur-3xl" />
+        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-purple-600/10 via-transparent to-transparent rounded-full blur-3xl" />
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-effect border-b border-slate-200/60 dark:border-slate-700/50 shadow-soft">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex items-center justify-between h-20">
+      <header className="sticky top-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
             <button
-              onClick={() => {
-                startNewAnalysis();
-                setClickCount(prev => prev + 1);
-                if (clickCount === 9) {
-                  alert('🎉 You found the secret! You are a true design explorer!');
-                  setClickCount(0);
-                }
-              }}
-              className="group flex items-center space-x-3 hover:scale-105 transition-all duration-500"
+              onClick={() => startNewAnalysis()}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
-              <div className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-primary-500 via-accent-500 to-primary-600 rounded-xl shadow-soft-lg group-hover:shadow-glow transition-all duration-500 group-hover:rotate-12">
-                <Sparkles size={22} className="text-white group-hover:scale-110 transition-transform duration-500" />
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
+                <Sparkles size={20} className="text-white" />
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 dark:from-slate-100 dark:via-primary-400 dark:to-slate-100 bg-clip-text text-transparent">Grraphic</h1>
+              <span className="text-xl font-bold text-white">Grraphic</span>
             </button>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {user ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setState('boxt');
-                      window.history.pushState({}, '', '/boxt');
-                    }}
-                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-accent-100 dark:hover:bg-accent-900/30 border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
-                    title="Design Editor"
-                  >
-                    <Palette size={18} className="text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="hidden sm:inline font-medium text-slate-700 dark:text-slate-200">Boxt</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setState('gradi');
-                      window.history.pushState({}, '', '/gradi');
-                    }}
-                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-primary-100 dark:hover:bg-primary-900/30 border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
-                    title="Chat with Gradi AI"
-                  >
-                    <Sparkles size={18} className="text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="hidden sm:inline font-medium text-slate-700 dark:text-slate-200">Gradi AI</span>
-                  </button>
-                  <button
-                    onClick={() => setState('history')}
-                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
-                  >
-                    <History size={18} className="text-slate-600 dark:text-slate-300 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="hidden sm:inline font-medium text-slate-700 dark:text-slate-200">History</span>
-                  </button>
-                  <button
-                    onClick={() => setState('palettex')}
-                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary-100 to-accent-100 dark:from-primary-900/30 dark:to-accent-900/30 hover:from-primary-200 hover:to-accent-200 dark:hover:from-primary-800/40 dark:hover:to-accent-800/40 border border-primary-200/50 dark:border-primary-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
-                  >
-                    <Palette size={18} className="text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="hidden sm:inline font-medium text-primary-700 dark:text-primary-300">PaletteX</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setState('mockup');
-                      setMockupSection('home');
-                      window.history.pushState({}, '', '/mockup');
-                    }}
-                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent-100 to-primary-100 dark:from-accent-900/30 dark:to-primary-900/30 hover:from-accent-200 hover:to-primary-200 dark:hover:from-accent-800/40 dark:hover:to-primary-800/40 border border-accent-200/50 dark:border-accent-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
-                  >
-                    <Monitor size={18} className="text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="hidden sm:inline font-medium text-accent-700 dark:text-accent-300">Mockups</span>
-                  </button>
-                  <button
-                    onClick={() => setState('assets')}
-                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-success-100 to-primary-100 dark:from-success-900/30 dark:to-primary-900/30 hover:from-success-200 hover:to-primary-200 dark:hover:from-success-800/40 dark:hover:to-primary-800/40 border border-success-200/50 dark:border-success-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
-                  >
-                    <Package size={18} className="text-success-600 dark:text-success-400 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="hidden sm:inline font-medium text-success-700 dark:text-success-300">Assets</span>
-                  </button>
-                  {isAdmin && (
+                <>
+                  <nav className="hidden md:flex items-center gap-1 mr-2">
                     <button
-                      onClick={() => setState('admin')}
-                      className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent-100/80 dark:bg-accent-900/30 hover:bg-accent-200/80 dark:hover:bg-accent-800/40 border border-accent-200/50 dark:border-accent-700/50 transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5"
-                      title="Admin Panel"
+                      onClick={() => { setState('boxt'); window.history.pushState({}, '', '/boxt'); }}
+                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
-                      <Shield size={18} className="text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform duration-300" />
-                      <span className="hidden sm:inline font-medium text-accent-700 dark:text-accent-300">Admin</span>
+                      Boxt
                     </button>
-                  )}
+                    <button
+                      onClick={() => { setState('gradi'); window.history.pushState({}, '', '/gradi'); }}
+                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      Gradi AI
+                    </button>
+                    <button
+                      onClick={() => setState('history')}
+                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      History
+                    </button>
+                    <button
+                      onClick={() => setState('palettex')}
+                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      PaletteX
+                    </button>
+                    <button
+                      onClick={() => { setState('mockup'); setMockupSection('home'); window.history.pushState({}, '', '/mockup'); }}
+                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      Mockups
+                    </button>
+                    <button
+                      onClick={() => setState('assets')}
+                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      Assets
+                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setState('admin')}
+                        className="px-3 py-2 text-sm text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors"
+                      >
+                        Admin
+                      </button>
+                    )}
+                  </nav>
                   <button
                     onClick={() => setShowUsernameModal(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 glass-card hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-0.5"
-                    title="Edit username"
+                    className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
                   >
-                    <User size={18} className="text-slate-600 dark:text-slate-300" />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 hidden sm:inline">
-                      @{username || 'user'}
-                    </span>
+                    <User size={16} className="text-gray-400" />
+                    <span className="text-sm text-gray-300 hidden sm:inline">@{username || 'user'}</span>
                   </button>
-                </div>
+                </>
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="flex items-center gap-2 btn-primary"
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
                 >
-                  <User size={18} />
+                  <User size={16} />
                   <span>Sign In</span>
                 </button>
               )}
@@ -589,106 +547,18 @@ function App() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        {/* Cursor follower effect */}
-        {state === 'upload' && (
-          <div
-            className="fixed w-12 h-12 rounded-full bg-gradient-to-r from-primary-500/40 to-accent-500/40 blur-2xl pointer-events-none z-50 transition-all duration-500"
-            style={{
-              left: `${cursorPosition.x}px`,
-              top: `${cursorPosition.y}px`,
-              transform: 'translate(-50%, -50%)'
-            }}
-          />
-        )}
-
-        {/* Floating shapes background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-80 h-80 bg-primary-400/20 dark:bg-primary-600/10 rounded-full blur-3xl animate-blob"></div>
-          <div className="absolute top-40 right-10 w-80 h-80 bg-accent-400/20 dark:bg-accent-600/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-          <div className="absolute bottom-20 left-1/2 w-80 h-80 bg-primary-300/15 dark:bg-primary-700/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
-
-          {state === 'upload' && (
-            <>
-              <div className="absolute top-32 left-1/4 text-primary-400/30 dark:text-primary-400/20 animate-float">
-                <Palette size={52} />
-              </div>
-              <div className="absolute top-48 right-1/3 text-accent-400/30 dark:text-accent-400/20 animate-float animation-delay-2000">
-                <Layout size={60} />
-              </div>
-              <div className="absolute bottom-32 left-1/3 text-primary-300/30 dark:text-primary-500/20 animate-float animation-delay-4000">
-                <Type size={56} />
-              </div>
-              <div className="absolute top-64 right-1/4 text-accent-300/30 dark:text-accent-500/20 animate-float animation-delay-2000">
-                <Zap size={48} />
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 pt-24 pb-16 text-center relative z-10">
-          <div className="relative group">
-            <h1
-              className="text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-slate-50 mb-8 transition-all duration-500 cursor-pointer leading-tight tracking-tight"
-              style={{
-                transform: isRecentering ? 'translateX(0)' : `translateX(${headingOffset}px)`,
-                transition: isRecentering ? 'transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55)' : 'none'
-              }}
-              onMouseEnter={() => setIsHoveringHeader(true)}
-              onMouseLeave={() => setIsHoveringHeader(false)}
-              onClick={() => {
-                if (!isRecentering && headingOffset !== 0) {
-                  setIsRecentering(true);
-                  setHeadingOffset(0);
-                  setConfettiActive(true);
-                  setTimeout(() => {
-                    setIsRecentering(false);
-                    setConfettiActive(false);
-                  }, 1000);
-                }
-              }}
-            >
-              <span className="block text-balance">Get AI-Powered</span>
-              <span
-                className={`block text-transparent bg-clip-text bg-gradient-to-r from-primary-600 via-accent-600 to-primary-700 dark:from-primary-400 dark:via-accent-400 dark:to-primary-500 transition-all duration-500 ${
-                  isHoveringHeader ? 'scale-105' : ''
-                }`}
-              >
-                {mode === 'design' ? 'Design Feedback' : 'UI Analysis'}
-              </span>
-            </h1>
-
-            {headingOffset !== 0 && !isRecentering && (
-              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                <div className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm rounded-lg px-4 py-2 whitespace-nowrap shadow-xl">
-                  Try recentering me! 🎯
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-white"></div>
-                </div>
-              </div>
-            )}
-
-            {confettiActive && (
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(20)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-3 h-3 rounded-full"
-                    style={{
-                      backgroundColor: ['#3b82f6', '#a855f7', '#ec4899', '#f59e0b'][i % 4],
-                      left: '50%',
-                      top: '50%',
-                      animation: `confetti-${i % 4} 1s ease-out forwards`,
-                      transform: `translate(-50%, -50%) rotate(${i * 18}deg)`
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-12 max-w-3xl mx-auto transition-colors duration-500 leading-relaxed text-balance">
+      {/* Main Content */}
+      <div className="relative">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center relative z-10">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight tracking-tight">
+            <span className="block text-balance">Get AI-Powered</span>
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400">
+              {mode === 'design' ? 'Design Feedback' : 'UI Analysis'}
+            </span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed text-balance">
             {mode === 'design'
-              ? 'Upload your graphic design and receive comprehensive feedback on typography, color harmony, composition, and more. Improve your designs with professional insights.'
+              ? 'Upload your graphic design and receive comprehensive feedback on typography, color harmony, composition, and more.'
               : 'Upload HTML or enter a website URL to receive comprehensive UI/UX analysis covering usability, accessibility, responsiveness, and performance.'}
           </p>
 
@@ -696,9 +566,9 @@ function App() {
             <>
               <button
                 onClick={startNewAnalysis}
-                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary-600 via-accent-600 to-primary-700 hover:from-primary-700 hover:via-accent-700 hover:to-primary-800 text-white text-lg font-semibold rounded-xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 shadow-soft-lg hover:shadow-glow mb-10"
+                className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:opacity-90 transition-opacity mb-8"
               >
-                <Sparkles size={22} className="animate-pulse" />
+                <Sparkles size={20} />
                 Analyze New Design
               </button>
               {user && state !== 'success' && (
