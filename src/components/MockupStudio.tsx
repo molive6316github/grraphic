@@ -406,19 +406,19 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   if (!userId) {
     return (
-      <div className="glass-card p-12 text-center animate-fade-in">
-        <Film size={48} className="mx-auto text-slate-400 mb-4" />
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50 mb-2">Sign In Required</h3>
-        <p className="text-slate-600 dark:text-slate-400">Please sign in to access MockupStudio Pro</p>
+      <div className="rounded-2xl bg-white/5 border border-white/10 p-12 text-center backdrop-blur-sm">
+        <Film size={48} className="mx-auto text-gray-400 mb-4" />
+        <h3 className="text-xl font-semibold text-white mb-2">Sign In Required</h3>
+        <p className="text-gray-400">Please sign in to access MockupStudio Pro</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="glass-card p-8 animate-fade-in">
+      <div className="rounded-2xl bg-white/5 border border-white/10 p-8 backdrop-blur-sm">
         <div className="flex items-center justify-center py-12">
-          <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
     );
@@ -429,19 +429,19 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigateToSection('home')}
-          className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+          className="p-2.5 hover:bg-white/10 rounded-xl transition-colors"
         >
-          <ChevronLeft size={22} className="text-slate-600 dark:text-slate-400" />
+          <ChevronLeft size={22} className="text-gray-400" />
         </button>
         <div className={`p-3.5 bg-gradient-to-br ${gradient} rounded-2xl shadow-lg`}>
           <Icon size={26} className="text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">{title}</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{sectionConfig[section]?.description}</p>
+          <h2 className="text-2xl font-bold text-white">{title}</h2>
+          <p className="text-sm text-gray-400">{sectionConfig[section]?.description}</p>
         </div>
       </div>
-      <button className="px-5 py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 text-white font-medium rounded-xl flex items-center gap-2 hover:shadow-lg transition-all hover:-translate-y-0.5">
+      <button className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl flex items-center gap-2 hover:opacity-90 transition-all">
         <Download size={18} />
         Export
       </button>
@@ -449,36 +449,36 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
   );
 
   const renderHome = () => (
-    <div className="space-y-8 animate-fade-in">
-      <div className="glass-card p-8 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAzMHYySDI0di0yaDEyek0zNiAyNnYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+    <div className="space-y-8">
+      <div className="rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8 text-white relative overflow-hidden border border-white/10">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10" />
         <div className="relative z-10">
           <div className="flex items-center gap-5 mb-6">
-            <div className="p-4 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl shadow-2xl">
+            <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl shadow-purple-500/25">
               <Wand2 size={36} className="text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-primary-200 to-white bg-clip-text text-transparent">MockupStudio Pro</h1>
-              <p className="text-slate-300 text-lg">Create stunning 3D mockups, videos & animations</p>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent">MockupStudio Pro</h1>
+              <p className="text-gray-300 text-lg">Create stunning 3D mockups, videos & animations</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-              <div className="text-3xl font-bold text-primary-400">50+</div>
-              <div className="text-sm text-slate-400">Devices</div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm border border-white/5">
+              <div className="text-3xl font-bold text-blue-400">50+</div>
+              <div className="text-sm text-gray-400">Devices</div>
             </div>
-            <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-              <div className="text-3xl font-bold text-accent-400">30+</div>
-              <div className="text-sm text-slate-400">Intros</div>
+            <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm border border-white/5">
+              <div className="text-3xl font-bold text-purple-400">30+</div>
+              <div className="text-sm text-gray-400">Intros</div>
             </div>
-            <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
+            <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm border border-white/5">
               <div className="text-3xl font-bold text-emerald-400">40+</div>
-              <div className="text-sm text-slate-400">Products</div>
+              <div className="text-sm text-gray-400">Products</div>
             </div>
-            <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
+            <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm border border-white/5">
               <div className="text-3xl font-bold text-rose-400">25+</div>
-              <div className="text-sm text-slate-400">Scenes</div>
+              <div className="text-sm text-gray-400">Scenes</div>
             </div>
           </div>
         </div>
@@ -492,29 +492,29 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             <button
               key={s}
               onClick={() => navigateToSection(s)}
-              className="group p-5 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1"
+              className="group p-5 rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/10 hover:border-white/20"
             >
               <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
                 <Icon size={26} className="text-white" />
               </div>
-              <h3 className="font-semibold text-slate-900 dark:text-slate-50 text-left text-sm">{config.label}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 text-left mt-1">{config.description}</p>
+              <h3 className="font-semibold text-white text-left text-sm">{config.label}</h3>
+              <p className="text-xs text-gray-400 text-left mt-1">{config.description}</p>
             </button>
           );
         })}
       </div>
 
       {projects.length > 0 && (
-        <div className="glass-card p-6">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-50 mb-4">Recent Projects</h2>
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-6 backdrop-blur-sm">
+          <h2 className="text-xl font-semibold text-white mb-4">Recent Projects</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {projects.slice(0, 6).map(project => (
-              <div key={project.id} className="group relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 aspect-video cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all">
+              <div key={project.id} className="group relative rounded-xl overflow-hidden bg-white/5 aspect-video cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all">
                 {project.thumbnail ? (
                   <img src={project.thumbnail} alt={project.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Film size={24} className="text-slate-400" />
+                    <Film size={24} className="text-gray-500" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
@@ -529,8 +529,8 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
   );
 
   const renderDevices = () => (
-    <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+    <div className="space-y-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 p-6 backdrop-blur-sm">
         <SectionHeader title="Device Mockups" icon={Smartphone} gradient="from-blue-600 to-cyan-600" />
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -583,7 +583,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Device Type</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Device Type</label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {['phone', 'tablet', 'laptop', 'desktop', 'watch', 'tv', 'gaming'].map(type => (
                   <button
@@ -594,8 +594,8 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                     }}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${
                       selectedDevice.type === type
-                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                        : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
                     }`}
                   >
                     {type}
@@ -609,8 +609,8 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                     onClick={() => setSelectedDevice(device)}
                     className={`p-2 rounded-lg text-left text-xs transition-all ${
                       selectedDevice.id === device.id
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        ? 'bg-blue-500/20 text-blue-300 ring-2 ring-blue-500'
+                        : 'bg-white/5 text-gray-300 hover:bg-white/10'
                     }`}
                   >
                     {device.name}
@@ -620,8 +620,8 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Screenshot</label>
-              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Screenshot</label>
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl cursor-pointer transition-colors">
                 <Upload size={18} />
                 <span className="text-sm font-medium">Upload Image</span>
                 <input
@@ -634,7 +634,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Rotation X: {deviceSettings.angle.x}deg
               </label>
               <input
@@ -648,7 +648,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Rotation Y: {deviceSettings.angle.y}deg
               </label>
               <input
@@ -662,7 +662,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Rotation Z: {deviceSettings.angle.z}deg
               </label>
               <input
@@ -676,7 +676,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Shadow: {deviceSettings.shadowIntensity}%
               </label>
               <input
@@ -693,7 +693,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
               <button
                 onClick={() => setDeviceSettings(prev => ({ ...prev, glare: !prev.glare }))}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  deviceSettings.glare ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800'
+                  deviceSettings.glare ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
                 }`}
               >
                 Glare
@@ -701,7 +701,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
               <button
                 onClick={() => setDeviceSettings(prev => ({ ...prev, reflection: !prev.reflection }))}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  deviceSettings.reflection ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800'
+                  deviceSettings.reflection ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
                 }`}
               >
                 Reflection
@@ -709,7 +709,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
               <button
                 onClick={() => setDeviceSettings(prev => ({ ...prev, clayMode: !prev.clayMode }))}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  deviceSettings.clayMode ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800'
+                  deviceSettings.clayMode ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
                 }`}
               >
                 Clay Mode
@@ -718,7 +718,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
             {deviceSettings.clayMode && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Clay Color</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Clay Color</label>
                 <div className="flex gap-2">
                   {['#e2e8f0', '#fecaca', '#bbf7d0', '#bfdbfe', '#fde68a'].map(color => (
                     <button
@@ -737,25 +737,25 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setDeviceSettings(prev => ({ ...prev, angle: { x: 0, y: 0, z: 0 } }))}
-                  className="px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700"
+                  className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-medium hover:bg-white/10"
                 >
                   Front View
                 </button>
                 <button
                   onClick={() => setDeviceSettings(prev => ({ ...prev, angle: { x: 15, y: -25, z: 5 } }))}
-                  className="px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700"
+                  className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-medium hover:bg-white/10"
                 >
                   Perspective
                 </button>
                 <button
                   onClick={() => setDeviceSettings(prev => ({ ...prev, angle: { x: 45, y: 0, z: 0 } }))}
-                  className="px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700"
+                  className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-medium hover:bg-white/10"
                 >
                   Top Down
                 </button>
                 <button
                   onClick={() => setDeviceSettings(prev => ({ ...prev, angle: { x: 0, y: -45, z: 0 } }))}
-                  className="px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700"
+                  className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-medium hover:bg-white/10"
                 >
                   Side View
                 </button>
@@ -769,7 +769,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderIntros = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="3D Intro Templates" icon={Film} gradient="from-amber-600 to-orange-600" />
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -802,7 +802,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => { setCurrentTime(0); setIsPlaying(false); }}
-                  className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  className="p-2.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg transition-colors"
                 >
                   <RotateCcw size={18} />
                 </button>
@@ -829,8 +829,8 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Logo Image</label>
-              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Logo Image</label>
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl cursor-pointer transition-colors">
                 <Upload size={18} />
                 <span className="text-sm font-medium">Upload Logo</span>
                 <input
@@ -843,23 +843,23 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Or Text Logo</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Or Text Logo</label>
               <input
                 type="text"
                 value={logoText}
                 onChange={(e) => setLogoText(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm border-0 focus:ring-2 focus:ring-amber-500"
                 placeholder="YOUR BRAND"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
               <div className="flex flex-wrap gap-2">
                 {['cinematic', 'minimal', 'corporate', 'gaming', 'social', 'audio', 'luxury'].map(cat => (
                   <button
                     key={cat}
-                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium capitalize hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                    className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium capitalize hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
                   >
                     {cat}
                   </button>
@@ -878,7 +878,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                   className={`w-full p-3 rounded-xl text-left transition-all ${
                     selectedIntro === template.id
                       ? 'bg-amber-100 dark:bg-amber-900/30 ring-2 ring-amber-500'
-                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -899,7 +899,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderProducts = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="Product Mockups" icon={Package} gradient="from-emerald-600 to-teal-600" />
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -939,8 +939,8 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Design Image</label>
-              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Design Image</label>
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl cursor-pointer transition-colors">
                 <Upload size={18} />
                 <span className="text-sm font-medium">Upload Design</span>
                 <input
@@ -953,12 +953,12 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
               <div className="flex flex-wrap gap-2">
                 {['packaging', 'print', 'stationery', 'signage', 'frames', 'apparel', 'drinkware'].map(cat => (
                   <button
                     key={cat}
-                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium capitalize hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
+                    className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium capitalize hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
                   >
                     {cat}
                   </button>
@@ -976,11 +976,11 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                     className={`w-full p-3 rounded-xl text-left transition-all flex items-center gap-3 ${
                       selectedProduct === mockup.id
                         ? 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-emerald-500'
-                        : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        : 'bg-white/5 border border-white/10 hover:bg-white/10'
                     }`}
                   >
                     <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                      <Icon size={20} className="text-slate-600 dark:text-slate-400" />
+                      <Icon size={20} className="text-gray-400" />
                     </div>
                     <div>
                       <div className="font-medium text-sm text-slate-900 dark:text-slate-50">{mockup.name}</div>
@@ -998,7 +998,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderEnvironments = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="3D Environments" icon={Globe} gradient="from-green-600 to-lime-600" />
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -1043,12 +1043,12 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
               <div className="flex flex-wrap gap-2">
                 {['studio', 'office', 'indoor', 'outdoor', 'tech', 'abstract'].map(cat => (
                   <button
                     key={cat}
-                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium capitalize hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                    className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium capitalize hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
                   >
                     {cat}
                   </button>
@@ -1064,7 +1064,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                   className={`w-full p-3 rounded-xl text-left transition-all ${
                     selectedEnvironment === env.id
                       ? 'bg-green-100 dark:bg-green-900/30 ring-2 ring-green-500'
-                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
                   }`}
                 >
                   <div className="font-medium text-sm text-slate-900 dark:text-slate-50">{env.name}</div>
@@ -1080,7 +1080,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderSocial = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="Social Media Templates" icon={Share2} gradient="from-pink-600 to-rose-600" />
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -1114,7 +1114,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderApparel = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="Apparel & Merchandise" icon={Shirt} gradient="from-teal-600 to-cyan-600" />
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -1154,8 +1154,8 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Design Image</label>
-              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Design Image</label>
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl cursor-pointer transition-colors">
                 <Upload size={18} />
                 <span className="text-sm font-medium">Upload Design</span>
                 <input
@@ -1169,7 +1169,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
             {selectedApparel && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Color</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
                 <div className="flex flex-wrap gap-2">
                   {apparelItems.find(a => a.id === selectedApparel)?.colors.map(color => (
                     <button
@@ -1205,11 +1205,11 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                     className={`w-full p-3 rounded-xl text-left transition-all flex items-center gap-3 ${
                       selectedApparel === item.id
                         ? 'bg-teal-100 dark:bg-teal-900/30 ring-2 ring-teal-500'
-                        : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        : 'bg-white/5 border border-white/10 hover:bg-white/10'
                     }`}
                   >
                     <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                      <Icon size={20} className="text-slate-600 dark:text-slate-400" />
+                      <Icon size={20} className="text-gray-400" />
                     </div>
                     <div className="flex-1">
                       <div className="font-medium text-sm text-slate-900 dark:text-slate-50">{item.name}</div>
@@ -1242,7 +1242,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderScenes = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="3D Scene Builder" icon={Layers} gradient="from-violet-600 to-purple-600" />
 
         <div className="grid lg:grid-cols-4 gap-6">
@@ -1309,7 +1309,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderVideo = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="Video Editor" icon={Video} gradient="from-green-600 to-emerald-600" />
 
         <div className="grid lg:grid-cols-4 gap-6 mb-6">
@@ -1385,7 +1385,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderLogo = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="Logo Animation" icon={Sparkles} gradient="from-rose-600 to-pink-600" />
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -1405,7 +1405,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             <div className="mt-4 flex items-center gap-4">
               <button
                 onClick={() => { setCurrentTime(0); setIsPlaying(false); }}
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
+                className="p-2.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg"
               >
                 <RotateCcw size={18} />
               </button>
@@ -1428,8 +1428,8 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Logo Image</label>
-              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Logo Image</label>
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl cursor-pointer transition-colors">
                 <Upload size={18} />
                 <span className="text-sm font-medium">Upload Logo</span>
                 <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" />
@@ -1437,18 +1437,18 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Or Text Logo</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Or Text Logo</label>
               <input
                 type="text"
                 value={logoText}
                 onChange={(e) => setLogoText(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm"
                 placeholder="YOUR BRAND"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Animation Style</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Animation Style</label>
               <select
                 value={logoSettings.animation}
                 onChange={(e) => {
@@ -1456,7 +1456,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                   if (preset) setLogoSettings({ ...logoSettings, ...preset });
                   else setLogoSettings({ ...logoSettings, animation: e.target.value as LogoAnimation });
                 }}
-                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm"
               >
                 <optgroup label="Fade & Reveal">
                   <option value="fade-in">Fade In</option>
@@ -1480,7 +1480,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Color</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
               <div className="flex gap-2">
                 <input
                   type="color"
@@ -1492,13 +1492,13 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                   type="text"
                   value={logoSettings.color || '#ffffff'}
                   onChange={(e) => setLogoSettings({ ...logoSettings, color: e.target.value })}
-                  className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Duration: {logoSettings.duration}s
               </label>
               <input
@@ -1513,7 +1513,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Delay: {logoSettings.delay}s
               </label>
               <input
@@ -1534,7 +1534,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderText = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
         <SectionHeader title="Text Animation" icon={Type} gradient="from-sky-600 to-blue-600" />
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -1552,7 +1552,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             <div className="mt-4 flex items-center gap-4">
               <button
                 onClick={() => { setCurrentTime(0); setIsPlaying(false); }}
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
+                className="p-2.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg"
               >
                 <RotateCcw size={18} />
               </button>
@@ -1568,18 +1568,18 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Text</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Text</label>
               <textarea
                 value={animatedText}
                 onChange={(e) => setAnimatedText(e.target.value)}
                 rows={2}
-                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm resize-none"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm resize-none"
                 placeholder="Enter your text..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Animation</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Animation</label>
               <select
                 value={textSettings.animation}
                 onChange={(e) => {
@@ -1587,7 +1587,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                   if (preset) setTextSettings({ ...textSettings, ...preset } as TextAnimationConfig);
                   else setTextSettings({ ...textSettings, animation: e.target.value as any });
                 }}
-                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm"
               >
                 <optgroup label="Simple">
                   <option value="fade-in">Fade In</option>
@@ -1608,11 +1608,11 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Font</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Font</label>
               <select
                 value={textSettings.fontFamily}
                 onChange={(e) => setTextSettings({ ...textSettings, fontFamily: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm"
               >
                 {fontOptions.map(font => (
                   <option key={font.value} value={font.value}>{font.name}</option>
@@ -1622,22 +1622,22 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Size</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Size</label>
                 <input
                   type="number"
                   min="12"
                   max="200"
                   value={textSettings.fontSize}
                   onChange={(e) => setTextSettings({ ...textSettings, fontSize: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Weight</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Weight</label>
                 <select
                   value={textSettings.fontWeight}
                   onChange={(e) => setTextSettings({ ...textSettings, fontWeight: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm"
                 >
                   <option value="300">Light</option>
                   <option value="400">Regular</option>
@@ -1649,7 +1649,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Color</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
               <div className="flex gap-2">
                 <input
                   type="color"
@@ -1661,7 +1661,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                   type="text"
                   value={textSettings.color}
                   onChange={(e) => setTextSettings({ ...textSettings, color: e.target.value })}
-                  className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm"
+                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm"
                 />
               </div>
             </div>
@@ -1673,7 +1673,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
 
   const renderSlideshow = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="glass-card p-6 min-h-[600px]">
+      <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6 min-h-[600px]">
         <SectionHeader title="Slideshow Maker" icon={ImageIcon} gradient="from-indigo-600 to-violet-600" />
 
         <SlideshowMaker
