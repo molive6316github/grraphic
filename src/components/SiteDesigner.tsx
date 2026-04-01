@@ -1,27 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Send, Code, Eye, Download, Copy, RefreshCw, Sparkles, Globe, Layout, Monitor, 
-  Wand2, ChevronLeft, ChevronRight, Play, Maximize2, Minimize2, FolderTree,
-  FileCode, FileJson, FileCss, FileText, Plus, Trash2, Edit3, Check, X,
-  Terminal, Smartphone, Tablet, PanelLeftClose, PanelLeft, Save, Share2,
-  Loader2, ChevronDown, ChevronRight as ChevronRightIcon, User, ExternalLink
+  Wand2, ChevronLeft, Play, Maximize2, Minimize2,
+  FileCode, FileJson, FileCss, FileText, Plus, Trash2, Check, X,
+  Terminal, Smartphone, Tablet, PanelLeftClose, PanelLeft,
+  Loader2, ChevronDown, ChevronRight, User, FolderOpen, File
 } from 'lucide-react';
 import logoImage from '../assets/ae52010de59e187ce864ed24eee6209a.png';
 import { useSubscription } from '../hooks/useSubscription';
-import { supabase } from '../lib/supabase';
 
 interface ProjectFile {
   id: string;
   name: string;
   content: string;
-  language: 'html' | 'css' | 'javascript' | 'typescript' | 'json' | 'markdown' | 'python' | 'jsx' | 'tsx';
-  isOpen?: boolean;
+  language: string;
 }
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  files?: ProjectFile[];
 }
 
 interface SiteDesignerProps {
@@ -32,33 +31,32 @@ interface SiteDesignerProps {
 const FILE_ICONS: Record<string, React.ElementType> = {
   html: FileCode,
   css: FileCss,
-  javascript: FileCode,
-  typescript: FileCode,
+  js: FileCode,
+  ts: FileCode,
   json: FileJson,
-  markdown: FileText,
-  python: FileCode,
+  md: FileText,
+  py: FileCode,
   jsx: FileCode,
   tsx: FileCode,
 };
 
-const LANGUAGE_COLORS: Record<string, string> = {
-  html: 'text-orange-400',
-  css: 'text-blue-400',
-  javascript: 'text-yellow-400',
-  typescript: 'text-blue-500',
-  json: 'text-green-400',
-  markdown: 'text-gray-400',
-  python: 'text-green-500',
-  jsx: 'text-cyan-400',
-  tsx: 'text-cyan-500',
+const LANG_COLORS: Record<string, string> = {
+  html: '#e34c26',
+  css: '#264de4',
+  js: '#f7df1e',
+  ts: '#3178c6',
+  json: '#292929',
+  py: '#3776ab',
+  jsx: '#61dafb',
+  tsx: '#3178c6',
 };
 
 const quickPrompts = [
-  { icon: Globe, text: "Create a modern SaaS landing page with hero, features, pricing, and footer", color: "from-blue-500 to-cyan-500" },
-  { icon: Layout, text: "Build a portfolio website with projects grid, about section, and contact form", color: "from-purple-500 to-pink-500" },
-  { icon: Monitor, text: "Design an admin dashboard with sidebar, charts, and data tables", color: "from-green-500 to-teal-500" },
-  { icon: Wand2, text: "Generate a React component library with buttons, cards, and modals", color: "from-orange-500 to-red-500" },
-  { icon: User, text: "Create my public profile page - clean, minimal, showcasing my work", color: "from-indigo-500 to-purple-500" }
+  { icon: Globe, text: "Create a modern SaaS landing page with hero, features, pricing", color: "from-blue-500 to-cyan-500" },
+  { icon: Layout, text: "Build a portfolio website with projects and contact form", color: "from-purple-500 to-pink-500" },
+  { icon: Monitor, text: "Design an admin dashboard with sidebar and charts", color: "from-green-500 to-teal-500" },
+  { icon: Wand2, text: "Create a React todo app with local storage", color: "from-orange-500 to-red-500" },
+  { icon: User, text: "Build my public profile page - modern and minimal", color: "from-indigo-500 to-purple-500" }
 ];
 
 const DEFAULT_FILES: ProjectFile[] = [
@@ -71,16 +69,17 @@ const DEFAULT_FILES: ProjectFile[] = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Website</title>
+    <title>My Project</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Welcome to Site Designer</h1>
-    <p>Start by describing what you want to build in the chat.</p>
+    <div class="container">
+        <h1>Welcome to Site Designer</h1>
+        <p>Describe what you want to build in the chat panel.</p>
+    </div>
     <script src="script.js"></script>
 </body>
-</html>`,
-    isOpen: true
+</html>`
   },
   {
     id: '2',
@@ -94,38 +93,42 @@ const DEFAULT_FILES: ProjectFile[] = [
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #f1f5f9;
+}
+
+.container {
     text-align: center;
     padding: 2rem;
 }
 
 h1 {
-    font-size: 3rem;
+    font-size: 2.5rem;
     margin-bottom: 1rem;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 p {
-    font-size: 1.25rem;
-    opacity: 0.9;
-}`,
-    isOpen: false
+    color: #94a3b8;
+    font-size: 1.1rem;
+}`
   },
   {
     id: '3',
     name: 'script.js',
-    language: 'javascript',
+    language: 'js',
     content: `// Your JavaScript code here
 console.log('Site Designer loaded!');
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM ready');
-});`,
-    isOpen: false
+    console.log('Ready to build something amazing!');
+});`
   }
 ];
 
@@ -136,36 +139,32 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
   const [files, setFiles] = useState<ProjectFile[]>(DEFAULT_FILES);
   const [activeFileId, setActiveFileId] = useState<string>('1');
   const [showChat, setShowChat] = useState(true);
-  const [showFileTree, setShowFileTree] = useState(true);
-  const [showPreview, setShowPreview] = useState(true);
+  const [showFiles, setShowFiles] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
-  const [previewKey, setPreviewKey] = useState(0);
-  const [isCreatingFile, setIsCreatingFile] = useState(false);
-  const [newFileName, setNewFileName] = useState('');
-  const [editingFileId, setEditingFileId] = useState<string | null>(null);
-  const [editingFileName, setEditingFileName] = useState('');
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [showConsole, setShowConsole] = useState(false);
+  const [isCreatingFile, setIsCreatingFile] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { subscription } = useSubscription(userId);
 
-  const isPro = subscription?.status === 'active';
   const activeFile = files.find(f => f.id === activeFileId);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Build combined HTML for preview
-  const buildPreviewHtml = () => {
+  // Build preview HTML
+  const buildPreview = useCallback(() => {
     const htmlFile = files.find(f => f.name.endsWith('.html'));
     const cssFile = files.find(f => f.name.endsWith('.css'));
     const jsFile = files.find(f => f.name.endsWith('.js') && !f.name.endsWith('.json'));
 
-    if (!htmlFile) return '<html><body><h1>No HTML file found</h1></body></html>';
+    if (!htmlFile) return '<html><body style="background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui"><h1>No HTML file</h1></body></html>';
 
     let html = htmlFile.content;
 
@@ -174,117 +173,148 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
       html = html.replace('</head>', `<style>${cssFile.content}</style></head>`);
     }
 
-    // Inject JS with console capture
-    const consoleCapture = `
-      <script>
-        const originalLog = console.log;
-        const originalError = console.error;
-        const originalWarn = console.warn;
-        console.log = (...args) => {
-          window.parent.postMessage({ type: 'console', level: 'log', args: args.map(a => String(a)) }, '*');
-          originalLog.apply(console, args);
-        };
-        console.error = (...args) => {
-          window.parent.postMessage({ type: 'console', level: 'error', args: args.map(a => String(a)) }, '*');
-          originalError.apply(console, args);
-        };
-        console.warn = (...args) => {
-          window.parent.postMessage({ type: 'console', level: 'warn', args: args.map(a => String(a)) }, '*');
-          originalWarn.apply(console, args);
-        };
-        window.onerror = (msg, url, line) => {
-          window.parent.postMessage({ type: 'console', level: 'error', args: ['Error: ' + msg + ' (line ' + line + ')'] }, '*');
-        };
-      </script>
-    `;
+    // Console capture script
+    const consoleScript = `<script>
+      (function() {
+        const send = (level, args) => window.parent.postMessage({type:'console',level,args:args.map(String)},'*');
+        ['log','error','warn','info'].forEach(m => {
+          const orig = console[m];
+          console[m] = (...a) => { send(m, a); orig.apply(console, a); };
+        });
+        window.onerror = (m,u,l) => send('error', ['Error: '+m+' (line '+l+')']);
+      })();
+    </script>`;
 
     if (jsFile) {
-      html = html.replace('</body>', `${consoleCapture}<script>${jsFile.content}</script></body>`);
+      html = html.replace('</body>', `${consoleScript}<script>${jsFile.content}</script></body>`);
     } else {
-      html = html.replace('</body>', `${consoleCapture}</body>`);
+      html = html.replace('</body>', `${consoleScript}</body>`);
     }
 
     return html;
-  };
+  }, [files]);
 
-  // Listen for console messages from iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'console') {
-        const { level, args } = event.data;
-        const prefix = level === 'error' ? '[ERROR]' : level === 'warn' ? '[WARN]' : '[LOG]';
-        setConsoleOutput(prev => [...prev.slice(-50), `${prefix} ${args.join(' ')}`]);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  // Update preview when files change
+  // Update preview
   useEffect(() => {
     if (iframeRef.current) {
-      const html = buildPreviewHtml();
       const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
       if (doc) {
         doc.open();
-        doc.write(html);
+        doc.write(buildPreview());
         doc.close();
       }
     }
-  }, [files, previewKey]);
+  }, [files, buildPreview]);
 
-  const getFileLanguage = (filename: string): ProjectFile['language'] => {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    const langMap: Record<string, ProjectFile['language']> = {
-      'html': 'html', 'htm': 'html',
-      'css': 'css', 'scss': 'css', 'sass': 'css',
-      'js': 'javascript', 'mjs': 'javascript',
-      'ts': 'typescript',
-      'json': 'json',
-      'md': 'markdown', 'mdx': 'markdown',
-      'py': 'python',
-      'jsx': 'jsx',
-      'tsx': 'tsx'
+  // Listen for console messages
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'console') {
+        const prefix = e.data.level === 'error' ? '[ERR]' : e.data.level === 'warn' ? '[WARN]' : '[LOG]';
+        setConsoleOutput(prev => [...prev.slice(-100), `${prefix} ${e.data.args.join(' ')}`]);
+      }
     };
-    return langMap[ext || ''] || 'javascript';
-  };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const getFileExt = (name: string) => name.split('.').pop()?.toLowerCase() || 'txt';
 
   const createFile = () => {
     if (!newFileName.trim()) return;
-    const newFile: ProjectFile = {
+    const ext = getFileExt(newFileName);
+    setFiles(prev => [...prev, {
       id: Date.now().toString(),
       name: newFileName.trim(),
-      language: getFileLanguage(newFileName.trim()),
-      content: '',
-      isOpen: true
-    };
-    setFiles(prev => [...prev, newFile]);
-    setActiveFileId(newFile.id);
+      language: ext,
+      content: ''
+    }]);
     setIsCreatingFile(false);
     setNewFileName('');
   };
 
   const deleteFile = (id: string) => {
+    if (files.length <= 1) return;
     setFiles(prev => prev.filter(f => f.id !== id));
     if (activeFileId === id) {
-      const remaining = files.filter(f => f.id !== id);
-      if (remaining.length > 0) {
-        setActiveFileId(remaining[0].id);
-      }
+      setActiveFileId(files.find(f => f.id !== id)?.id || '');
     }
   };
 
-  const renameFile = (id: string) => {
-    if (!editingFileName.trim()) return;
-    setFiles(prev => prev.map(f => 
-      f.id === id ? { ...f, name: editingFileName.trim(), language: getFileLanguage(editingFileName.trim()) } : f
-    ));
-    setEditingFileId(null);
-    setEditingFileName('');
+  const updateFile = (id: string, content: string) => {
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, content } : f));
   };
 
-  const updateFileContent = (id: string, content: string) => {
-    setFiles(prev => prev.map(f => f.id === id ? { ...f, content } : f));
+  const parseFilesFromResponse = (text: string): ProjectFile[] => {
+    const parsed: ProjectFile[] = [];
+    
+    // Try multiple patterns
+    // Pattern 1: [FILE: name.ext] followed by code block
+    const pattern1 = /\[FILE:\s*([^\]]+)\]\s*```[\w]*\n([\s\S]*?)```/gi;
+    // Pattern 2: **filename.ext** or `filename.ext` followed by code block
+    const pattern2 = /(?:\*\*|`)([a-zA-Z0-9_.-]+\.[a-zA-Z]+)(?:\*\*|`)\s*```[\w]*\n([\s\S]*?)```/gi;
+    // Pattern 3: Just code blocks with language hints
+    const pattern3 = /```(html|css|javascript|js|typescript|ts|python|py|json|jsx|tsx)\n([\s\S]*?)```/gi;
+
+    let match;
+    
+    // Try pattern 1 first
+    while ((match = pattern1.exec(text)) !== null) {
+      parsed.push({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        name: match[1].trim(),
+        language: getFileExt(match[1].trim()),
+        content: match[2].trim()
+      });
+    }
+
+    // If no matches, try pattern 2
+    if (parsed.length === 0) {
+      while ((match = pattern2.exec(text)) !== null) {
+        parsed.push({
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+          name: match[1].trim(),
+          language: getFileExt(match[1].trim()),
+          content: match[2].trim()
+        });
+      }
+    }
+
+    // If still no matches, try pattern 3 and use language for filename
+    if (parsed.length === 0) {
+      const langToFile: Record<string, string> = {
+        html: 'index.html',
+        css: 'styles.css',
+        javascript: 'script.js',
+        js: 'script.js',
+        typescript: 'main.ts',
+        ts: 'main.ts',
+        python: 'main.py',
+        py: 'main.py',
+        json: 'data.json',
+        jsx: 'App.jsx',
+        tsx: 'App.tsx'
+      };
+
+      while ((match = pattern3.exec(text)) !== null) {
+        const lang = match[1].toLowerCase();
+        const filename = langToFile[lang] || `file.${lang}`;
+        // Avoid duplicates
+        const existingIndex = parsed.findIndex(p => p.name === filename);
+        if (existingIndex >= 0) {
+          parsed[existingIndex].content = match[2].trim();
+        } else {
+          parsed.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+            name: filename,
+            language: getFileExt(filename),
+            content: match[2].trim()
+          });
+        }
+      }
+    }
+
+    return parsed;
   };
 
   const handleSend = async () => {
@@ -292,46 +322,33 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
 
     const userMessage = input.trim();
     setInput('');
-
-    const newUserMessage: Message = {
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, newUserMessage]);
+    setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: new Date() }]);
     setIsLoading(true);
 
     try {
       const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-      if (!apiKey) throw new Error('Groq API key not configured');
+      if (!apiKey) throw new Error('API key not configured');
 
-      // Build context with current files
-      const filesContext = files.map(f => `--- ${f.name} ---\n${f.content}`).join('\n\n');
+      const filesContext = files.map(f => `[${f.name}]\n${f.content}`).join('\n\n');
 
-      const systemPrompt = `You are Site Designer, an expert AI developer that creates complete, production-ready code projects.
+      const systemPrompt = `You are an expert full-stack developer AI. You create complete, production-ready code.
 
-# CAPABILITIES:
-- Generate multi-file web projects (HTML, CSS, JS, React, TypeScript, Python, etc.)
-- Create complete applications with proper file structure
-- Support any programming language or framework
-- Build responsive, accessible, modern designs
-
-# CURRENT PROJECT FILES:
+CURRENT PROJECT FILES:
 ${filesContext}
 
-# RESPONSE FORMAT - CRITICAL:
-When generating code, use this EXACT format for EACH file:
+IMPORTANT RESPONSE FORMAT:
+When generating or modifying code, format EACH file like this:
 
 [FILE: filename.ext]
 \`\`\`language
-code here
+complete code here
 \`\`\`
 
-Examples:
+For example:
 [FILE: index.html]
 \`\`\`html
-<!DOCTYPE html>...
+<!DOCTYPE html>
+<html>...</html>
 \`\`\`
 
 [FILE: styles.css]
@@ -339,38 +356,16 @@ Examples:
 body { ... }
 \`\`\`
 
-[FILE: app.js]
-\`\`\`javascript
-console.log('Hello');
-\`\`\`
+RULES:
+1. ALWAYS use [FILE: name] format before code blocks
+2. Generate COMPLETE file contents, not snippets
+3. Create beautiful, modern designs
+4. Make everything responsive
+5. Use proper semantics and accessibility
+6. When modifying existing files, include the FULL updated content
+7. Explain what you created briefly before the code
 
-# RULES:
-1. Always use [FILE: name] format before each code block
-2. Generate COMPLETE files, not snippets
-3. Create beautiful, modern designs with smooth animations
-4. Use proper color contrasts and typography
-5. Make everything responsive
-6. Add comments explaining complex logic
-7. When user asks to modify, update the relevant file(s)
-8. If creating a profile page, make it showcase work beautifully with gradients and animations
-
-# PROFILE PAGES:
-When creating profile/portfolio pages:
-- Use dark theme with gradient accents
-- Add smooth hover animations
-- Include hero section with name and tagline
-- Projects grid with image placeholders
-- Skills section with tags
-- Contact section
-- Social links
-- Make it visually stunning
-
-Respond naturally, explain what you're creating, then provide the file(s).`;
-
-      const conversationHistory = messages.map(msg => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content
-      }));
+For portfolios/profiles: Use dark themes, gradients, smooth animations, hero sections, project grids.`;
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -382,7 +377,7 @@ Respond naturally, explain what you're creating, then provide the file(s).`;
           model: 'llama-3.3-70b-versatile',
           messages: [
             { role: 'system', content: systemPrompt },
-            ...conversationHistory.map(m => ({ role: m.role, content: m.content })),
+            ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: userMessage }
           ],
           temperature: 0.7,
@@ -390,64 +385,59 @@ Respond naturally, explain what you're creating, then provide the file(s).`;
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
 
       const data = await response.json();
-      const assistantContent = data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+      const content = data.choices[0]?.message?.content || '';
 
       // Parse files from response
-      const filePattern = /\[FILE:\s*([^\]]+)\]\s*```(\w+)?\n([\s\S]*?)```/g;
-      let match;
-      const newFiles: ProjectFile[] = [];
-
-      while ((match = filePattern.exec(assistantContent)) !== null) {
-        const [, filename, lang, content] = match;
-        const trimmedFilename = filename.trim();
-        const existingFile = files.find(f => f.name === trimmedFilename);
-        
-        if (existingFile) {
-          // Update existing file
-          updateFileContent(existingFile.id, content.trim());
-        } else {
-          // Create new file
-          newFiles.push({
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            name: trimmedFilename,
-            language: getFileLanguage(trimmedFilename),
-            content: content.trim(),
-            isOpen: true
+      const parsedFiles = parseFilesFromResponse(content);
+      
+      if (parsedFiles.length > 0) {
+        // Update or add files
+        setFiles(prev => {
+          const updated = [...prev];
+          parsedFiles.forEach(pf => {
+            const existingIdx = updated.findIndex(f => f.name === pf.name);
+            if (existingIdx >= 0) {
+              updated[existingIdx] = { ...updated[existingIdx], content: pf.content };
+            } else {
+              updated.push(pf);
+            }
           });
-        }
+          return updated;
+        });
+        setActiveFileId(parsedFiles[0].id);
       }
 
-      if (newFiles.length > 0) {
-        setFiles(prev => [...prev, ...newFiles]);
-        setActiveFileId(newFiles[0].id);
-      }
-
-      // Clean response for display (remove code blocks)
-      const cleanResponse = assistantContent
+      // Clean content for chat display
+      const cleanContent = content
         .replace(/\[FILE:[^\]]+\]\s*```[\s\S]*?```/g, '')
-        .trim() || 'Files updated successfully!';
+        .replace(/```[\s\S]*?```/g, '')
+        .trim() || `Created ${parsedFiles.length} file(s)`;
 
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: cleanResponse,
-        timestamp: new Date()
+        content: cleanContent,
+        timestamp: new Date(),
+        files: parsedFiles
       }]);
 
-      setPreviewKey(prev => prev + 1);
     } catch (error) {
-      console.error('Error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        content: `Error: ${error instanceof Error ? error.message : 'Something went wrong'}`,
         timestamp: new Date()
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
@@ -457,162 +447,119 @@ Respond naturally, explain what you're creating, then provide the file(s).`;
   };
 
   const downloadProject = () => {
-    // Create a simple zip-like download (multiple files as text)
-    const content = files.map(f => `===== ${f.name} =====\n${f.content}`).join('\n\n');
-    const blob = new Blob([content], { type: 'text/plain' });
+    const zip = files.map(f => `<!-- ${f.name} -->\n${f.content}`).join('\n\n---\n\n');
+    const blob = new Blob([zip], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'project.txt';
+    a.download = 'project-files.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const getPreviewWidth = () => {
-    switch (viewMode) {
-      case 'mobile': return 'max-w-[375px]';
-      case 'tablet': return 'max-w-[768px]';
-      default: return 'w-full';
-    }
-  };
-
-  // Fullscreen preview
-  if (isFullscreen) {
-    return (
-      <div className="fixed inset-0 z-50 bg-white">
-        <div className="absolute top-4 right-4 z-10 flex gap-2">
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg flex items-center gap-2 hover:bg-gray-800"
-          >
-            <Minimize2 size={16} />
-            Exit Fullscreen
-          </button>
-        </div>
-        <iframe
-          ref={iframeRef}
-          className="w-full h-full border-0"
-          title="Preview"
-          sandbox="allow-scripts allow-same-origin"
-        />
-      </div>
-    );
-  }
+  const viewportWidths = { desktop: '100%', tablet: '768px', mobile: '375px' };
 
   return (
-    <div className="h-screen bg-[#0d1117] text-white flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#0a0a0f] text-white overflow-hidden">
       {/* Header */}
-      <header className="bg-[#161b22] border-b border-white/10 px-4 py-2 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="h-14 bg-[#111118] border-b border-white/10 flex items-center justify-between px-4 flex-shrink-0">
+        <div className="flex items-center gap-3">
           {onBack && (
-            <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-lg">
+            <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
               <ChevronLeft size={20} />
             </button>
           )}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-lg flex items-center justify-center">
-              <Globe size={16} />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center">
+              <Code size={16} />
             </div>
             <div>
-              <h1 className="text-sm font-semibold">Site Designer</h1>
-              <p className="text-xs text-gray-500 flex items-center gap-1">
-                Powered by <img src={logoImage} alt="" className="w-3 h-3 rounded-full" /> Gradi AI
-              </p>
+              <h1 className="font-semibold text-sm">Site Designer</h1>
+              <p className="text-[10px] text-gray-500">Powered by Gradi AI</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {/* View Mode */}
-          <div className="flex bg-white/5 rounded-lg p-0.5 mr-2">
-            {(['mobile', 'tablet', 'desktop'] as const).map(mode => (
+          <div className="flex bg-white/5 rounded-lg p-1">
+            {(['desktop', 'tablet', 'mobile'] as const).map(mode => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`p-1.5 rounded ${viewMode === mode ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
-                title={mode}
+                className={`p-1.5 rounded ${viewMode === mode ? 'bg-white/10' : 'hover:bg-white/5'}`}
               >
-                {mode === 'mobile' ? <Smartphone size={14} /> : mode === 'tablet' ? <Tablet size={14} /> : <Monitor size={14} />}
+                {mode === 'desktop' ? <Monitor size={14} /> : mode === 'tablet' ? <Tablet size={14} /> : <Smartphone size={14} />}
               </button>
             ))}
           </div>
-
-          <button onClick={copyAllCode} className="p-2 hover:bg-white/10 rounded-lg" title="Copy All">
-            <Copy size={16} />
+          
+          <button onClick={() => setShowConsole(!showConsole)} className={`p-2 rounded-lg ${showConsole ? 'bg-white/10' : 'hover:bg-white/5'}`}>
+            <Terminal size={16} />
           </button>
-          <button onClick={downloadProject} className="p-2 hover:bg-white/10 rounded-lg" title="Download">
-            <Download size={16} />
-          </button>
-          <button onClick={() => setIsFullscreen(true)} className="p-2 hover:bg-white/10 rounded-lg" title="Fullscreen">
-            <Maximize2 size={16} />
-          </button>
-          <div className="w-px h-6 bg-white/10 mx-1" />
-          <button 
-            onClick={() => setShowChat(!showChat)} 
-            className={`p-2 rounded-lg ${showChat ? 'bg-teal-500/20 text-teal-400' : 'hover:bg-white/10'}`}
-          >
-            <Sparkles size={16} />
-          </button>
-          <button 
-            onClick={() => setShowFileTree(!showFileTree)} 
-            className={`p-2 rounded-lg ${showFileTree ? 'bg-white/10' : 'hover:bg-white/10'}`}
-          >
-            {showFileTree ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+          <button onClick={copyAllCode} className="p-2 hover:bg-white/5 rounded-lg"><Copy size={16} /></button>
+          <button onClick={downloadProject} className="p-2 hover:bg-white/5 rounded-lg"><Download size={16} /></button>
+          <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 hover:bg-white/5 rounded-lg">
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Chat Panel */}
-        {showChat && (
-          <div className="w-80 flex-shrink-0 flex flex-col bg-[#0d1117] border-r border-white/10">
-            {/* Chat Messages */}
+        {showChat && !isFullscreen && (
+          <div className="w-80 bg-[#111118] border-r border-white/10 flex flex-col flex-shrink-0">
+            {/* Chat Header */}
+            <div className="p-3 border-b border-white/10 flex items-center justify-between">
+              <span className="text-sm font-medium">Chat</span>
+              <button onClick={() => setShowChat(false)} className="p-1 hover:bg-white/10 rounded">
+                <PanelLeftClose size={14} />
+              </button>
+            </div>
+
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
               {messages.length === 0 && (
-                <div className="space-y-3">
-                  <div className="text-center py-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                      <Wand2 size={24} />
-                    </div>
-                    <h2 className="font-semibold mb-1">What would you like to build?</h2>
-                    <p className="text-xs text-gray-500">Describe your project and I will generate the code</p>
-                  </div>
-                  <div className="space-y-2">
-                    {quickPrompts.map((prompt, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setInput(prompt.text)}
-                        className={`w-full p-2.5 rounded-lg bg-gradient-to-r ${prompt.color} text-white text-left text-xs hover:opacity-90 transition-opacity`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <prompt.icon size={14} />
-                          <span className="line-clamp-2">{prompt.text}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500 mb-3">Quick prompts:</p>
+                  {quickPrompts.map((prompt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setInput(prompt.text)}
+                      className="w-full p-2 text-left text-xs bg-white/5 hover:bg-white/10 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <prompt.icon size={14} className="text-gray-400" />
+                      <span className="text-gray-300">{prompt.text}</span>
+                    </button>
+                  ))}
                 </div>
               )}
-
-              {messages.map((message, index) => (
-                <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
-                    message.role === 'user'
-                      ? 'bg-teal-600 text-white'
+              
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[90%] p-2.5 rounded-lg text-sm ${
+                    msg.role === 'user' 
+                      ? 'bg-teal-600 text-white' 
                       : 'bg-white/5 text-gray-200'
                   }`}>
-                    {message.content}
+                    {msg.content}
+                    {msg.files && msg.files.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {msg.files.map(f => (
+                          <span key={f.id} className="text-[10px] px-1.5 py-0.5 bg-white/10 rounded">
+                            {f.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
-
+              
               {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white/5 rounded-xl px-3 py-2 flex items-center gap-2">
-                    <Loader2 size={14} className="animate-spin text-teal-400" />
-                    <span className="text-sm text-gray-400">Generating code...</span>
-                  </div>
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="text-xs">Generating...</span>
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -621,19 +568,19 @@ Respond naturally, explain what you're creating, then provide the file(s).`;
             {/* Input */}
             <div className="p-3 border-t border-white/10">
               <div className="flex gap-2">
-                <input
-                  type="text"
+                <textarea
+                  ref={textareaRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                  onKeyDown={handleKeyDown}
                   placeholder="Describe what to build..."
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-500"
-                  disabled={isLoading}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-teal-500"
+                  rows={2}
                 />
                 <button
                   onClick={handleSend}
                   disabled={isLoading || !input.trim()}
-                  className="p-2 bg-teal-600 rounded-lg hover:bg-teal-500 disabled:opacity-50 disabled:hover:bg-teal-600"
+                  className="p-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 rounded-lg self-end"
                 >
                   <Send size={16} />
                 </button>
@@ -642,43 +589,43 @@ Respond naturally, explain what you're creating, then provide the file(s).`;
           </div>
         )}
 
+        {/* Toggle Chat */}
+        {!showChat && !isFullscreen && (
+          <button onClick={() => setShowChat(true)} className="absolute left-2 top-20 p-2 bg-[#111118] border border-white/10 rounded-lg z-10">
+            <PanelLeft size={16} />
+          </button>
+        )}
+
         {/* File Tree */}
-        {showFileTree && (
-          <div className="w-48 flex-shrink-0 flex flex-col bg-[#0d1117] border-r border-white/10">
-            <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-400 uppercase">Files</span>
-              <button
-                onClick={() => setIsCreatingFile(true)}
-                className="p-1 hover:bg-white/10 rounded"
-                title="New File"
-              >
-                <Plus size={14} />
+        {showFiles && !isFullscreen && (
+          <div className="w-48 bg-[#0d0d12] border-r border-white/10 flex flex-col flex-shrink-0">
+            <div className="p-2 border-b border-white/10 flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-400">FILES</span>
+              <button onClick={() => setIsCreatingFile(true)} className="p-1 hover:bg-white/10 rounded">
+                <Plus size={12} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+
+            <div className="flex-1 overflow-y-auto p-1">
               {isCreatingFile && (
-                <div className="flex items-center gap-1 px-2 py-1">
+                <div className="flex items-center gap-1 p-1">
                   <input
                     type="text"
                     value={newFileName}
                     onChange={(e) => setNewFileName(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && createFile()}
+                    onKeyDown={(e) => e.key === 'Enter' && createFile()}
                     placeholder="filename.ext"
-                    className="flex-1 bg-white/10 rounded px-2 py-1 text-xs focus:outline-none"
+                    className="flex-1 bg-white/5 px-2 py-1 rounded text-xs focus:outline-none"
                     autoFocus
                   />
-                  <button onClick={createFile} className="p-1 hover:bg-white/10 rounded text-green-400">
-                    <Check size={12} />
-                  </button>
-                  <button onClick={() => { setIsCreatingFile(false); setNewFileName(''); }} className="p-1 hover:bg-white/10 rounded text-red-400">
-                    <X size={12} />
-                  </button>
+                  <button onClick={createFile} className="p-1 hover:bg-white/10 rounded"><Check size={12} /></button>
+                  <button onClick={() => { setIsCreatingFile(false); setNewFileName(''); }} className="p-1 hover:bg-white/10 rounded"><X size={12} /></button>
                 </div>
               )}
+              
               {files.map(file => {
-                const FileIcon = FILE_ICONS[file.language] || FileCode;
-                const colorClass = LANGUAGE_COLORS[file.language] || 'text-gray-400';
-                
+                const Icon = FILE_ICONS[file.language] || File;
+                const color = LANG_COLORS[file.language] || '#888';
                 return (
                   <div
                     key={file.id}
@@ -687,35 +634,16 @@ Respond naturally, explain what you're creating, then provide the file(s).`;
                     }`}
                     onClick={() => setActiveFileId(file.id)}
                   >
-                    <FileIcon size={14} className={colorClass} />
-                    {editingFileId === file.id ? (
-                      <input
-                        type="text"
-                        value={editingFileName}
-                        onChange={(e) => setEditingFileName(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && renameFile(file.id)}
-                        onBlur={() => renameFile(file.id)}
-                        className="flex-1 bg-white/10 rounded px-1 text-xs focus:outline-none"
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <span className="flex-1 text-xs truncate">{file.name}</span>
-                    )}
-                    <div className="hidden group-hover:flex items-center gap-0.5">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setEditingFileId(file.id); setEditingFileName(file.name); }}
-                        className="p-0.5 hover:bg-white/10 rounded"
-                      >
-                        <Edit3 size={10} />
-                      </button>
+                    <Icon size={14} style={{ color }} />
+                    <span className="flex-1 text-xs truncate">{file.name}</span>
+                    {files.length > 1 && (
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteFile(file.id); }}
-                        className="p-0.5 hover:bg-white/10 rounded text-red-400"
+                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-white/10 rounded"
                       >
                         <Trash2 size={10} />
                       </button>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -723,52 +651,85 @@ Respond naturally, explain what you're creating, then provide the file(s).`;
           </div>
         )}
 
-        {/* Code Editor */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Tabs */}
-          <div className="flex items-center bg-[#161b22] border-b border-white/10 overflow-x-auto">
-            {files.filter(f => f.isOpen || f.id === activeFileId).map(file => {
-              const FileIcon = FILE_ICONS[file.language] || FileCode;
-              const colorClass = LANGUAGE_COLORS[file.language] || 'text-gray-400';
-              
-              return (
-                <button
-                  key={file.id}
-                  onClick={() => setActiveFileId(file.id)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs border-r border-white/5 ${
-                    activeFileId === file.id ? 'bg-[#0d1117] text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <FileIcon size={12} className={colorClass} />
-                  {file.name}
-                </button>
-              );
-            })}
-          </div>
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Editor & Preview */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Code Editor */}
+            {!isFullscreen && activeFile && (
+              <div className="flex-1 flex flex-col border-r border-white/10">
+                {/* File Tabs */}
+                <div className="h-9 bg-[#0d0d12] border-b border-white/10 flex items-center px-2 overflow-x-auto">
+                  {files.filter(f => f.id === activeFileId || files.indexOf(f) < 5).map(file => (
+                    <button
+                      key={file.id}
+                      onClick={() => setActiveFileId(file.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-t ${
+                        activeFileId === file.id 
+                          ? 'bg-[#111118] text-white border-t border-x border-white/10' 
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <span style={{ color: LANG_COLORS[file.language] || '#888' }}>●</span>
+                      {file.name}
+                    </button>
+                  ))}
+                </div>
 
-          {/* Editor */}
-          <div className="flex-1 overflow-hidden">
-            {activeFile && (
-              <textarea
-                value={activeFile.content}
-                onChange={(e) => updateFileContent(activeFile.id, e.target.value)}
-                className="w-full h-full bg-[#0d1117] text-gray-200 p-4 font-mono text-sm resize-none focus:outline-none"
-                spellCheck={false}
-                style={{ tabSize: 2 }}
-              />
+                {/* Editor */}
+                <div className="flex-1 overflow-hidden">
+                  <textarea
+                    value={activeFile.content}
+                    onChange={(e) => updateFile(activeFile.id, e.target.value)}
+                    className="w-full h-full bg-[#0d0d12] p-4 font-mono text-sm text-gray-200 resize-none focus:outline-none"
+                    spellCheck={false}
+                  />
+                </div>
+              </div>
             )}
+
+            {/* Preview */}
+            <div className={`${isFullscreen ? 'flex-1' : 'w-1/2'} bg-white flex flex-col`}>
+              <div className="h-9 bg-[#1a1a22] border-b border-white/10 flex items-center justify-between px-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                </div>
+                <span className="text-xs text-gray-500">Preview</span>
+                <button onClick={() => {
+                  if (iframeRef.current) {
+                    const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+                    if (doc) { doc.open(); doc.write(buildPreview()); doc.close(); }
+                  }
+                }} className="p-1 hover:bg-white/10 rounded">
+                  <RefreshCw size={12} className="text-gray-400" />
+                </button>
+              </div>
+              
+              <div className="flex-1 flex items-center justify-center bg-gray-100 p-4 overflow-auto">
+                <div style={{ width: viewportWidths[viewMode], height: '100%', maxWidth: '100%' }} className="bg-white shadow-2xl rounded-lg overflow-hidden">
+                  <iframe
+                    ref={iframeRef}
+                    title="Preview"
+                    className="w-full h-full border-0"
+                    sandbox="allow-scripts allow-same-origin"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Console */}
           {showConsole && (
-            <div className="h-32 border-t border-white/10 bg-[#0d1117]">
-              <div className="px-3 py-1 border-b border-white/10 flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-400">Console</span>
+            <div className="h-32 bg-[#0d0d12] border-t border-white/10 flex flex-col">
+              <div className="h-7 px-3 flex items-center justify-between border-b border-white/10">
+                <span className="text-xs text-gray-400">Console</span>
                 <button onClick={() => setConsoleOutput([])} className="text-xs text-gray-500 hover:text-white">Clear</button>
               </div>
-              <div className="p-2 overflow-y-auto h-24 font-mono text-xs">
+              <div className="flex-1 overflow-y-auto p-2 font-mono text-xs">
                 {consoleOutput.map((line, i) => (
-                  <div key={i} className={line.includes('[ERROR]') ? 'text-red-400' : line.includes('[WARN]') ? 'text-yellow-400' : 'text-gray-400'}>
+                  <div key={i} className={line.includes('[ERR]') ? 'text-red-400' : line.includes('[WARN]') ? 'text-yellow-400' : 'text-gray-300'}>
                     {line}
                   </div>
                 ))}
@@ -776,44 +737,6 @@ Respond naturally, explain what you're creating, then provide the file(s).`;
             </div>
           )}
         </div>
-
-        {/* Preview */}
-        {showPreview && (
-          <div className="w-1/2 flex-shrink-0 flex flex-col bg-gray-100 border-l border-white/10">
-            <div className="px-3 py-2 bg-[#161b22] border-b border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Eye size={14} className="text-gray-400" />
-                <span className="text-xs text-gray-400">Preview</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setShowConsole(!showConsole)}
-                  className={`p-1 rounded hover:bg-white/10 ${showConsole ? 'text-teal-400' : 'text-gray-500'}`}
-                  title="Toggle Console"
-                >
-                  <Terminal size={14} />
-                </button>
-                <button
-                  onClick={() => setPreviewKey(prev => prev + 1)}
-                  className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-white"
-                  title="Refresh"
-                >
-                  <RefreshCw size={14} />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 flex items-start justify-center p-4 overflow-auto">
-              <div className={`${getPreviewWidth()} h-full bg-white shadow-2xl rounded-lg overflow-hidden transition-all`}>
-                <iframe
-                  ref={iframeRef}
-                  className="w-full h-full border-0"
-                  title="Preview"
-                  sandbox="allow-scripts allow-same-origin"
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
