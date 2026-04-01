@@ -159,7 +159,8 @@ Be specific about what you observe in the visual design.`;
       }
     };
 
-    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    // Use gemini-1.5-flash which is widely available and stable
+    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
     const url = `${GEMINI_API_URL}?key=${apiKey}`;
 
     const response = await fetch(url, {

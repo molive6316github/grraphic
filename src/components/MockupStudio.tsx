@@ -3,6 +3,7 @@ import { Monitor, Smartphone, Tablet, Laptop, Watch, Tv, Film, Play, Pause, Skip
 import { supabase } from '../lib/supabase';
 import { VideoTimeline, TimelineClip } from './mockup/VideoTimeline';
 import { DeviceMockup, deviceConfigs, DeviceConfig } from './mockup/DeviceMockup';
+import { MockupRenderer3D } from './mockup/MockupRenderer3D';
 import { LogoAnimator, logoAnimationPresets, LogoAnimationConfig, LogoAnimation } from './mockup/LogoAnimator';
 import { TextAnimator, textAnimationPresets, TextAnimationConfig, fontOptions } from './mockup/TextAnimator';
 import { SceneBuilder, sceneTemplates, SceneConfig, SceneElement } from './mockup/SceneBuilder';
@@ -243,6 +244,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
   const lastTimeRef = useRef<number>(0);
 
   const [selectedDevice, setSelectedDevice] = useState<DeviceConfig>(deviceConfigs[0]);
+  const [view3D, setView3D] = useState(true); // Enable 3D view by default
   const [deviceSettings, setDeviceSettings] = useState({
     angle: { x: 15, y: -20, z: 5 },
     shadow: true,
@@ -253,7 +255,9 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
     backgroundColor: '#0f172a',
     screenImage: '',
     clayMode: false,
-    clayColor: '#e2e8f0'
+    clayColor: '#e2e8f0',
+    autoRotate: true,
+    showSparkles: false
   });
 
   const [logoSettings, setLogoSettings] = useState<LogoAnimationConfig>({
@@ -531,7 +535,34 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
   const renderDevices = () => (
     <div className="space-y-6">
       <div className="rounded-2xl bg-white/5 border border-white/10 p-6 backdrop-blur-sm">
-        <SectionHeader title="Device Mockups" icon={Smartphone} gradient="from-blue-600 to-cyan-600" />
+        <div className="flex items-center justify-between mb-6">
+          <SectionHeader title="Device Mockups" icon={Smartphone} gradient="from-blue-600 to-cyan-600" />
+          
+          {/* 2D/3D Toggle */}
+          <div className="flex items-center gap-2 bg-white/5 rounded-xl p-1">
+            <button
+              onClick={() => setView3D(false)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                !view3D 
+                  ? 'bg-blue-500 text-white' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              2D View
+            </button>
+            <button
+              onClick={() => setView3D(true)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                view3D 
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Box size={16} />
+              3D View
+            </button>
+          </div>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
@@ -542,31 +573,45 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                 perspective: '1200px'
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
-              <DeviceMockup
-                device={selectedDevice}
-                screenContent={
-                  deviceSettings.screenImage ? (
-                    <img src={deviceSettings.screenImage} alt="Screen" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
-                      <div className="text-center">
-                        <Upload size={32} className="mx-auto text-slate-500 mb-2" />
-                        <span className="text-slate-500 text-sm">Upload Screenshot</span>
-                      </div>
-                    </div>
-                  )
-                }
-                angle={deviceSettings.angle}
-                shadow={deviceSettings.shadow}
-                shadowIntensity={deviceSettings.shadowIntensity}
-                reflection={deviceSettings.reflection}
-                glare={deviceSettings.glare}
-                environment={deviceSettings.environment}
-                scale={selectedDevice.type === 'laptop' || selectedDevice.type === 'desktop' || selectedDevice.type === 'tv' ? 0.6 : 0.85}
-                clayMode={deviceSettings.clayMode}
-                clayColor={deviceSettings.clayColor}
-              />
+              {view3D ? (
+                <MockupRenderer3D
+                  type={selectedDevice.type as any}
+                  screenImage={deviceSettings.screenImage || undefined}
+                  backgroundColor={deviceSettings.backgroundColor}
+                  environment={deviceSettings.environment === 'floating' ? 'studio' : deviceSettings.environment as any}
+                  autoRotate={deviceSettings.autoRotate}
+                  showShadows={deviceSettings.shadow}
+                  showSparkles={deviceSettings.showSparkles}
+                />
+              ) : (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
+                  <DeviceMockup
+                    device={selectedDevice}
+                    screenContent={
+                      deviceSettings.screenImage ? (
+                        <img src={deviceSettings.screenImage} alt="Screen" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                          <div className="text-center">
+                            <Upload size={32} className="mx-auto text-slate-500 mb-2" />
+                            <span className="text-slate-500 text-sm">Upload Screenshot</span>
+                          </div>
+                        </div>
+                      )
+                    }
+                    angle={deviceSettings.angle}
+                    shadow={deviceSettings.shadow}
+                    shadowIntensity={deviceSettings.shadowIntensity}
+                    reflection={deviceSettings.reflection}
+                    glare={deviceSettings.glare}
+                    environment={deviceSettings.environment}
+                    scale={selectedDevice.type === 'laptop' || selectedDevice.type === 'desktop' || selectedDevice.type === 'tv' ? 0.6 : 0.85}
+                    clayMode={deviceSettings.clayMode}
+                    clayColor={deviceSettings.clayColor}
+                  />
+                </>
+              )}
             </div>
 
             <div className="mt-4 grid grid-cols-5 gap-2">
@@ -690,33 +735,86 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setDeviceSettings(prev => ({ ...prev, glare: !prev.glare }))}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  deviceSettings.glare ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
-                }`}
-              >
-                Glare
-              </button>
-              <button
-                onClick={() => setDeviceSettings(prev => ({ ...prev, reflection: !prev.reflection }))}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  deviceSettings.reflection ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
-                }`}
-              >
-                Reflection
-              </button>
-              <button
-                onClick={() => setDeviceSettings(prev => ({ ...prev, clayMode: !prev.clayMode }))}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  deviceSettings.clayMode ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
-                }`}
-              >
-                Clay Mode
-              </button>
+              {view3D ? (
+                <>
+                  <button
+                    onClick={() => setDeviceSettings(prev => ({ ...prev, autoRotate: !prev.autoRotate }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      deviceSettings.autoRotate ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-white/5 border border-white/10'
+                    }`}
+                  >
+                    Auto Rotate
+                  </button>
+                  <button
+                    onClick={() => setDeviceSettings(prev => ({ ...prev, shadow: !prev.shadow }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      deviceSettings.shadow ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-white/5 border border-white/10'
+                    }`}
+                  >
+                    Shadows
+                  </button>
+                  <button
+                    onClick={() => setDeviceSettings(prev => ({ ...prev, showSparkles: !prev.showSparkles }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      deviceSettings.showSparkles ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-white/5 border border-white/10'
+                    }`}
+                  >
+                    Sparkles
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setDeviceSettings(prev => ({ ...prev, glare: !prev.glare }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      deviceSettings.glare ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
+                    }`}
+                  >
+                    Glare
+                  </button>
+                  <button
+                    onClick={() => setDeviceSettings(prev => ({ ...prev, reflection: !prev.reflection }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      deviceSettings.reflection ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
+                    }`}
+                  >
+                    Reflection
+                  </button>
+                  <button
+                    onClick={() => setDeviceSettings(prev => ({ ...prev, clayMode: !prev.clayMode }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      deviceSettings.clayMode ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white/5 border border-white/10'
+                    }`}
+                  >
+                    Clay Mode
+                  </button>
+                </>
+              )}
             </div>
+            
+            {/* 3D Environment selector */}
+            {view3D && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">3D Environment</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['studio', 'sunset', 'dawn', 'night', 'city', 'forest'].map(env => (
+                    <button
+                      key={env}
+                      onClick={() => setDeviceSettings(prev => ({ ...prev, environment: env as any }))}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                        deviceSettings.environment === env
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                          : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      {env}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            {deviceSettings.clayMode && (
+            {!view3D && deviceSettings.clayMode && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Clay Color</label>
                 <div className="flex gap-2">
