@@ -1,268 +1,224 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Palette, Layout, Sparkles, Target, Camera, Cpu, Zap, ImageIcon, Lightbulb } from 'lucide-react';
+import { Eye, Palette, Layout, Sparkles, Target, Camera, Cpu, Lightbulb, Zap, CheckCircle2, Loader2 } from 'lucide-react';
 
 interface LoadingAnalysisProps {
   mode?: 'design' | 'ui';
 }
 
-const designHumans = [
-  { id: 1, emoji: '🎨', name: 'Designer', speed: 1.2 },
-  { id: 2, emoji: '👁️', name: 'Critic', speed: 0.8 },
-  { id: 3, emoji: '✨', name: 'Creator', speed: 1.5 },
-  { id: 4, emoji: '🖌️', name: 'Artist', speed: 1.0 },
-  { id: 5, emoji: '🎭', name: 'Stylist', speed: 1.3 },
-];
-
-const uiHumans = [
-  { id: 1, emoji: '🏃', name: 'Tester', speed: 1.4 },
-  { id: 2, emoji: '👩‍💻', name: 'Developer', speed: 0.9 },
-  { id: 3, emoji: '🔍', name: 'Inspector', speed: 1.1 },
-  { id: 4, emoji: '🚀', name: 'Deployer', speed: 1.6 },
-  { id: 5, emoji: '⚡', name: 'Optimizer', speed: 1.2 },
-];
-
 const designSteps = [
-  { label: 'Analyzing composition...', icon: Eye, progress: 0 },
-  { label: 'Evaluating color harmony...', icon: Palette, progress: 25 },
-  { label: 'Checking typography...', icon: Layout, progress: 50 },
-  { label: 'Assessing balance...', icon: Target, progress: 75 },
-  { label: 'Generating feedback...', icon: Sparkles, progress: 95 },
+  { label: 'Analyzing composition', icon: Eye, description: 'Examining visual hierarchy and layout structure' },
+  { label: 'Evaluating colors', icon: Palette, description: 'Checking color harmony and contrast ratios' },
+  { label: 'Reviewing typography', icon: Layout, description: 'Assessing font choices and readability' },
+  { label: 'Measuring balance', icon: Target, description: 'Analyzing visual weight distribution' },
+  { label: 'Generating insights', icon: Sparkles, description: 'Compiling actionable feedback' },
 ];
 
 const uiSteps = [
-  { label: 'Capturing screenshot...', icon: Camera, progress: 0 },
-  { label: 'Processing visual data...', icon: Cpu, progress: 25 },
-  { label: 'Analyzing UX patterns...', icon: Layout, progress: 50 },
-  { label: 'Evaluating accessibility...', icon: Eye, progress: 75 },
-  { label: 'Generating insights...', icon: Lightbulb, progress: 95 },
+  { label: 'Capturing interface', icon: Camera, description: 'Taking a high-resolution screenshot' },
+  { label: 'Processing visuals', icon: Cpu, description: 'Analyzing visual elements and patterns' },
+  { label: 'Evaluating UX', icon: Layout, description: 'Checking usability and user flow' },
+  { label: 'Testing accessibility', icon: Eye, description: 'Verifying WCAG compliance' },
+  { label: 'Generating report', icon: Lightbulb, description: 'Creating detailed recommendations' },
 ];
 
 export function LoadingAnalysis({ mode = 'design' }: LoadingAnalysisProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [humans, setHumans] = useState<Array<{
-    id: number;
-    emoji: string;
-    name: string;
-    x: number;
-    y: number;
-    velocityX: number;
-    velocityY: number;
-    isJumping: boolean;
-    direction: 'left' | 'right';
-  }>>([]);
+  const [pulseIntensity, setPulseIntensity] = useState(0);
 
   const steps = mode === 'ui' ? uiSteps : designSteps;
-  const humanData = mode === 'ui' ? uiHumans : designHumans;
-  const modeColor = mode === 'ui'
-    ? 'from-green-600 via-blue-600 to-purple-600'
-    : 'from-pink-600 via-purple-600 to-blue-600';
-  const modeTitle = mode === 'ui' ? 'Analyzing Website UI' : 'Analyzing Your Design';
+  const accentColor = mode === 'ui' ? 'blue' : 'purple';
 
   useEffect(() => {
-    const initialHumans = humanData.map((human, index) => ({
-      ...human,
-      x: (index * 20) % 100,
-      y: 50,
-      velocityX: human.speed * (Math.random() > 0.5 ? 1 : -1),
-      velocityY: 0,
-      isJumping: false,
-      direction: (Math.random() > 0.5 ? 'right' : 'left') as 'left' | 'right',
-    }));
-    setHumans(initialHumans);
-  }, [mode]);
-
-  useEffect(() => {
+    const stepDuration = 2500;
     const stepInterval = setInterval(() => {
-      setCurrentStep((prev) => (prev + 1) % steps.length);
-    }, 3000);
+      setCurrentStep((prev) => {
+        if (prev < steps.length - 1) {
+          return prev + 1;
+        }
+        return prev;
+      });
+    }, stepDuration);
 
     return () => clearInterval(stepInterval);
   }, [steps.length]);
 
   useEffect(() => {
-    const targetProgress = steps[currentStep].progress;
+    const progressPerStep = 100 / steps.length;
+    const targetProgress = Math.min((currentStep + 1) * progressPerStep, 95);
+    
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev < targetProgress) {
-          return Math.min(prev + 1, targetProgress);
+          return Math.min(prev + 0.5, targetProgress);
         }
         return prev;
       });
     }, 30);
 
     return () => clearInterval(progressInterval);
-  }, [currentStep, steps]);
+  }, [currentStep, steps.length]);
 
   useEffect(() => {
-    const animationInterval = setInterval(() => {
-      setHumans((prevHumans) =>
-        prevHumans.map((human) => {
-          let newX = human.x + human.velocityX * 0.5;
-          let newY = human.y + human.velocityY;
-          let newVelocityX = human.velocityX;
-          let newVelocityY = human.velocityY;
-          let newIsJumping = human.isJumping;
-          let newDirection = human.direction;
-
-          if (newX <= 0 || newX >= 95) {
-            newVelocityX = -newVelocityX;
-            newDirection = newVelocityX > 0 ? 'right' : 'left';
-          }
-
-          if (!human.isJumping && Math.random() > 0.97) {
-            newIsJumping = true;
-            newVelocityY = -8;
-          }
-
-          if (human.isJumping) {
-            newVelocityY += 0.5;
-            if (newY >= 50) {
-              newY = 50;
-              newVelocityY = 0;
-              newIsJumping = false;
-            }
-          }
-
-          return {
-            ...human,
-            x: Math.max(0, Math.min(95, newX)),
-            y: Math.max(0, Math.min(50, newY)),
-            velocityX: newVelocityX,
-            velocityY: newVelocityY,
-            isJumping: newIsJumping,
-            direction: newDirection,
-          };
-        })
-      );
+    const pulseInterval = setInterval(() => {
+      setPulseIntensity((prev) => (prev + 1) % 100);
     }, 50);
-
-    return () => clearInterval(animationInterval);
+    return () => clearInterval(pulseInterval);
   }, []);
 
-  const CurrentStepIcon = steps[currentStep].icon;
+  const CurrentIcon = steps[currentStep]?.icon || Sparkles;
 
   return (
-    <div className="glass-card p-10 animate-scale-in overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-accent-500/5 to-primary-500/5 animate-pulse"></div>
+    <div className="w-full max-w-2xl mx-auto">
+      <div className="rounded-3xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-white/10 p-8 md:p-10 shadow-2xl relative overflow-hidden">
+        {/* Animated background glow */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: mode === 'ui' 
+              ? `radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, ${0.1 + pulseIntensity * 0.001}) 0%, transparent 60%)`
+              : `radial-gradient(ellipse at 50% 0%, rgba(168, 85, 247, ${0.1 + pulseIntensity * 0.001}) 0%, transparent 60%)`
+          }}
+        />
 
-      <div className="relative z-10">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-28 h-28 bg-gradient-to-br from-primary-500/20 via-accent-500/20 to-primary-600/20 rounded-2xl mb-8 shadow-soft-xl relative">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary-500 via-accent-500 to-primary-600 opacity-20 animate-ping"></div>
-            <CurrentStepIcon size={48} className="text-primary-600 dark:text-primary-400 animate-bounce-slow" />
-          </div>
-          <h2 className={`text-4xl font-bold bg-gradient-to-r ${modeColor} bg-clip-text text-transparent mb-4 tracking-tight`}>
-            {modeTitle}
-          </h2>
-          <p className="text-slate-700 dark:text-slate-200 text-xl font-medium">
-            {steps[currentStep].label}
-          </p>
-        </div>
-
-        <div className="mb-10">
-          <div className="relative h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner-soft">
-            <div
-              className={`absolute inset-y-0 left-0 bg-gradient-to-r ${modeColor} rounded-full transition-all duration-700 ease-out flex items-center justify-end pr-1.5 shadow-glow`}
-              style={{ width: `${progress}%` }}
-            >
-              <div className="w-2 h-2 bg-white rounded-full shadow-soft animate-pulse"></div>
-            </div>
-          </div>
-          <div className="text-right mt-3">
-            <span className="text-base font-bold text-slate-700 dark:text-slate-300">{progress}%</span>
-          </div>
-        </div>
-
-        <div className="relative h-40 mb-6 bg-gradient-to-b from-sky-100 via-sky-50 to-green-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-green-200/50 to-transparent dark:from-green-900/30"></div>
-
-          <div className="absolute top-4 left-4">
-            <div className="w-12 h-12 bg-yellow-300 rounded-full shadow-lg"></div>
-          </div>
-
-          <div className="absolute bottom-4 left-0 right-0 h-1 bg-green-600 dark:bg-green-800"></div>
-
-          {humans.map((human) => (
-            <div
-              key={human.id}
-              className="absolute transition-all duration-100 ease-linear"
-              style={{
-                left: `${human.x}%`,
-                bottom: `${100 - human.y}px`,
-                transform: human.direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
-              }}
-            >
-              <div className="relative group cursor-pointer">
-                <div className={`text-5xl ${human.isJumping ? 'animate-bounce' : ''}`}>
-                  {human.emoji}
-                </div>
-
-                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
-                  {human.name}
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-white"></div>
-                </div>
+        {/* Main content */}
+        <div className="relative z-10">
+          {/* Header with animated icon */}
+          <div className="text-center mb-10">
+            <div className="relative inline-flex items-center justify-center mb-6">
+              {/* Outer pulse ring */}
+              <div 
+                className={`absolute w-28 h-28 rounded-2xl ${mode === 'ui' ? 'bg-blue-500' : 'bg-purple-500'} opacity-20 animate-ping`}
+                style={{ animationDuration: '2s' }}
+              />
+              {/* Inner glow */}
+              <div className={`absolute w-24 h-24 rounded-2xl ${mode === 'ui' ? 'bg-blue-500/30' : 'bg-purple-500/30'} blur-xl`} />
+              {/* Icon container */}
+              <div className={`relative w-20 h-20 rounded-2xl flex items-center justify-center ${
+                mode === 'ui' 
+                  ? 'bg-gradient-to-br from-blue-500 to-cyan-500' 
+                  : 'bg-gradient-to-br from-purple-500 to-pink-500'
+              } shadow-lg`}>
+                <CurrentIcon size={36} className="text-white" />
               </div>
             </div>
-          ))}
-        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {steps.map((step, index) => {
-            const StepIcon = step.icon;
-            const isActive = index === currentStep;
-            const isComplete = progress > step.progress;
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+              {mode === 'ui' ? 'Analyzing Website' : 'Analyzing Design'}
+            </h2>
+            <p className="text-gray-400 text-lg">
+              {steps[currentStep]?.description}
+            </p>
+          </div>
 
-            return (
-              <div
-                key={index}
-                className={`
-                  flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 border-2
-                  ${isActive
-                    ? mode === 'ui'
-                      ? 'bg-gradient-to-r from-green-500/10 to-blue-500/10 border-green-500 dark:border-green-400 scale-105'
-                      : 'bg-gradient-to-r from-pink-500/10 to-purple-500/10 border-pink-500 dark:border-pink-400 scale-105'
-                    : isComplete
-                    ? 'bg-green-500/10 border-green-500 dark:border-green-400'
-                    : 'bg-gray-50 dark:bg-gray-800/50 border-transparent'
-                  }
-                `}
-              >
-                <div className={`
-                  flex items-center justify-center w-8 h-8 rounded-full shadow-md transition-all duration-300
-                  ${isActive
-                    ? mode === 'ui'
-                      ? 'bg-gradient-to-br from-green-500 to-blue-600 animate-pulse'
-                      : 'bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse'
-                    : isComplete
-                    ? 'bg-gradient-to-br from-green-500 to-emerald-600'
-                    : 'bg-gray-300 dark:bg-gray-700'
-                  }
-                `}>
-                  <StepIcon size={16} className="text-white" />
+          {/* Progress bar */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-400">Progress</span>
+              <span className="text-sm font-bold text-white">{Math.round(progress)}%</span>
+            </div>
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ease-out ${
+                  mode === 'ui' 
+                    ? 'bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500' 
+                    : 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500'
+                }`}
+                style={{ 
+                  width: `${progress}%`,
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 2s linear infinite'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Step indicators */}
+          <div className="space-y-3">
+            {steps.map((step, index) => {
+              const StepIcon = step.icon;
+              const isComplete = index < currentStep;
+              const isActive = index === currentStep;
+              const isPending = index > currentStep;
+
+              return (
+                <div 
+                  key={index}
+                  className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-300 ${
+                    isActive 
+                      ? mode === 'ui'
+                        ? 'bg-blue-500/10 border border-blue-500/30'
+                        : 'bg-purple-500/10 border border-purple-500/30'
+                      : isComplete
+                      ? 'bg-green-500/5 border border-green-500/20'
+                      : 'bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                    isComplete 
+                      ? 'bg-green-500/20' 
+                      : isActive 
+                      ? mode === 'ui' ? 'bg-blue-500/20' : 'bg-purple-500/20'
+                      : 'bg-white/5'
+                  }`}>
+                    {isComplete ? (
+                      <CheckCircle2 size={20} className="text-green-400" />
+                    ) : isActive ? (
+                      <Loader2 size={20} className={`${mode === 'ui' ? 'text-blue-400' : 'text-purple-400'} animate-spin`} />
+                    ) : (
+                      <StepIcon size={20} className="text-gray-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium transition-colors duration-300 ${
+                      isComplete 
+                        ? 'text-green-400' 
+                        : isActive 
+                        ? 'text-white' 
+                        : 'text-gray-500'
+                    }`}>
+                      {step.label}
+                    </p>
+                  </div>
+                  {isActive && (
+                    <div className="flex gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <div 
+                          key={i}
+                          className={`w-1.5 h-1.5 rounded-full ${mode === 'ui' ? 'bg-blue-400' : 'bg-purple-400'}`}
+                          style={{
+                            animation: 'bounce 1s ease-in-out infinite',
+                            animationDelay: `${i * 0.15}s`
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <span className={`text-xs font-semibold ${
-                  isActive
-                    ? mode === 'ui'
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-pink-600 dark:text-pink-400'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}>
-                  {step.label.replace('...', '')}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
-            <Sparkles size={16} className="animate-spin" />
-            AI is working its magic...
-            <Sparkles size={16} className="animate-spin" style={{ animationDirection: 'reverse' }} />
-          </p>
+          {/* Footer message */}
+          <div className="mt-8 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+              <Zap size={14} className={mode === 'ui' ? 'text-blue-400' : 'text-purple-400'} />
+              <span className="text-sm text-gray-400">AI is analyzing your {mode === 'ui' ? 'interface' : 'design'}...</span>
+            </div>
+          </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+      `}</style>
     </div>
   );
 }

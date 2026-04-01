@@ -874,19 +874,26 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
                   onClick={() => {
                     setSelectedIntro(template.id);
                     setDuration(template.duration);
+                    // Apply the preset config
+                    const preset = logoAnimationPresets[template.id];
+                    if (preset) {
+                      setLogoSettings(preset);
+                    }
+                    setCurrentTime(0);
+                    setIsPlaying(false);
                   }}
                   className={`w-full p-3 rounded-xl text-left transition-all ${
                     selectedIntro === template.id
-                      ? 'bg-amber-100 dark:bg-amber-900/30 ring-2 ring-amber-500'
-                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                      ? 'bg-amber-500/20 ring-2 ring-amber-500 text-white'
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10 text-white'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-sm text-slate-900 dark:text-slate-50">{template.name}</div>
-                      <div className="text-xs text-slate-500">{template.preview}</div>
+                      <div className="font-medium text-sm">{template.name}</div>
+                      <div className="text-xs text-gray-400">{template.preview}</div>
                     </div>
-                    <span className="text-xs text-slate-400 font-mono">{template.duration}s</span>
+                    <span className="text-xs text-gray-400 font-mono">{template.duration}s</span>
                   </div>
                 </button>
               ))}

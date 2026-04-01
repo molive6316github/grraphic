@@ -127,8 +127,12 @@ Provide specific feedback based on:
 
 Be specific about what you observe in the visual design.`;
 
-  if (!apiKey || !apiKey.startsWith('AIza')) {
-    throw new Error('Gemini API key not configured or invalid.');
+  if (!apiKey) {
+    throw new Error('UI Analysis requires a Gemini API key. Please add your VITE_GEMINI_API_KEY in the environment variables (Settings > Vars). You can get a free API key from https://aistudio.google.com/');
+  }
+  
+  if (!apiKey.startsWith('AIza')) {
+    throw new Error('Invalid Gemini API key format. The key should start with "AIza". Please check your VITE_GEMINI_API_KEY in environment variables.');
   }
 
   try {
