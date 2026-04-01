@@ -508,7 +508,7 @@ For portfolios/profiles: Use dark themes, gradients, smooth animations, hero sec
       <div className="flex-1 flex overflow-hidden">
         {/* Chat Panel */}
         {showChat && !isFullscreen && (
-          <div className="w-80 bg-[#111118] border-r border-white/10 flex flex-col flex-shrink-0">
+          <div className="w-[400px] bg-[#111118] border-r border-white/10 flex flex-col flex-shrink-0">
             {/* Chat Header */}
             <div className="p-3 border-b border-white/10 flex items-center justify-between">
               <span className="text-sm font-medium">Chat</span>
