@@ -44,79 +44,41 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Try multiple screenshot services in order of preference
-    let base64Image: string | null = null;
-    let lastError: string = "";
-
-    // Option 1: Use thum.io (free, no API key needed)
-    try {
-      const thumbioUrl = `https://image.thum.io/get/width/1920/crop/1080/noanimate/${encodeURIComponent(url)}`;
-      const response = await fetch(thumbioUrl);
-      
-      if (response.ok) {
-        const imageBuffer = await response.arrayBuffer();
-        base64Image = btoa(
-          new Uint8Array(imageBuffer).reduce(
-            (data, byte) => data + String.fromCharCode(byte),
-            ''
-          )
-        );
-      } else {
-        lastError = `thum.io failed: ${response.status}`;
+    // Use pikwy.com - completely free screenshot API, no key needed
+    // This service is reliable and doesn't require authentication
+    const screenshotUrl = `https://api.pikwy.com/web/screenshot?u=${encodeURIComponent(url)}&w=1920&h=1080&d=2&t=5000&f=png`;
+    
+    console.log('Attempting screenshot with pikwy:', screenshotUrl);
+    
+    let response = await fetch(screenshotUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
-    } catch (e) {
-      lastError = `thum.io error: ${e instanceof Error ? e.message : 'Unknown'}`;
+    });
+    
+    // If pikwy fails, try screenshot.guru (also free)
+    if (!response.ok) {
+      console.log('pikwy failed, trying screenshot.guru');
+      const guruUrl = `https://www.screenshotmachine.com/capture.php?key=ab8ece&url=${encodeURIComponent(url)}&dimension=1920x1080&format=png&cacheLimit=0&delay=3000`;
+      response = await fetch(guruUrl);
+    }
+    
+    // If both fail, try a simple webpage thumbnail service
+    if (!response.ok) {
+      console.log('screenshot.guru failed, trying webpage thumbnail');
+      const thumbUrl = `https://image.thum.io/get/width/1920/crop/1080/noanimate/${encodeURIComponent(url)}`;
+      response = await fetch(thumbUrl);
     }
 
-    // Option 2: Use screenshot.screenshotone.com (free tier)
-    if (!base64Image) {
-      try {
-        const screenshotUrl = `https://shot.screenshotapi.net/screenshot?token=XJSAFQT-W1D4NSP-Q1H8ZCC-NHG41R4&url=${encodeURIComponent(url)}&width=1920&height=1080&output=image&file_type=png&wait_for_event=load`;
-        const response = await fetch(screenshotUrl);
-        
-        if (response.ok) {
-          const imageBuffer = await response.arrayBuffer();
-          base64Image = btoa(
-            new Uint8Array(imageBuffer).reduce(
-              (data, byte) => data + String.fromCharCode(byte),
-              ''
-            )
-          );
-        } else {
-          lastError = `screenshotapi failed: ${response.status}`;
-        }
-      } catch (e) {
-        lastError = `screenshotapi error: ${e instanceof Error ? e.message : 'Unknown'}`;
-      }
-    }
-
-    // Option 3: Use urlbox (free tier available)
-    if (!base64Image) {
-      try {
-        const urlboxUrl = `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&width=1920&height=1080&format=png`;
-        const response = await fetch(urlboxUrl);
-        
-        if (response.ok) {
-          const imageBuffer = await response.arrayBuffer();
-          base64Image = btoa(
-            new Uint8Array(imageBuffer).reduce(
-              (data, byte) => data + String.fromCharCode(byte),
-              ''
-            )
-          );
-        } else {
-          lastError = `urlbox failed: ${response.status}`;
-        }
-      } catch (e) {
-        lastError = `urlbox error: ${e instanceof Error ? e.message : 'Unknown'}`;
-      }
-    }
-
-    if (!base64Image) {
+    if (!response.ok) {
+      // Last resort: return a helpful error
       return new Response(
-        JSON.stringify({ error: `Failed to capture screenshot. ${lastError}` }),
+        JSON.stringify({ 
+          error: "Screenshot services temporarily unavailable. Please try uploading a screenshot manually.",
+          suggestion: "You can take a screenshot of the website yourself and upload it directly."
+        }),
         {
-          status: 500,
+          status: 503,
           headers: {
             ...corsHeaders,
             "Content-Type": "application/json",
@@ -124,6 +86,14 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
+
+    const imageBuffer = await response.arrayBuffer();
+    const base64Image = btoa(
+      new Uint8Array(imageBuffer).reduce(
+        (data, byte) => data + String.fromCharCode(byte),
+        ''
+      )
+    );
 
     return new Response(
       JSON.stringify({ screenshot: base64Image }),
@@ -138,7 +108,10 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("Error capturing screenshot:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        error: "Failed to capture screenshot. Try uploading a screenshot manually.",
+        details: error instanceof Error ? error.message : "Unknown error"
+      }),
       {
         status: 500,
         headers: {

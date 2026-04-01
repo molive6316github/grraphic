@@ -193,6 +193,24 @@ export function useAnalysisHistory(userId: string | undefined) {
     if (!isSupabaseConfigured()) return null;
 
     try {
+      // First try to get the analysis by ID (without public check to see if it exists)
+      const { data: checkData, error: checkError } = await supabase
+        .from('design_analyses')
+        .select('id, is_public')
+        .eq('id', id)
+        .maybeSingle();
+      
+      // Check if analysis exists and is public (handle both 'yes' string and true boolean)
+      if (!checkData) {
+        return null;
+      }
+      
+      const isPublic = checkData.is_public === 'yes' || checkData.is_public === true;
+      if (!isPublic) {
+        return null;
+      }
+      
+      // Now fetch the full data
       const { data, error } = await supabase
         .from('design_analyses')
         .select(`
@@ -200,7 +218,6 @@ export function useAnalysisHistory(userId: string | undefined) {
           users!design_analyses_user_id_fkey (username)
         `)
         .eq('id', id)
-        .eq('is_public', 'yes')
         .maybeSingle();
 
       if (error) throw error;

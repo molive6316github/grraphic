@@ -260,100 +260,45 @@ export function Boxt({ userId }: BoxtProps) {
 
   const executeAgentMode = async (userRequest: string) => {
     setAgentWorking(true);
-    setGradiMessages(prev => [...prev, { role: 'assistant', content: '🤖 Agent Mode Activated! Using advanced AI models for professional design...' }]);
+    setGradiMessages(prev => [...prev, { role: 'assistant', content: '🤖 Agent Mode: Creating your professional design...' }]);
 
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
     const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     try {
-      const initialPrompt = `Create a WORLD-CLASS ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
+      const initialPrompt = `You are creating a ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
 
-STEP 1: Analyze the request and identify the best style:
-- Gaming/Esports/Tech → Bold neon cyberpunk
-- Business/Corporate → Clean modern professional
-- Wedding/Luxury → Elegant sophisticated
-- Kids/Fun → Playful colorful
-- Food/Restaurant → Appetizing vibrant
-- Fitness/Sports → Energetic dynamic
-- Music/Party → Vibrant electric
-- Nature/Eco → Organic earthy
+OUTPUT ONLY THESE COMMANDS (one per line, no explanations):
 
-STEP 2: Apply style rules:
-
-NEON/GAMING/TECH STYLE:
-Background: Dark #0a0e27, #0f172a, #1a0b2e
-Colors: Neon cyan #00fff0, pink #ff006e, green #00ff41, blue #0080ff, purple #8b00ff, orange #ff6500
-Shapes: 5-8 large glowing circles (200-300 radius) + thin accent rects, opacity 0.3-0.6
-Icons: 4-6 icons at 130-180px (gamepad, trophy, rocket, headphones, joystick, star)
-Text: MASSIVE 200-250px bold Impact headlines, 60-80px subtitles, white/cyan/pink
-Elements: 18-25 total commands
-
-PROFESSIONAL/BUSINESS STYLE:
-Background: Clean white #ffffff, light gray #f8fafc, or navy #0f172a
-Colors: Corporate blue #2563eb, green #059669, red #dc2626, purple #7c3aed
-Shapes: 2-4 subtle geometric circles/rects (150-220 radius), opacity 0.15-0.35
-Icons: 1-3 icons at 100-140px (briefcase, chart, handshake, target, lightbulb)
-Text: Large 140-180px bold Georgia/Arial headlines, 50-70px subtitles, high contrast
-Elements: 10-15 total commands
-
-ELEGANT/LUXURY STYLE:
-Background: Soft pastels #fdf4ff, #fef3f2, or elegant dark #1e1e1e
-Colors: Gold #d4af37, rose gold #e6b8af, champagne #f7e7ce, lavender #c9a0dc
-Shapes: 3-5 refined circles/rects (160-240 radius), opacity 0.2-0.4
-Icons: 1-2 icons at 90-130px (crown, rings, heart, diamond, flower, champagne)
-Text: Graceful 130-170px Georgia headlines, 45-65px subtitles, refined colors
-Elements: 12-18 total commands
-
-PLAYFUL/KIDS STYLE:
-Background: Bright pastels #fef3c7, #dbeafe, #fce7f3, #dcfce7
-Colors: Rainbow red #ef4444, orange #f59e0b, yellow #eab308, green #22c55e, blue #3b82f6, purple #a855f7
-Shapes: 5-7 fun circles/rects (140-240 radius), opacity 0.3-0.5
-Icons: 3-5 icons at 110-160px (balloon, star, ice-cream, rocket, rainbow, smiley)
-Text: Friendly 160-200px bold Arial/Impact, 55-75px subtitles, vibrant colors
-Elements: 15-22 total commands
-
-CRITICAL DESIGN RULES (ALL STYLES):
-
-1. HIERARCHY: Main text MUST be 2.5-3x larger than subtitle
-2. BOLD TEXT: Always use bold=true for headlines
-3. CONTRAST: Text must be highly visible against background
-4. SPACING: Don't overlap text with text or icons
-5. BALANCE: Distribute shapes/icons on both left and right
-6. FOCAL POINT: Center main headline or use rule-of-thirds (x: 640, 960, 1280)
-7. DEPTH: Layer background shapes → icons → text (front)
-8. ICONS: MUST include relevant icons for context
-9. OPACITY: ALWAYS set opacity on decorative shapes
-10. COMPLEXITY: Use 10-25 commands for rich professional look
-
-POSITIONING GUIDE:
-- Headlines: y: 350-500 (center vertical)
-- Subtitles: y: headline_y + 180-250
-- Large circles: x: 200-1700, y: 200-800 (spread out)
-- Icons: x: 150-1750, y: 150-850 (scattered, not clustered)
-
-ICON KEYWORDS BY TOPIC:
-Gaming: gamepad, controller, trophy, joystick, headphones, keyboard, mouse
-Business: briefcase, chart, handshake, target, lightbulb, graph, presentation
-Wedding: rings, heart, crown, diamond, flower, champagne, cake
-Kids: balloon, star, ice-cream, rocket, rainbow, smiley, candy
-Food: pizza, burger, coffee, ice-cream, chef-hat, fork, apple
-Fitness: dumbbell, trophy, medal, running, bicycle, heart, flame
-Music: music, headphones, microphone, speaker, guitar, drums
-Nature: leaf, flower, tree, mountain, sun, water, plant
-
-COMMANDS:
 SET_BACKGROUND(#hexcolor)
-ADD_TEXT(x, y, "text", fontSize, fontFamily, #color, bold, italic)
-ADD_CIRCLE(x, y, radius, #fillColor, none)
 ADD_RECT(x, y, width, height, #fillColor, none)
-SET_OPACITY(index, 0.15-0.7)
+ADD_CIRCLE(x, y, radius, #fillColor, none)
+ADD_TEXT(x, y, "text", fontSize, "fontFamily", #color, true, false)
+SET_OPACITY(elementIndex, 0.0-1.0)
 SEARCH_ICON(keyword, x, y, size)
 
-OUTPUT: 10-25 commands, NO explanations, one per line, start with SET_BACKGROUND
+DESIGN GUIDE:
+1. SET_BACKGROUND first (dark: #0f172a, #1a1a2e, #0a0a0a | light: #ffffff, #f8fafc)
+2. Add 3-6 large decorative shapes (circles/rects) with SET_OPACITY after each
+3. Add 2-4 icons using SEARCH_ICON (gamepad, star, rocket, briefcase, heart, etc.)
+4. Add headline text: 120-200px bold, centered around y:400-500
+5. Add subtitle: 40-60px, below headline
 
-NOW CREATE "${userRequest}":`;
+EXAMPLE OUTPUT:
+SET_BACKGROUND(#0f172a)
+ADD_CIRCLE(300, 400, 200, #3b82f6, none)
+SET_OPACITY(0, 0.3)
+ADD_CIRCLE(1600, 300, 180, #ec4899, none)
+SET_OPACITY(1, 0.25)
+ADD_RECT(100, 700, 400, 8, #22d3ee, none)
+SET_OPACITY(2, 0.5)
+SEARCH_ICON(star, 960, 200, 120)
+ADD_TEXT(960, 450, "AMAZING DESIGN", 180, "Impact", #ffffff, true, false)
+ADD_TEXT(960, 580, "Professional Quality", 48, "Arial", #94a3b8, false, false)
 
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Phase 1: Generating initial design...' }]);
+NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
+
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Generating design elements...' }]);
 
       let response = await callAI(apiKey, fallbackKey, initialPrompt);
       console.log('Agent AI Response:', response);
@@ -417,45 +362,22 @@ NOW CREATE "${userRequest}":`;
         return '';
       }).join('\n');
 
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔍 Phase 2: Analyzing design quality...' }]);
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔍 Analyzing design quality...' }]);
 
-      const analysisPrompt = `You are a BRUTAL design critic analyzing: "${userRequest}"
+      const analysisPrompt = `Rate this design 1-10 and suggest improvements.
 
-Canvas: ${canvasWidth}x${canvasHeight}
-Background: ${currentBg}
+Request: "${userRequest}"
+Canvas: ${canvasWidth}x${canvasHeight}, Background: ${currentBg}
+Elements: ${currentElements.length} total
 
-CURRENT ELEMENTS (${currentElements.length} total - indexed [0] to [${currentElements.length - 1}]):
 ${elementDescriptions}
 
-CRITICAL ANALYSIS RULES:
-1. Check for visual noise and overlapping elements that create confusion
-2. Identify elements that should be DELETED or repositioned
-3. Flag typography that's underwhelming or poorly sized
-4. Point out missing focal points or clear hierarchy
-5. Identify color palette issues (too bland, too chaotic)
-6. Check spacing and alignment problems
-7. Assess overall composition and balance
-
-BE BRUTALLY HONEST. Score harshly:
-- 7-10: Professional quality, production-ready (improvement phase SKIPPED)
-- 5-6: Good foundation but needs refinement
-- 3-4: Messy, lacks focus, needs major work
-- 1-2: Complete redesign needed
-
-TARGET: Agent will improve designs scoring below 7/10
-
-PROVIDE SPECIFIC IMPROVEMENTS using element indices:
-- **DELETE elements** that create visual noise: "Delete [index] - overlaps and creates confusion"
-- **MOVE elements** for better composition: "Move [index] to (x, y) for better balance"
-- **MODIFY sizes/colors** for better hierarchy: "Make text [index] bigger/bolder"
-- **ADD new elements** to fill gaps or create focus
-
-Format:
+Reply with:
 OVERALL_SCORE: X/10
 IMPROVEMENTS:
-- [Specific action with element indices or new additions]
-- [Be harsh and demanding - what would make this EXCEPTIONAL?]
-- [Address overlaps, typography, spacing, focal points]`;
+- Suggestion 1
+- Suggestion 2
+- Suggestion 3`;
 
       const analysis = await callAI(apiKey, fallbackKey, analysisPrompt);
 
@@ -466,150 +388,32 @@ IMPROVEMENTS:
       setGradiMessages(prev => [...prev, { role: 'assistant', content: analysis.substring(0, 300) }]);
 
       if (score < 7) {
-        setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Phase 3: Applying improvements (target: 7/10)...' }]);
+        setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Enhancing design...' }]);
 
-        let currentElementsForImprovement: any[] = [];
-        setElements(prev => {
-          currentElementsForImprovement = prev;
-          return prev;
-        });
+        const improvementPrompt = `Improve this design. Current score: ${score}/10. Target: 8+
 
-        const currentElementsList = currentElementsForImprovement.map((el, idx) => {
-          if (el.type === 'text') {
-            return `[${idx}] Text: "${el.text}" - ${el.fontSize}px at (${Math.round(el.x)},${Math.round(el.y)})`;
-          } else if (el.type === 'rect') {
-            return `[${idx}] Rectangle - ${Math.round(el.width)}x${Math.round(el.height)}px at (${Math.round(el.x)},${Math.round(el.y)})`;
-          } else if (el.type === 'circle') {
-            return `[${idx}] Circle - radius ${Math.round(el.width/2)}px at (${Math.round(el.x)},${Math.round(el.y)})`;
-          } else if (el.type === 'image') {
-            return `[${idx}] Image - ${Math.round(el.width)}x${Math.round(el.height)}px at (${Math.round(el.x)},${Math.round(el.y)})`;
-          }
-          return '';
-        }).join('\n');
+Feedback: ${analysis}
 
-        const improvementPrompt = `IMPROVEMENT MISSION: "${userRequest}" - Current: ${score}/10, Target: 7+/10
+Current elements:
+${elementDescriptions}
 
-Canvas: ${canvasWidth}x${canvasHeight}
+Add 5-10 commands to improve:
+- ADD more decorative shapes with SET_OPACITY
+- ADD more SEARCH_ICON for visual interest
+- Enhance text with MODIFY_TEXT for bigger/bolder
 
-CRITIQUE:
-${analysis}
-
-CURRENT ELEMENTS:
-${currentElementsList}
-
-TRANSFORMATION RULES:
-Fix the issues to reach 7+/10 by applying APPROPRIATE improvements based on the topic style.
-
-COMMANDS:
-DELETE(index) | MOVE(index, x, y) | RESIZE(index, w, h)
-MODIFY_TEXT(index, text, size, color) | MODIFY_COLOR(index, fill, stroke)
-SET_OPACITY(index, 0.15-0.7) | ROTATE(index, degrees)
-BRING_FORWARD(index) | SEND_BACK(index) | DUPLICATE(index)
-ADD_CIRCLE(x, y, radius, color, none) | ADD_RECT(x, y, w, h, color, none)
-ADD_TEXT(x, y, text, size, font, color, bold, italic)
-SEARCH_ICON(keyword, x, y, size)
-SET_BACKGROUND(#hexcolor)
-
-IMPROVEMENT STRATEGIES BY STYLE:
-
-GAMING/TECH/MUSIC (Vibrant Energy):
-- DELETE weak elements, keep 15-25 total
-- MODIFY_TEXT headlines to 200-250px bold Impact
-- MODIFY_COLOR to neon: #00fff0 cyan, #ff006e pink, #00ff41 green, #8b00ff purple
-- ADD 4-6 glowing circles (radius 200-280) + SET_OPACITY 0.3-0.6
-- ADD 4-6 relevant icons at 130-180px (gamepad, trophy, rocket, headphones)
-- SET_BACKGROUND dark: #0a0e27, #0f172a
-
-BUSINESS/CORPORATE (Professional Polish):
-- DELETE clutter, keep 10-15 total
-- MODIFY_TEXT headlines to 140-180px bold Georgia
-- MODIFY_COLOR to corporate: #2563eb blue, #059669 green, #dc2626 red
-- ADD 2-4 subtle circles (radius 150-220) + SET_OPACITY 0.15-0.35
-- ADD 1-3 professional icons at 100-140px (briefcase, chart, target)
-- SET_BACKGROUND clean: #ffffff, #f8fafc, or navy #0f172a
-
-ELEGANT/LUXURY (Sophisticated Beauty):
-- DELETE excess, keep 12-18 total
-- MODIFY_TEXT headlines to 130-170px Georgia
-- MODIFY_COLOR to refined: #d4af37 gold, #e6b8af rose gold, #c9a0dc lavender
-- ADD 3-5 elegant circles (radius 160-240) + SET_OPACITY 0.2-0.4
-- ADD 1-2 classy icons at 90-130px (crown, rings, diamond)
-- SET_BACKGROUND soft: #fdf4ff, #fef3f2, or dark #1e1e1e
-
-PLAYFUL/KIDS (Fun Energy):
-- MODIFY_TEXT headlines to 160-200px bold Arial/Impact
-- MODIFY_COLOR to rainbow: #ef4444 red, #f59e0b orange, #22c55e green, #3b82f6 blue
-- ADD 5-7 fun circles (radius 140-240) + SET_OPACITY 0.3-0.5
-- ADD 3-5 playful icons at 110-160px (balloon, star, ice-cream)
-- SET_BACKGROUND bright: #fef3c7, #dbeafe, #fce7f3
-
-UNIVERSAL FIXES:
-1. DELETE overlapping/messy elements
-2. MODIFY_TEXT: Make headlines 2.5-3x larger than subtitles, use bold=true
-3. MOVE elements to golden ratio positions for balance
-4. ADD missing focal point or icons if design feels empty
-5. SET_OPACITY on all decorative shapes
-6. MODIFY_COLOR for better contrast with background
-7. Ensure text is always readable (high contrast)
-
-EXECUTE 8-18 COMMANDS to fix issues. Output commands only, no explanations:`;
+COMMANDS ONLY, one per line:`;
 
         const improvements = await callAI(apiKey, fallbackKey, improvementPrompt);
         const improvementActions = parseAgentActions(improvements);
 
         if (improvementActions.length > 0) {
-          setGradiMessages(prev => [...prev, { role: 'assistant', content: `✨ Applying ${improvementActions.length} improvements...` }]);
+          setGradiMessages(prev => [...prev, { role: 'assistant', content: `✨ Adding ${improvementActions.length} enhancements...` }]);
           await executeActionsWithProgress(improvementActions);
         }
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        setGradiMessages(prev => [...prev, { role: 'assistant', content: '🎯 Phase 4: Final polish pass...' }]);
-
-        let finalElements: any[] = [];
-        setElements(prev => {
-          finalElements = prev;
-          return prev;
-        });
-
-        const finalElementsList = finalElements.map((el, idx) => {
-          if (el.type === 'text') return `[${idx}] Text: "${el.text}" - ${el.fontSize}px`;
-          if (el.type === 'rect') return `[${idx}] Rectangle - ${Math.round(el.width)}x${Math.round(el.height)}px`;
-          if (el.type === 'circle') return `[${idx}] Circle - ${Math.round(el.width/2)}px radius`;
-          if (el.type === 'image') return `[${idx}] Image`;
-          return '';
-        }).join('\n');
-
-        const polishPrompt = `FINAL POLISH for "${userRequest}" (7/10 → 9/10)
-
-CURRENT ELEMENTS:
-${finalElementsList}
-
-Add SUBTLE finishing touches:
-- Tiny accent shapes for sophistication
-- Micro-adjustments to spacing
-- Final color refinements
-- One surprise element for "WOW"
-
-COMMANDS:
-ADD_RECT, ADD_CIRCLE, ADD_TEXT, MOVE, MODIFY_COLOR
-
-2-4 POLISH COMMANDS:`;
-
-        const polish = await callAI(apiKey, fallbackKey, polishPrompt);
-        const polishActions = parseAgentActions(polish);
-
-        if (polishActions.length > 0) {
-          await executeActionsWithProgress(polishActions);
-        }
-      } else {
-        setGradiMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `🎉 Initial design already scored ${score}/10! Skipping improvement phase.`
-        }]);
       }
 
-      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✅ Professional design complete! This is production-ready.' }]);
+      setGradiMessages(prev => [...prev, { role: 'assistant', content: '✅ Design complete!' }]);
 
     } catch (error) {
       console.error('Agent error:', error);
