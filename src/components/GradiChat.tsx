@@ -4,6 +4,7 @@ import logoImage from '../assets/ae52010de59e187ce864ed24eee6209a.png';
 import { gradiChat } from '../services/groqService';
 import { supabase } from '../lib/supabase';
 import { useSubscription } from '../hooks/useSubscription';
+import { SiteDesignerWorkspace } from './SiteDesignerWorkspace';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -51,6 +52,7 @@ export function GradiChat({ userId }: GradiChatProps) {
   const [lastReset, setLastReset] = useState<Date>(new Date());
   const [chatMode, setChatMode] = useState<ChatMode>('assistant');
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [showSiteDesignerWorkspace, setShowSiteDesignerWorkspace] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -612,7 +614,7 @@ export function GradiChat({ userId }: GradiChatProps) {
                 {message.role === 'assistant' && (
                   <img src={logoImage} alt="Gradi" className="w-10 h-10 rounded-full flex-shrink-0" />
                 )}
-                <div className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'} space-y-2`}>
+                  <div className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'} space-y-2`}>
                   <div className={`rounded-3xl px-6 py-4 ${
                     message.role === 'user'
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
@@ -635,13 +637,30 @@ export function GradiChat({ userId }: GradiChatProps) {
                       <span>Copy</span>
                     </button>
                     {message.role === 'assistant' && (
-                      <button
-                        onClick={() => speakMessage(message.content)}
-                        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center space-x-1 px-2 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
-                        <Volume2 size={12} />
-                        <span>Speak</span>
-                      </button>
+                      <>
+                        {chatMode === 'site-designer' && message.content.includes('```') && (
+                          <button
+                            onClick={() => {
+                              const codeMatch = message.content.match(/```(?:html|jsx|tsx|css)?\n([\s\S]*?)```/);
+                              if (codeMatch) {
+                                setGeneratedCode(codeMatch[1]);
+                                setShowSiteDesignerWorkspace(true);
+                              }
+                            }}
+                            className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex items-center space-x-1 px-2 py-1 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
+                          >
+                            <Code size={12} />
+                            <span>Open in Designer</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => speakMessage(message.content)}
+                          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center space-x-1 px-2 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                          <Volume2 size={12} />
+                          <span>Speak</span>
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -767,6 +786,15 @@ export function GradiChat({ userId }: GradiChatProps) {
           </div>
         </div>
       </div>
+
+      {/* Site Designer Workspace */}
+      {showSiteDesignerWorkspace && generatedCode && (
+        <SiteDesignerWorkspace
+          code={generatedCode}
+          onClose={() => setShowSiteDesignerWorkspace(false)}
+          onCodeChange={(newCode) => setGeneratedCode(newCode)}
+        />
+      )}
     </div>
   );
 }
