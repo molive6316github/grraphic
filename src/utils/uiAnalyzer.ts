@@ -1,14 +1,6 @@
 import { UIUpload, UIAnalysis } from '../types';
 
-const UI_ANALYSIS_PROMPT = `You are an expert UI/UX analyst and designer. Analyze the provided website/UI screenshot comprehensively based on what you can see visually.
-
-Evaluate these key areas based on visual inspection:
-1. **Usability**: Navigation clarity, button placement, visual hierarchy, ease of understanding the interface
-2. **Accessibility**: Color contrast, text readability, visual indicators, icon clarity
-3. **Responsiveness**: Layout balance, spacing, visual organization, content density
-4. **Performance**: Visual complexity, number of elements, loading indicators visible
-5. **Semantics**: Clear content structure, proper visual grouping, logical flow
-6. **UX Patterns**: Modern design patterns, consistency, visual feedback elements, call-to-action clarity
+const UI_ANALYSIS_PROMPT = `You are an expert UI/UX analyst. Based on the website URL provided, analyze the likely UI/UX characteristics and provide a comprehensive evaluation.
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -18,37 +10,37 @@ Return ONLY valid JSON with this exact structure:
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific UI elements mentioned, like 'navigation menu', 'search button', 'login form'"]
+      "references": ["specific UI elements"]
     },
     "accessibility": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific accessibility concerns, like 'text contrast on blue background', 'icon buttons without labels'"]
+      "references": ["specific accessibility concerns"]
     },
     "responsiveness": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific layout elements, like 'sidebar width', 'mobile menu', 'content grid'"]
+      "references": ["specific layout elements"]
     },
     "performance": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific performance indicators, like 'number of large images', 'animation complexity'"]
+      "references": ["specific performance indicators"]
     },
     "semantics": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific semantic elements, like 'page heading structure', 'section organization', 'content hierarchy'"]
+      "references": ["specific semantic elements"]
     },
     "uxPatterns": {
       "score": <number 0-100>,
       "feedback": "<detailed assessment>",
       "improvementIdeas": ["<idea 1>", "<idea 2>", "<idea 3>"],
-      "references": ["specific UX patterns observed, like 'breadcrumb navigation', 'card layout', 'call-to-action placement'"]
+      "references": ["specific UX patterns observed"]
     }
   },
   "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
@@ -82,150 +74,93 @@ async function fetchWebsiteScreenshot(url: string): Promise<string> {
   }
 }
 
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64Data = result.split(',')[1];
-      resolve(base64Data);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+async function analyzeWithGroq(url: string, apiKey: string): Promise<any> {
+  const prompt = `${UI_ANALYSIS_PROMPT}
+
+Analyze the website at URL: ${url}
+
+Based on your knowledge of common UI/UX patterns and best practices for this type of website, provide a detailed analysis. Consider:
+1. Navigation and information architecture
+2. Visual hierarchy and typography
+3. Color usage and accessibility
+4. Mobile responsiveness expectations
+5. Loading performance factors
+6. Modern UX patterns usage
+
+Respond ONLY with valid JSON, no other text.`;
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: 'You are an expert UI/UX analyst. Respond only with valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000,
+    }),
   });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Groq API error: ${error}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  
+  if (!content) {
+    throw new Error('No response from Groq API');
+  }
+
+  // Parse JSON from the response
+  try {
+    // Try to extract JSON from the response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(content);
+  } catch (e) {
+    console.error('Failed to parse Groq response:', content);
+    throw new Error('Failed to parse analysis response as JSON');
+  }
 }
 
 export async function analyzeUI(upload: UIUpload, apiKey: string): Promise<UIAnalysis & { screenshotUrl?: string }> {
-  let base64Image = '';
-  let mimeType = 'image/jpeg';
-  let analysisContext = '';
+  let screenshotUrl = '';
 
   if (upload.type === 'html') {
     throw new Error('HTML file upload is not yet supported for visual analysis. Please use the URL option instead.');
-  } else {
-    analysisContext = `Analyzing website screenshot: ${upload.url}`;
-    try {
-      base64Image = await fetchWebsiteScreenshot(upload.url || '');
-    } catch (error) {
-      throw new Error('Failed to capture website screenshot. Please ensure the URL is accessible and valid.');
-    }
   }
 
-  const analysisPrompt = `${UI_ANALYSIS_PROMPT}
-
-${analysisContext}
-
-IMPORTANT: Analyze what you can SEE in the screenshot. Focus on visual design, layout, colors, typography, spacing, and overall user interface appearance.
-
-Provide specific feedback based on:
-1. **Usability**: How clear and intuitive does the interface appear? Are buttons and navigation easy to identify?
-2. **Accessibility**: Is the text readable? Is there good color contrast? Are visual elements clear?
-3. **Responsiveness**: Does the layout look balanced? Is content well-organized visually?
-4. **Performance**: How complex does the interface appear? Is it cluttered or clean?
-5. **Semantics**: Is the visual hierarchy clear? Can you easily identify different sections?
-6. **UX Patterns**: Does it follow modern design patterns? Are interactive elements obvious?
-
-Be specific about what you observe in the visual design.`;
-
-  if (!apiKey) {
-    throw new Error('UI Analysis requires a Gemini API key. Please add your VITE_GEMINI_API_KEY in the environment variables (Settings > Vars). You can get a free API key from https://aistudio.google.com/');
-  }
+  const groqKey = import.meta.env.VITE_GROQ_API_KEY;
   
-  if (!apiKey.startsWith('AIza')) {
-    throw new Error('Invalid Gemini API key format. The key should start with "AIza". Please check your VITE_GEMINI_API_KEY in environment variables.');
+  if (!groqKey) {
+    throw new Error('UI Analysis requires a Groq API key. Please add your VITE_GROQ_API_KEY in the environment variables.');
+  }
+
+  // Try to capture screenshot for display (non-blocking)
+  try {
+    const base64Image = await fetchWebsiteScreenshot(upload.url || '');
+    screenshotUrl = `data:image/jpeg;base64,${base64Image}`;
+  } catch (error) {
+    console.warn('Screenshot capture failed, continuing with analysis:', error);
+    // Continue without screenshot - analysis will still work
   }
 
   try {
-    const requestBody = {
-      contents: [{
-        parts: [
-          {
-            text: analysisPrompt
-          },
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data: base64Image
-            }
-          }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 4096,
-        responseMimeType: "application/json",
-      }
-    };
-
-    // Use gemini-1.5-flash which is widely available and stable
-    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-    const url = `${GEMINI_API_URL}?key=${apiKey}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      if (response.status === 429) {
-        throw new Error(`Gemini API rate limit exceeded (429). The free tier allows 15 requests per minute. Please wait a moment and try again, or consider upgrading to a paid plan for higher limits.`);
-      } else if (response.status === 400) {
-        throw new Error(`Gemini API error (400): Invalid request. Check if the Generative Language API is enabled and your API key has proper restrictions configured.`);
-      } else if (response.status === 403) {
-        throw new Error(`Gemini API error (403): Access denied. Check your API key permissions and ensure your domain is allowed in HTTP referrer restrictions.`);
-      } else if (response.status === 404) {
-        throw new Error(`Gemini API error (404): Model not found. The 'gemini-2.5-flash' model may not be available or accessible with your current API key/project configuration.`);
-      }
-      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.candidates?.[0]?.content?.parts?.[0]) {
-      throw new Error('Invalid response from Gemini API');
-    }
-
-    const analysisText = data.candidates[0].content.parts[0].text;
-
-    let analysis;
-    try {
-      analysis = JSON.parse(analysisText);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      console.error('Failed to parse response (first 500 chars):', analysisText.substring(0, 500));
-
-      // Try to repair the JSON
-      try {
-        let repairedText = analysisText;
-
-        // Remove any trailing commas before closing braces/brackets
-        repairedText = repairedText.replace(/,(\s*[}\]])/g, '$1');
-
-        // Try to find and remove incomplete visualReferences if present
-        repairedText = repairedText.replace(/"visualReferences"\s*:\s*\[[^\]]*$/gm, '');
-
-        // Remove trailing commas again after removal
-        repairedText = repairedText.replace(/,(\s*[}\]])/g, '$1');
-
-        // Try parsing the repaired JSON
-        analysis = JSON.parse(repairedText);
-        console.log('Successfully repaired JSON');
-      } catch (repairError) {
-        console.error('Failed to repair JSON:', repairError);
-        throw new Error(`Failed to parse Gemini response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}. The response may be incomplete or malformed.`);
-      }
-    }
-
-    // Convert base64 image to data URL for display
-    const screenshotUrl = `data:${mimeType};base64,${base64Image}`;
-
-    return { ...analysis, screenshotUrl } as UIAnalysis & { screenshotUrl?: string };
+    const analysis = await analyzeWithGroq(upload.url || '', groqKey);
+    
+    return { 
+      ...analysis, 
+      screenshotUrl: screenshotUrl || undefined 
+    } as UIAnalysis & { screenshotUrl?: string };
   } catch (error) {
     console.error('UI analysis error:', error);
     throw error;
