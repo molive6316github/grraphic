@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, MicOff, Download, Copy, Volume2, VolumeX, Eraser, ImagePlus, Sparkles, Clock, BookOpen, Lightbulb, X, Plus, MessageSquare, Code, Palette, Settings, Trash2 } from 'lucide-react';
+import { Send, Mic, MicOff, Download, Copy, Volume2, VolumeX, ImagePlus, Sparkles, Clock, BookOpen, Lightbulb, X, Plus, MessageSquare, Code, Trash2, Globe, Wand2, Layout, Monitor } from 'lucide-react';
 import logoImage from '../assets/ae52010de59e187ce864ed24eee6209a.png';
 import { gradiChat } from '../services/groqService';
 import { supabase } from '../lib/supabase';
@@ -24,7 +24,16 @@ interface GradiChatProps {
   userId?: string;
 }
 
+type ChatMode = 'assistant' | 'site-designer';
+
 const FREE_MESSAGE_LIMIT = 50; // 50 messages per month for free users
+
+const siteDesignerPrompts = [
+  { icon: Globe, text: "Create a modern SaaS landing page", color: "from-blue-500 to-cyan-500" },
+  { icon: Layout, text: "Design a portfolio website", color: "from-purple-500 to-pink-500" },
+  { icon: Monitor, text: "Build a dashboard UI", color: "from-green-500 to-teal-500" },
+  { icon: Wand2, text: "Generate a pricing page", color: "from-orange-500 to-red-500" }
+];
 
 export function GradiChat({ userId }: GradiChatProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -40,6 +49,8 @@ export function GradiChat({ userId }: GradiChatProps) {
   const [codeContent, setCodeContent] = useState('');
   const [messageCount, setMessageCount] = useState(0);
   const [lastReset, setLastReset] = useState<Date>(new Date());
+  const [chatMode, setChatMode] = useState<ChatMode>('assistant');
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -367,8 +378,17 @@ export function GradiChat({ userId }: GradiChatProps) {
 
       const assistantMessage = await gradiChat(userMessage, conversationHistory, {
         currentPage: 'gradi-chat',
-        hasResults: false
+        hasResults: false,
+        mode: chatMode
       });
+
+      // Extract code blocks for Site Designer mode
+      if (chatMode === 'site-designer') {
+        const codeMatch = assistantMessage.match(/```(?:html|jsx|tsx|css)?\n([\s\S]*?)```/);
+        if (codeMatch) {
+          setGeneratedCode(codeMatch[1]);
+        }
+      }
 
       const responseMessage: Message = {
         role: 'assistant',
@@ -403,7 +423,7 @@ export function GradiChat({ userId }: GradiChatProps) {
     }
   };
 
-  const quickPrompts = [
+  const quickPrompts = chatMode === 'site-designer' ? siteDesignerPrompts : [
     { icon: Sparkles, text: "Give me design inspiration", color: "from-purple-500 to-pink-500" },
     { icon: Lightbulb, text: "Tips for better UX", color: "from-yellow-500 to-orange-500" },
     { icon: BookOpen, text: "Explain design principles", color: "from-blue-500 to-cyan-500" },
@@ -479,17 +499,46 @@ export function GradiChat({ userId }: GradiChatProps) {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6">
+        <div className={`p-6 ${chatMode === 'site-designer' 
+          ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600' 
+          : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <img src={logoImage} alt="Gradi" className="w-16 h-16 rounded-full bg-white/20 p-2" />
+              <img src={logoImage} alt="Gradi" className="w-14 h-14 rounded-full bg-white/20 p-2" />
               <div>
-                <h1 className="text-3xl font-bold text-white">Gradi AI</h1>
-                <p className="text-white/80">Your Personal Design Assistant</p>
+                <h1 className="text-2xl font-bold text-white">
+                  {chatMode === 'site-designer' ? 'Site Designer' : 'Gradi AI'}
+                </h1>
+                <p className="text-white/80 text-sm">
+                  {chatMode === 'site-designer' ? 'AI-Powered Website Builder' : 'Your Personal Design Assistant'}
+                </p>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* Mode Toggle */}
+              <div className="flex bg-white/10 rounded-full p-1 mr-2">
+                <button
+                  onClick={() => setChatMode('assistant')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    chatMode === 'assistant' 
+                      ? 'bg-white text-gray-900' 
+                      : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  Assistant
+                </button>
+                <button
+                  onClick={() => setChatMode('site-designer')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    chatMode === 'site-designer' 
+                      ? 'bg-white text-gray-900' 
+                      : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  Site Designer
+                </button>
+              </div>
               <button
                 onClick={() => setShowCodePanel(!showCodePanel)}
                 className={`p-3 rounded-full ${showCodePanel ? 'bg-white/30' : 'bg-white/10'} hover:bg-white/20 transition-colors text-white`}
