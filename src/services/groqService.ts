@@ -36,7 +36,7 @@ export async function chatWithGroq(
         model: 'llama-3.3-70b-versatile',
         messages: fullMessages,
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 4000,
         top_p: 1,
         stream: false,
       }),
