@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Send, Code, Eye, Download, Copy, RefreshCw, Sparkles, Globe, Layout, Monitor, 
   Wand2, ChevronLeft, Play, Maximize2, Minimize2,
-  FileCode, FileJson, FileCss, FileText, Plus, Trash2, Check, X,
+  FileCode, FileJson, FileText, Plus, Trash2, Check, X,
   Terminal, Smartphone, Tablet, PanelLeftClose, PanelLeft,
   Loader2, ChevronDown, ChevronRight, User, FolderOpen, File
 } from 'lucide-react';
@@ -30,7 +30,7 @@ interface SiteDesignerProps {
 
 const FILE_ICONS: Record<string, React.ElementType> = {
   html: FileCode,
-  css: FileCss,
+    css: FileText,
   js: FileCode,
   ts: FileCode,
   json: FileJson,
