@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
-import { Sparkles, User, History, Shield, Package, Monitor } from 'lucide-react';
+import { Sparkles, User, History, Shield, Package, Monitor, Globe } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { LoadingAnalysis } from './components/LoadingAnalysis';
 import { AnalysisResults } from './components/AnalysisResults';
@@ -21,6 +21,7 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { AIAssistant } from './components/AIAssistant';
 import { GradiChat } from './components/GradiChat';
+import { SiteDesigner } from './components/SiteDesigner';
 import { Boxt } from './components/Boxt';
 import { PaletteX } from './components/PaletteX';
 import { MockupStudio } from './components/MockupStudio';
@@ -39,7 +40,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'boxt' | 'palettex' | 'mockup' | 'assets';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets';
 
 type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
 
@@ -103,6 +104,9 @@ function App() {
       return;
     } else if (path === '/gradi') {
       setState('gradi');
+      return;
+    } else if (path === '/site-designer') {
+      setState('site-designer');
       return;
     } else if (path === '/boxt') {
       setState('boxt');
@@ -425,6 +429,43 @@ function App() {
     );
   }
 
+  if (state === 'site-designer') {
+    if (!user) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-400 via-cyan-600 to-teal-800 dark:from-teal-900 dark:via-cyan-800 dark:to-slate-900">
+          <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl">
+            <Globe size={64} className="mx-auto mb-4 text-teal-600" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sign in to Use Site Designer</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Create an account or sign in to build websites with AI.</p>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg hover:shadow-xl transition-all duration-300"
+            >
+              Sign In / Sign Up
+            </button>
+          </div>
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            onSignIn={signIn}
+            onSignUp={signUp}
+            onGoogleSignIn={signInWithGoogle}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <SiteDesigner 
+        userId={user.id} 
+        onBack={() => {
+          setState('upload');
+          window.history.pushState({}, '', '/');
+        }}
+      />
+    );
+  }
+
   if (state === 'boxt') {
     if (!user) {
       return (
@@ -491,6 +532,12 @@ function App() {
                       className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
                       Gradi AI
+                    </button>
+                    <button
+                      onClick={() => { setState('site-designer'); window.history.pushState({}, '', '/site-designer'); }}
+                      className="px-3 py-2 text-sm text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 rounded-lg transition-colors"
+                    >
+                      Site Designer
                     </button>
                     <button
                       onClick={() => setState('history')}
