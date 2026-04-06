@@ -1,8 +1,8 @@
 // Stripe product configuration
 export const STRIPE_PRODUCTS = {
   grraphicPro: {
-    id: 'prod_T6JXobIzJJ9y2i',
-    priceId: 'price_1SA6uPHp5AwvS0eqZWxMsyNN',
+    id: 'prod_T7ETlKgPjN6INU',
+    priceId: ' price_1SB00tHFbNWi9orUyhVfxb18',
     name: 'Grraphic Pro',
     description: 'Unlimited large file uploads, AI improvement ideas, and priority support',
     price: 15.00,
