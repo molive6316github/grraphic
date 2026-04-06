@@ -26,6 +26,8 @@ import { Boxt } from './components/Boxt';
 import { PaletteX } from './components/PaletteX';
 import { MockupStudio } from './components/MockupStudio';
 import { AssetVault } from './components/AssetVault';
+import { ApiDashboard } from './components/ApiDashboard';
+import { ApiDocs } from './components/ApiDocs';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { analyzeUI } from './utils/uiAnalyzer';
 import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode } from './types';
@@ -40,7 +42,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs';
 
 type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
 
@@ -119,6 +121,12 @@ function App() {
       } else {
         setMockupSection('home');
       }
+      return;
+    } else if (path === '/api' || path === '/api/dashboard') {
+      setState('api');
+      return;
+    } else if (path === '/api/docs') {
+      setState('api-docs');
       return;
     }
 
@@ -563,6 +571,12 @@ function App() {
                     >
                       Assets
                     </button>
+                    <button
+                      onClick={() => { setState('api'); window.history.pushState({}, '', '/api'); }}
+                      className="px-3 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors"
+                    >
+                      API
+                    </button>
                     {isAdmin && (
                       <button
                         onClick={() => setState('admin')}
@@ -769,6 +783,24 @@ function App() {
           <AssetVault userId={user?.id} />
         )}
 
+        {state === 'api' && (
+          <ApiDashboard 
+            onBack={() => {
+              setState('upload');
+              window.history.pushState({}, '', '/');
+            }}
+          />
+        )}
+
+        {state === 'api-docs' && (
+          <ApiDocs 
+            onBack={() => {
+              setState('upload');
+              window.history.pushState({}, '', '/');
+            }}
+          />
+        )}
+        
         {state === 'public' && publicAnalysis && (
           <PublicAnalysisView
             analysis={publicAnalysis}
