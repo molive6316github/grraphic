@@ -144,3 +144,74 @@ export interface AnalysisRecord {
     username?: string;
   };
 }
+
+// API Types
+export interface ApiKey {
+  id: string;
+  user_id: string;
+  name: string;
+  key_hash: string;
+  key_prefix: string;
+  scopes: string[];
+  is_active: boolean;
+  last_used_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiUsage {
+  id: string;
+  user_id: string;
+  api_key_id: string | null;
+  endpoint: string;
+  method: string;
+  usage_date: string;
+  request_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSession {
+  id: string;
+  user_id: string;
+  session_token: string;
+  device_info: {
+    userAgent?: string;
+    platform?: string;
+    language?: string;
+  };
+  ip_address?: string;
+  user_agent?: string;
+  is_active: boolean;
+  last_activity_at: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export type SubscriptionTier = 'free' | 'pro' | 'enterprise';
+
+export interface DailyQuota {
+  used: number;
+  limit: number | 'unlimited';
+  remaining: number | 'unlimited';
+  percentage: number;
+}
+
+export interface UsageStats {
+  tier: SubscriptionTier;
+  today: {
+    date: string;
+    usage: Record<string, DailyQuota>;
+    resetsAt: string;
+  };
+  history: Array<{
+    date: string;
+    total: number;
+    byEndpoint: Record<string, number>;
+  }>;
+  totals: {
+    last7Days: number;
+    last30Days: number;
+  };
+}
