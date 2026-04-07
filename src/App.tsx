@@ -177,7 +177,7 @@ function App() {
       }
 
       const requestBody: any = {
-        price_id: STRIPE_PRODUCTS.grraphicPro.priceId,
+        price_id: STRIPE_PRODUCTS.grraphicPro.priceId.trim(),
         success_url: `${window.location.origin}?success=true`,
         cancel_url: `${window.location.origin}?canceled=true`,
         mode: STRIPE_PRODUCTS.grraphicPro.mode,
