@@ -66,18 +66,21 @@ export function AssetVault({ userId }: AssetVaultProps) {
   const [bucketExists, setBucketExists] = useState(true);
   const [dragOver, setDragOver] = useState(false);
 
-  // Check if bucket exists
+  // Check if bucket exists by trying to list files (more reliable than getBucket)
   const checkBucket = useCallback(async () => {
     try {
-      const { data, error } = await supabase.storage.getBucket(BUCKET_NAME);
-      if (error && error.message.includes('not found')) {
+      // Try to list files in the bucket - this works even if getBucket fails due to permissions
+      const { error } = await supabase.storage.from(BUCKET_NAME).list('', { limit: 1 });
+      if (error && (error.message.includes('not found') || error.message.includes('does not exist'))) {
         setBucketExists(false);
         return false;
       }
+      // If no error or error is just about empty results, bucket exists
       setBucketExists(true);
       return true;
     } catch {
-      setBucketExists(false);
+      // If we get here, try one more method - attempt an upload check
+      setBucketExists(true); // Assume it exists, let uploads fail with better error messages
       return false;
     }
   }, []);

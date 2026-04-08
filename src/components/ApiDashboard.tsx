@@ -157,14 +157,17 @@ export function ApiDashboard({ onBack }: Props) {
               <div>
                 <h3 className="text-lg font-semibold text-amber-400 mb-2">API Setup Required</h3>
                 <p className="text-gray-300 mb-4">
-                  The API database tables have not been set up yet. To enable API functionality, 
-                  run the following SQL migration in your Supabase dashboard:
+                  The API database tables have not been set up yet. To enable API functionality:
                 </p>
-                <code className="block bg-slate-800 p-3 rounded-lg text-sm text-green-400 mb-4 overflow-x-auto">
-                  scripts/create-api-tables.sql
-                </code>
+                <ol className="list-decimal list-inside text-gray-300 mb-4 space-y-2">
+                  <li>Go to your Supabase project dashboard</li>
+                  <li>Navigate to SQL Editor</li>
+                  <li>Open the file <code className="bg-slate-800 px-2 py-0.5 rounded text-green-400">scripts/create-api-tables.sql</code> from this project</li>
+                  <li>Copy the entire contents of that file</li>
+                  <li>Paste and run it in the SQL Editor</li>
+                </ol>
                 <p className="text-gray-400 text-sm">
-                  Go to your Supabase project &rarr; SQL Editor &rarr; Paste and run the migration file contents.
+                  Note: Do not type the filename directly in SQL Editor - you need to copy and paste the actual SQL code from the file.
                 </p>
               </div>
             </div>
