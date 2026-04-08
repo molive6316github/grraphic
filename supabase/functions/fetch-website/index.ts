@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// Supabase Edge Function for Website Screenshot Fetching
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
