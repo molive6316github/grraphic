@@ -176,8 +176,11 @@ function App() {
         return;
       }
 
+      // Ensure price_id is clean - no quotes, no whitespace
+      const cleanPriceId = STRIPE_PRODUCTS.grraphicPro.priceId.trim().replace(/['"]/g, '');
+      
       const requestBody: any = {
-        price_id: STRIPE_PRODUCTS.grraphicPro.priceId.trim(),
+        price_id: cleanPriceId,
         success_url: `${window.location.origin}?success=true`,
         cancel_url: `${window.location.origin}?canceled=true`,
         mode: STRIPE_PRODUCTS.grraphicPro.mode,
@@ -198,7 +201,12 @@ function App() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        alert(`Subscription error: ${response.status} - ${errorText}`);
+        // Check for price not found error
+        if (errorText.includes('No such price')) {
+          alert('The subscription price is not configured correctly. Please contact support or verify the Stripe price ID exists in your Stripe dashboard.');
+        } else {
+          alert(`Subscription error: ${response.status} - ${errorText}`);
+        }
         return;
       }
       
@@ -516,7 +524,10 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <button
-              onClick={() => startNewAnalysis()}
+              onClick={() => {
+                setState('upload');
+                window.history.pushState({}, '', '/');
+              }}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
