@@ -49,16 +49,24 @@ export function ApiDashboard({ onBack }: Props) {
     loadData();
   }, []);
 
+  const [setupRequired, setSetupRequired] = useState(false);
+  
   const loadData = async () => {
     setLoading(true);
+    setError(null);
+    setSetupRequired(false);
     try {
       const [keysRes, usageRes] = await Promise.all([
         apiKeysService.list(),
         apiUsageService.getCurrent()
       ]);
       
-      if (keysRes.success) setApiKeys(keysRes.data || []);
-      if (usageRes.success) setUsage(usageRes.data);
+      if (keysRes.code === 'TABLE_NOT_FOUND' || usageRes.code === 'TABLE_NOT_FOUND') {
+        setSetupRequired(true);
+      } else {
+        if (keysRes.success) setApiKeys(keysRes.data || []);
+        if (usageRes.success) setUsage(usageRes.data);
+      }
     } catch (e) {
       setError('Failed to load API data');
     }
@@ -140,7 +148,32 @@ export function ApiDashboard({ onBack }: Props) {
         </div>
       </header>
 
+      {/* Setup Required Notice */}
+      {setupRequired && (
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <AlertCircle className="text-amber-500 flex-shrink-0 mt-1" size={24} />
+              <div>
+                <h3 className="text-lg font-semibold text-amber-400 mb-2">API Setup Required</h3>
+                <p className="text-gray-300 mb-4">
+                  The API database tables have not been set up yet. To enable API functionality, 
+                  run the following SQL migration in your Supabase dashboard:
+                </p>
+                <code className="block bg-slate-800 p-3 rounded-lg text-sm text-green-400 mb-4 overflow-x-auto">
+                  scripts/create-api-tables.sql
+                </code>
+                <p className="text-gray-400 text-sm">
+                  Go to your Supabase project &rarr; SQL Editor &rarr; Paste and run the migration file contents.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
+      {!setupRequired && (
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex gap-2 border-b border-white/10 mb-6">
           {[
@@ -433,6 +466,7 @@ export function ApiDashboard({ onBack }: Props) {
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

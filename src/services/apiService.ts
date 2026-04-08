@@ -61,6 +61,13 @@ async function apiCall<T>(
   }
 }
 
+// Check if API tables exist
+const TABLE_NOT_FOUND_MSG = 'API tables not set up. Please run the database migration (scripts/create-api-tables.sql) to enable API functionality.';
+
+function isTableNotFoundError(error: any): boolean {
+  return error?.message?.includes('api_keys') && error?.message?.includes('schema cache');
+}
+
 // API Keys - with Supabase fallback
 export const apiKeysService = {
   list: async (): Promise<ApiResponse<any[]>> => {
@@ -73,7 +80,12 @@ export const apiKeysService = {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) return { success: false, message: error.message };
+    if (error) {
+      if (isTableNotFoundError(error)) {
+        return { success: false, message: TABLE_NOT_FOUND_MSG, code: 'TABLE_NOT_FOUND' };
+      }
+      return { success: false, message: error.message };
+    }
     return { success: true, data: data || [] };
   },
   
@@ -112,7 +124,12 @@ export const apiKeysService = {
       .select()
       .single();
 
-    if (error) return { success: false, message: error.message };
+    if (error) {
+      if (isTableNotFoundError(error)) {
+        return { success: false, message: TABLE_NOT_FOUND_MSG, code: 'TABLE_NOT_FOUND' };
+      }
+      return { success: false, message: error.message };
+    }
     
     // Return the key only on creation (won't be stored)
     return { 
