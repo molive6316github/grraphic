@@ -41,7 +41,13 @@ Deno.serve(async (req) => {
       return corsResponse({ error: 'Method not allowed' }, 405);
     }
 
-    const { price_id, success_url, cancel_url, mode, discount_code } = await req.json();
+    const body = await req.json();
+    
+    // Sanitize price_id - remove any quotes, whitespace, or other invalid characters
+    const price_id = (body.price_id || '').toString().trim().replace(/['"]/g, '');
+    const { success_url, cancel_url, mode, discount_code } = body;
+    
+    console.log(`Received price_id: "${price_id}" (original: "${body.price_id}")`);
 
     const error = validateParameters(
       { price_id, success_url, cancel_url, mode },
