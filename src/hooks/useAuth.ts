@@ -95,13 +95,17 @@ export function useAuth() {
       return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to sign in with Google.' } };
     }
 
-    const currentUrl = new URL(window.location.href);
-    const redirectUrl = `${currentUrl.origin}${currentUrl.pathname}`;
+    // Use the origin only (no pathname) to avoid callback issues
+    const redirectUrl = window.location.origin;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       }
     });
     return { data, error };
