@@ -77,7 +77,7 @@ export function useAnalysisHistory(userId: string | undefined) {
         return {
           ...item,
           analysis_data: decryptedAnalysis,
-          is_public: item.is_public === 'yes',
+          is_public: item.is_public === true || item.is_public === 'yes',
           user: { username: 'User' }
         };
       });
@@ -137,7 +137,7 @@ export function useAnalysisHistory(userId: string | undefined) {
           file_name: fileName,
           analysis_data: encryptedAnalysis,
           image_url: imageUrl,
-          is_public: 'no'
+          is_public: false
         })
         .select()
         .single();
@@ -177,7 +177,7 @@ export function useAnalysisHistory(userId: string | undefined) {
     try {
       const { error } = await supabase
         .from('design_analyses')
-        .update({ is_public: isPublic ? 'yes' : 'no' })
+        .update({ is_public: isPublic })
         .eq('id', id);
 
       if (error) throw error;
@@ -210,12 +210,12 @@ export function useAnalysisHistory(userId: string | undefined) {
         return null;
       }
       
-      // Now fetch the full data
+      // Now fetch the full data with profiles join
       const { data, error } = await supabase
         .from('design_analyses')
         .select(`
           *,
-          users!design_analyses_user_id_fkey (username)
+          profiles!design_analyses_user_id_fkey (username)
         `)
         .eq('id', id)
         .maybeSingle();
@@ -254,7 +254,7 @@ export function useAnalysisHistory(userId: string | undefined) {
         ...data,
         analysis_data: decryptedAnalysis,
         user: {
-          username: (data.users as any)?.username || 'User'
+          username: (data.profiles as any)?.username || 'User'
         }
       };
     } catch (error) {

@@ -14,7 +14,8 @@ interface User {
   email: string;
   username: string;
   created_at: string;
-  is_pro_subscriber: boolean;
+  subscription_tier: 'free' | 'pro' | 'enterprise';
+  is_admin: boolean;
 }
 
 export function AdminUsers() {
@@ -36,13 +37,13 @@ export function AdminUsers() {
       setLoading(true);
       const [{ data: adminsData }, { data: usersData }] = await Promise.all([
         supabase.from('admins').select('*'),
-        supabase.from('users').select('*').order('created_at', { ascending: false })
+        supabase.from('profiles').select('*').order('created_at', { ascending: false })
       ]);
 
       const adminsWithEmails = await Promise.all(
         (adminsData || []).map(async (admin) => {
           const { data: user } = await supabase
-            .from('users')
+            .from('profiles')
             .select('email')
             .eq('id', admin.user_id)
             .maybeSingle();
@@ -98,16 +99,15 @@ export function AdminUsers() {
     }
   };
 
-  const handleToggleSubscription = async (userId: string, currentStatus: boolean) => {
-    if (currentStatus) {
-      // Removing subscription - just remove it
+  const handleToggleSubscription = async (userId: string, isPro: boolean) => {
+    if (isPro) {
+      // Removing subscription - set to free tier
       try {
         setActionLoading(userId);
         const { error } = await supabase
-          .from('users')
+          .from('profiles')
           .update({
-            is_pro_subscriber: false,
-            pro_subscription_expires_at: null
+            subscription_tier: 'free'
           })
           .eq('id', userId);
 
@@ -153,11 +153,12 @@ export function AdminUsers() {
         }
       }
 
+      // Note: subscription_tier doesn't track expiration - that's managed by Stripe
+      // This is just for manual grants, expiration would need to be tracked separately
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({
-          is_pro_subscriber: true,
-          pro_subscription_expires_at: expiresAt
+          subscription_tier: 'pro'
         })
         .eq('id', selectedUserId);
 
@@ -379,7 +380,7 @@ export function AdminUsers() {
                         ADMIN
                       </span>
                     )}
-                    {user.is_pro_subscriber && (
+                    {user.subscription_tier === 'pro' && (
                       <span className="px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded">
                         PRO
                       </span>
@@ -394,16 +395,16 @@ export function AdminUsers() {
 
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => handleToggleSubscription(user.id, user.is_pro_subscriber)}
+                    onClick={() => handleToggleSubscription(user.id, user.subscription_tier === 'pro')}
                     disabled={actionLoading === user.id}
                     className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
-                      user.is_pro_subscriber
+                      user.subscription_tier === 'pro'
                         ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
                         : 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
                     }`}
                   >
                     <UserCheck size={16} />
-                    <span className="text-sm">{user.is_pro_subscriber ? 'Remove Pro' : 'Grant Pro'}</span>
+                    <span className="text-sm">{user.subscription_tier === 'pro' ? 'Remove Pro' : 'Grant Pro'}</span>
                   </button>
 
                   {!userIsAdmin && (

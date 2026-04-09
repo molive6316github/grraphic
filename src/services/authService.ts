@@ -58,7 +58,7 @@ export function validateUsername(username: string): { valid: boolean; error?: st
 // Check if email is already registered
 export async function checkEmailExists(email: string): Promise<boolean> {
   const { data } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id')
     .eq('email', email)
     .single();
@@ -68,7 +68,7 @@ export async function checkEmailExists(email: string): Promise<boolean> {
 // Check if username is available
 export async function checkUsernameAvailable(username: string): Promise<boolean> {
   const { data } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id')
     .eq('username', username)
     .single();
@@ -155,7 +155,7 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
   
   // Delete all user data (cascading deletes should handle related records)
   const { error } = await supabase
-    .from('users')
+    .from('profiles')
     .delete()
     .eq('id', session.user.id);
   

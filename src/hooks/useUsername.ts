@@ -18,7 +18,7 @@ export function useUsername(userId: string | undefined) {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('username')
         .eq('id', userId)
         .maybeSingle();
@@ -56,7 +56,7 @@ export function useUsername(userId: string | undefined) {
     setError(null);
     try {
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({ username: trimmedUsername })
         .eq('id', userId);
 

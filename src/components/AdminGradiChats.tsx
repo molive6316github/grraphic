@@ -43,7 +43,7 @@ export function AdminGradiChats() {
       // Get user emails separately
       const userIds = [...new Set(messages?.map(msg => msg.user_id).filter(Boolean))];
       const { data: users } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id, email')
         .in('id', userIds);
 

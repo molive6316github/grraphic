@@ -11,7 +11,7 @@ export interface AdminStats {
     email: string;
     username: string;
     created_at: string;
-    is_pro_subscriber: boolean;
+    subscription_tier: string;
   }>;
   recentAnalyses: Array<{
     id: string;
@@ -43,12 +43,12 @@ export function useAdminStats() {
         { data: recentUsers },
         { data: recentAnalyses }
       ] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('design_analyses').select('*', { count: 'exact', head: true }),
-        supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_pro_subscriber', true),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('subscription_tier', 'pro'),
         supabase
-          .from('users')
-          .select('id, email, username, created_at, is_pro_subscriber')
+          .from('profiles')
+          .select('id, email, username, created_at, subscription_tier')
           .order('created_at', { ascending: false })
           .limit(10),
         supabase
@@ -61,7 +61,7 @@ export function useAdminStats() {
       const analysesWithUsers = await Promise.all(
         (recentAnalyses || []).map(async (analysis) => {
           const { data: user } = await supabase
-            .from('users')
+            .from('profiles')
             .select('email')
             .eq('id', analysis.user_id)
             .maybeSingle();
