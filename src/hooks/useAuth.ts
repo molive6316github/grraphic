@@ -67,9 +67,9 @@ export function useAuth() {
       });
       return { data, error };
     } else {
-      // Look up email by username
+      // Look up email by username from profiles table
       const { data: userData, error: lookupError } = await supabase
-        .from('users')
+        .from('profiles')
         .select('email')
         .eq('username', emailOrUsername.toLowerCase())
         .maybeSingle();

@@ -38,7 +38,7 @@ export function AdminErrorLogs() {
       // Get user emails separately
       const userIds = [...new Set(logs?.map(log => log.user_id).filter(Boolean))];
       const { data: users } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id, email')
         .in('id', userIds);
 

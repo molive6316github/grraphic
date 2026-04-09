@@ -32,9 +32,9 @@ export function AdminReviews() {
         .order('created_at', { ascending: false });
 
       if (filter === 'public') {
-        query = query.eq('is_public', 'yes');
+        query = query.eq('is_public', true);
       } else if (filter === 'private') {
-        query = query.eq('is_public', 'no');
+        query = query.eq('is_public', false);
       }
 
       const { data: analyses, error } = await query;
@@ -44,7 +44,7 @@ export function AdminReviews() {
       // Get user emails separately
       const userIds = [...new Set(analyses?.map(a => a.user_id).filter(Boolean))];
       const { data: users } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id, email')
         .in('id', userIds);
 

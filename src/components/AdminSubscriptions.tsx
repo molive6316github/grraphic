@@ -52,7 +52,7 @@ export function AdminSubscriptions() {
           let userEmail = 'Unknown';
           if (customer?.user_id) {
             const { data: user } = await supabase
-              .from('users')
+              .from('profiles')
               .select('email')
               .eq('id', customer.user_id)
               .maybeSingle();
