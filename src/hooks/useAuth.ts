@@ -75,10 +75,26 @@ export function useAuth() {
         .maybeSingle();
 
       if (lookupError || !userData) {
-        return {
-          data: null,
-          error: { message: 'Username not found' }
-        };
+        // Also try case-insensitive search
+        const { data: userDataILike } = await supabase
+          .from('profiles')
+          .select('email')
+          .ilike('username', emailOrUsername)
+          .maybeSingle();
+        
+        if (!userDataILike) {
+          return {
+            data: null,
+            error: { message: 'Username not found. Please check your username or try signing in with your email address.' }
+          };
+        }
+        
+        // Sign in with the found email (case-insensitive match)
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: userDataILike.email,
+          password,
+        });
+        return { data, error };
       }
 
       // Sign in with the found email
