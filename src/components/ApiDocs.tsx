@@ -35,7 +35,7 @@ function AIIntegrationSection({ onCopy, copiedCode }: { onCopy: (text: string, i
 Grraphic is an AI-powered design analysis and feedback platform. Use this API to analyze UI/UX designs, get professional feedback, and chat with Gradi (our design AI assistant).
 
 **Website:** https://grraphic.xyz
-**Logo:** https://grraphic.xyz/logo.svg (Dark mode compatible, violet/fuchsia gradient accent)
+**Logo:** https://grraphic.xyz/favicon.svg (Dark mode compatible, violet/fuchsia gradient accent)
 
 ## Authentication
 All API requests require an API key. Include it in the header:
