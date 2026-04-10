@@ -41,7 +41,11 @@ export function AdminDiscountCodes() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Warning fetching discount codes:', error);
+        setCodes([]);
+        return;
+      }
       setCodes(data || []);
     } catch (error) {
       console.error('Error fetching discount codes:', error);
