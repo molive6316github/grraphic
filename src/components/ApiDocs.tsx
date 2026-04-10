@@ -45,7 +45,7 @@ X-API-Key: ${apiKey}
 
 ## Base URL
 \`\`\`
-https://grraphic.xyz/api/request.bot
+https://api.grraphic.xyz
 \`\`\`
 
 ## Available Endpoints
@@ -99,8 +99,8 @@ If building an app that needs user authentication:
 
 \`\`\`
 Authorization URL: https://grraphic.xyz/api/auth/consent
-Token URL: https://grraphic.xyz/api/request.bot/oauth/token
-User Info: https://grraphic.xyz/api/request.bot/oauth/userinfo
+Token URL: https://api.grraphic.xyz/oauth/token
+User Info: https://api.grraphic.xyz/oauth/userinfo
 \`\`\`
 
 Required params: client_id, redirect_uri, response_type=code, scope
@@ -110,7 +110,7 @@ Required params: client_id, redirect_uri, response_type=code, scope
 \`\`\`javascript
 // Analyze a design
 const analyzeDesign = async (url) => {
-  const response = await fetch('https://grraphic.xyz/api/request.bot/api/v1/analysis', {
+  const response = await fetch('https://api.grraphic.xyz/api/v1/analysis', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ const analyzeDesign = async (url) => {
 
 // Chat with Gradi
 const askGradi = async (message) => {
-  const response = await fetch('https://grraphic.xyz/api/request.bot/api/v1/gradi/chat', {
+  const response = await fetch('https://api.grraphic.xyz/api/v1/gradi/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -274,16 +274,16 @@ const endpoints: Record<string, Endpoint[]> = {
   }
 }`,
       examples: [
-        { language: 'curl', code: `curl -X GET "https://grraphic.xyz/api/request.bot/api/v1/account" \\
+        { language: 'curl', code: `curl -X GET "https://api.grraphic.xyz/api/v1/account" \\
   -H "Authorization: Bearer YOUR_TOKEN"` },
-        { language: 'javascript', code: `const response = await fetch('https://grraphic.xyz/api/request.bot/api/v1/account', {
+        { language: 'javascript', code: `const response = await fetch('https://api.grraphic.xyz/api/v1/account', {
   headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
 });
 const data = await response.json();` },
         { language: 'python', code: `import requests
 
 response = requests.get(
-  'https://grraphic.xyz/api/request.bot/api/v1/account',
+  'https://api.grraphic.xyz/api/v1/account',
   headers={'Authorization': 'Bearer YOUR_TOKEN'}
 )
 data = response.json()` }
@@ -311,9 +311,9 @@ data = response.json()` }
   "count": 1
 }`,
       examples: [
-        { language: 'curl', code: `curl -X GET "https://grraphic.xyz/api/request.bot/api/v1/keys" \\
+        { language: 'curl', code: `curl -X GET "https://api.grraphic.xyz/api/v1/keys" \\
   -H "Authorization: Bearer YOUR_TOKEN"` },
-        { language: 'javascript', code: `const response = await fetch('https://grraphic.xyz/api/request.bot/api/v1/keys', {
+        { language: 'javascript', code: `const response = await fetch('https://api.grraphic.xyz/api/v1/keys', {
   headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
 });` }
       ]
@@ -342,7 +342,7 @@ data = response.json()` }
   }
 }`,
       examples: [
-        { language: 'curl', code: `curl -X POST "https://grraphic.xyz/api/request.bot/api/v1/keys" \\
+        { language: 'curl', code: `curl -X POST "https://api.grraphic.xyz/api/v1/keys" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "Production", "expiresIn": "90d"}'` }
@@ -379,11 +379,11 @@ data = response.json()` }
   }
 }`,
       examples: [
-        { language: 'curl', code: `curl -X POST "https://grraphic.xyz/api/request.bot/api/v1/analysis" \\
+        { language: 'curl', code: `curl -X POST "https://api.grraphic.xyz/api/v1/analysis" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"url": "https://example.com"}'` },
-        { language: 'javascript', code: `const response = await fetch('https://grraphic.xyz/api/request.bot/api/v1/analysis', {
+        { language: 'javascript', code: `const response = await fetch('https://api.grraphic.xyz/api/v1/analysis', {
   method: 'POST',
   headers: {
     'X-API-Key': 'YOUR_API_KEY',
@@ -415,14 +415,14 @@ data = response.json()` }
   }
 }`,
       examples: [
-        { language: 'curl', code: `curl -X POST "https://grraphic.xyz/api/request.bot/api/v1/gradi/chat" \\
+        { language: 'curl', code: `curl -X POST "https://api.grraphic.xyz/api/v1/gradi/chat" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"message": "How do I improve my website color scheme?"}'` },
         { language: 'python', code: `import requests
 
 response = requests.post(
-  'https://grraphic.xyz/api/request.bot/api/v1/gradi/chat',
+  'https://api.grraphic.xyz/api/v1/gradi/chat',
   headers={'X-API-Key': 'YOUR_API_KEY'},
   json={'message': 'How do I improve my website color scheme?'}
 )
@@ -453,7 +453,7 @@ print(response.json()['data']['message'])` }
   }
 }`,
       examples: [
-        { language: 'curl', code: `curl -X GET "https://grraphic.xyz/api/request.bot/api/v1/usage" \\
+        { language: 'curl', code: `curl -X GET "https://api.grraphic.xyz/api/v1/usage" \\
   -H "X-API-Key: YOUR_API_KEY"` }
       ]
     }
@@ -511,7 +511,7 @@ export function ApiDocs({ onBack }: Props) {
 
         <div className="mt-8 p-4 bg-white/5 rounded-lg border border-white/10">
           <h4 className="text-sm font-semibold text-white mb-2">Base URL</h4>
-          <code className="text-xs text-blue-400 break-all">https://grraphic.xyz/api/request.bot</code>
+          <code className="text-xs text-blue-400 break-all">https://api.grraphic.xyz</code>
         </div>
       </aside>
 
@@ -581,7 +581,7 @@ export function ApiDocs({ onBack }: Props) {
 {`# 1. Get your API key from the dashboard
 # 2. Make your first request
 
-curl -X POST "https://grraphic.xyz/api/request.bot/api/v1/gradi/chat" \\
+curl -X POST "https://api.grraphic.xyz/api/v1/gradi/chat" \\
   -H "X-API-Key: grphc_your_key_here" \\
   -H "Content-Type: application/json" \\
   -d '{"message": "What makes a good landing page design?"}'`}
