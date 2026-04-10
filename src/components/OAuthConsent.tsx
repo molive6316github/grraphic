@@ -125,7 +125,7 @@ export function OAuthConsent() {
       }
 
       // Fetch client info using API endpoint
-      const response = await fetch(`/api/request.bot/oauth/client-info`, {
+      const response = await fetch(`https://api.grraphic.xyz/oauth/client-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_id: clientId })
@@ -234,7 +234,7 @@ export function OAuthConsent() {
       }
 
       // Call API endpoint to generate authorization code
-      const response = await fetch(`/api/request.bot/oauth/authorize`, {
+      const response = await fetch(`https://api.grraphic.xyz/oauth/authorize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
