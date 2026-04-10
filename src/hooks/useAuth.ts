@@ -127,22 +127,6 @@ export function useAuth() {
     return { data, error };
   };
 
-  const signInWithGitHub = async () => {
-    if (!isSupabaseConfigured()) {
-      return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to sign in with GitHub.' } };
-    }
-
-    const redirectUrl = window.location.origin;
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: redirectUrl,
-      }
-    });
-    return { data, error };
-  };
-
   const signOut = async () => {
     if (!isSupabaseConfigured()) {
       return;
@@ -172,7 +156,6 @@ export function useAuth() {
     signUp,
     signIn,
     signInWithGoogle,
-    signInWithGitHub,
     signOut,
     resetPassword,
   };

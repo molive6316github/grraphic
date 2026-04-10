@@ -61,7 +61,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mockupSection, setMockupSection] = useState<MockupSection>('home');
   const { isDark, toggleDarkMode } = useDarkMode();
-  const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signInWithGitHub, signOut } = useAuth();
+  const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
   const { analyses, loading: historyLoading, saveAnalysis, deleteAnalysis, togglePublic, getPublicAnalysis } = useAnalysisHistory(user?.id);
   const { credits, loading: creditsLoading, hasProCredits, useProCredit } = useCredits(user?.id);
   const { subscription, loading: subscriptionLoading, refreshSubscription } = useSubscription(user?.id);
@@ -356,10 +356,9 @@ function App() {
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
-onSignIn={signIn}
+          onSignIn={signIn}
   onSignUp={signUp}
   onSignInWithGoogle={signInWithGoogle}
-  onSignInWithGitHub={signInWithGitHub}
   />
       </>
     );
@@ -377,10 +376,9 @@ onSignIn={signIn}
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
-onSignIn={signIn}
+          onSignIn={signIn}
   onSignUp={signUp}
   onSignInWithGoogle={signInWithGoogle}
-  onSignInWithGitHub={signInWithGitHub}
   />
       </>
     );
@@ -431,10 +429,9 @@ onSignIn={signIn}
           <AuthModal
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
-onSignIn={signIn}
+            onSignIn={signIn}
   onSignUp={signUp}
   onGoogleSignIn={signInWithGoogle}
-  onSignInWithGitHub={signInWithGitHub}
   />
         </div>
       );
@@ -466,10 +463,9 @@ onSignIn={signIn}
           <AuthModal
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
-onSignIn={signIn}
+            onSignIn={signIn}
   onSignUp={signUp}
   onGoogleSignIn={signInWithGoogle}
-  onSignInWithGitHub={signInWithGitHub}
   />
         </div>
       );
@@ -504,10 +500,9 @@ onSignIn={signIn}
           <AuthModal
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
-onSignIn={signIn}
+            onSignIn={signIn}
   onSignUp={signUp}
   onGoogleSignIn={signInWithGoogle}
-  onSignInWithGitHub={signInWithGitHub}
   />
         </div>
       );
