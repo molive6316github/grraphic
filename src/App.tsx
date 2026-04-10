@@ -357,9 +357,9 @@ function App() {
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
           onSignIn={signIn}
-          onSignUp={signUp}
-          onSignInWithGoogle={signInWithGoogle}
-        />
+  onSignUp={signUp}
+  onSignInWithGoogle={signInWithGoogle}
+  />
       </>
     );
   }
@@ -377,9 +377,9 @@ function App() {
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
           onSignIn={signIn}
-          onSignUp={signUp}
-          onSignInWithGoogle={signInWithGoogle}
-        />
+  onSignUp={signUp}
+  onSignInWithGoogle={signInWithGoogle}
+  />
       </>
     );
   }
@@ -430,9 +430,9 @@ function App() {
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
             onSignIn={signIn}
-            onSignUp={signUp}
-            onGoogleSignIn={signInWithGoogle}
-          />
+  onSignUp={signUp}
+  onGoogleSignIn={signInWithGoogle}
+  />
         </div>
       );
     }
@@ -464,9 +464,9 @@ function App() {
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
             onSignIn={signIn}
-            onSignUp={signUp}
-            onGoogleSignIn={signInWithGoogle}
-          />
+  onSignUp={signUp}
+  onGoogleSignIn={signInWithGoogle}
+  />
         </div>
       );
     }
@@ -501,9 +501,9 @@ function App() {
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
             onSignIn={signIn}
-            onSignUp={signUp}
-            onGoogleSignIn={signInWithGoogle}
-          />
+  onSignUp={signUp}
+  onGoogleSignIn={signInWithGoogle}
+  />
         </div>
       );
     }

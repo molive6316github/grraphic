@@ -6,7 +6,7 @@ import {
   Terminal, Smartphone, Tablet, PanelLeftClose, PanelLeft, PanelRightClose,
   Loader2, ChevronRight, User, File, Settings2, Search,
   Zap, Package, Image, Palette, ShoppingCart, MessageSquare, Bot,
-  ExternalLink, Save, FolderPlus, MoreHorizontal, Rocket, GitBranch, 
+  ExternalLink, Save, FolderPlus, MoreHorizontal, Rocket, GitBranch, Github, 
   Clock, CheckCircle2, AlertCircle, Info, Command, Braces, Hash,
   ArrowRight, Undo2, Redo2, Split, Columns, LayoutGrid, Boxes,
   Cpu, Database, Cloud, Link, PanelBottomClose, PanelBottom, Menu
@@ -1124,6 +1124,9 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
   const [chatWidth, setChatWidth] = useState(420);
   const [isResizingChat, setIsResizingChat] = useState(false);
   const [previewSplit, setPreviewSplit] = useState(50);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [githubUser, setGithubUser] = useState<any>(null);
+  const [showGithubConnect, setShowGithubConnect] = useState(false);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1618,6 +1621,13 @@ RULES:
           <div className="w-px h-4 bg-white/[0.06] mx-1" />
           
           <button 
+            onClick={() => setShowGithubConnect(true)}
+            className={`p-1.5 rounded-md transition-colors ${githubConnected ? 'bg-orange-500/20 text-orange-400' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'}`}
+            title={githubConnected ? `Connected to ${githubUser?.login}` : 'Connect GitHub'}
+          >
+            <Github size={14} />
+          </button>
+          <button 
             onClick={handleSaveProject}
             disabled={isSaving}
             className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-white/[0.04] rounded-md transition-colors disabled:opacity-50"
@@ -1984,6 +1994,69 @@ RULES:
           )}
         </div>
       </div>
+
+      {/* GitHub Connection Modal */}
+      {showGithubConnect && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000]">
+          <div className="bg-[#0a0a0f] border border-white/[0.06] rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Github size={20} className="text-orange-400" />
+                {githubConnected ? 'GitHub Connected' : 'Connect GitHub Account'}
+              </h3>
+              <button onClick={() => setShowGithubConnect(false)} className="text-gray-500 hover:text-gray-300">
+                <X size={18} />
+              </button>
+            </div>
+
+            {!githubConnected ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-400">
+                  Connect your GitHub account to push projects directly to your repositories.
+                </p>
+                <button
+                  onClick={() => {
+                    // Trigger Supabase OAuth for GitHub
+                    if (isSupabaseConfigured()) {
+                      supabase.auth.signInWithOAuth({
+                        provider: 'github',
+                        options: {
+                          redirectTo: window.location.origin + '/site-designer',
+                          scopes: 'repo,user'
+                        }
+                      });
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-white/[0.1] rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Github size={16} />
+                  Connect with GitHub
+                </button>
+                <p className="text-xs text-gray-600 text-center">
+                  You&apos;ll be able to initialize git repos and push your projects.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-3 bg-white/[0.03] rounded-lg border border-white/[0.06]">
+                  <p className="text-sm font-medium text-white mb-1">Connected as:</p>
+                  <p className="text-sm text-orange-400">{githubUser?.login}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setGithubConnected(false);
+                    setGithubUser(null);
+                    setShowGithubConnect(false);
+                  }}
+                  className="w-full px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-lg text-red-400 font-medium transition-colors"
+                >
+                  Disconnect GitHub
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
