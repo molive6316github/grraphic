@@ -1,6 +1,16 @@
 {
   "rewrites": [
     {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "api.grraphic.xyz"
+        }
+      ],
+      "destination": "/api/request.bot/:path*"
+    },
+    {
       "source": "/api/request.bot/:path*",
       "destination": "/api/request.bot/:path*"
     },
