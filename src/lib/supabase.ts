@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Supabase Project: wyqyypixtdnnnzilsubj
 // Use the new Supabase integration environment variables
 // Falls back to VITE_ prefixed vars for local development compatibility
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
