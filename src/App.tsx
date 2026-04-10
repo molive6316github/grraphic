@@ -28,6 +28,8 @@ import { MockupStudio } from './components/MockupStudio';
 import { AssetVault } from './components/AssetVault';
 import { ApiDashboard } from './components/ApiDashboard';
 import { ApiDocs } from './components/ApiDocs';
+import { OAuthConsent } from './components/OAuthConsent';
+import { OAuthCallback } from './components/OAuthCallback';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { analyzeUI } from './utils/uiAnalyzer';
 import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode } from './types';
@@ -42,7 +44,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback';
 
 type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
 
@@ -127,6 +129,12 @@ function App() {
       return;
     } else if (path === '/api/docs') {
       setState('api-docs');
+      return;
+    } else if (path === '/api/auth/consent' || path.startsWith('/api/auth/consent')) {
+      setState('oauth-consent');
+      return;
+    } else if (path === '/api/auth/consent/callback') {
+      setState('oauth-callback');
       return;
     }
 
@@ -810,6 +818,14 @@ function App() {
               window.history.pushState({}, '', '/');
             }}
           />
+        )}
+
+        {state === 'oauth-consent' && (
+          <OAuthConsent />
+        )}
+
+        {state === 'oauth-callback' && (
+          <OAuthCallback />
         )}
         
         {state === 'public' && publicAnalysis && (
