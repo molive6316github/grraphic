@@ -124,8 +124,8 @@ export function OAuthConsent() {
         setShowLogin(true);
       }
 
-      // Fetch client info using service role (via edge function)
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL}/functions/v1/oauth-client-info`, {
+      // Fetch client info using API endpoint
+      const response = await fetch(`/api/request.bot/oauth/client-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_id: clientId })
@@ -233,8 +233,8 @@ export function OAuthConsent() {
         return;
       }
 
-      // Call edge function to generate authorization code
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL}/functions/v1/oauth-authorize`, {
+      // Call API endpoint to generate authorization code
+      const response = await fetch(`/api/request.bot/oauth/authorize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
