@@ -19,7 +19,12 @@ interface UserProfile {
   avatar_url: string | null;
 }
 
-const SCOPE_DESCRIPTIONS: Record<string, { label: string; description: string; icon: React.ReactNode }> = {
+const SCOPE_DESCRIPTIONS: Record<string, { label: string; description: string; icon: React.ReactNode; requiresVerification?: boolean }> = {
+  'openid': {
+    label: 'OpenID Connect',
+    description: 'Unique identifier for your account',
+    icon: <Shield size={16} />
+  },
   'profile': {
     label: 'Profile Information',
     description: 'Your username and profile picture',
@@ -33,7 +38,8 @@ const SCOPE_DESCRIPTIONS: Record<string, { label: string; description: string; i
   'github': {
     label: 'GitHub Connection',
     description: 'Access your connected GitHub account info',
-    icon: <Github size={16} />
+    icon: <Github size={16} />,
+    requiresVerification: true
   },
   'read:projects': {
     label: 'Read Projects',
@@ -43,7 +49,8 @@ const SCOPE_DESCRIPTIONS: Record<string, { label: string; description: string; i
   'write:projects': {
     label: 'Write Projects',
     description: 'Create and modify your Grraphic projects',
-    icon: <Shield size={16} />
+    icon: <Shield size={16} />,
+    requiresVerification: true
   },
 };
 

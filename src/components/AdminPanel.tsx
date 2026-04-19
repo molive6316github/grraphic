@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Users, FileImage, CreditCard, TrendingUp, RefreshCw, AlertCircle, MessageSquare, Ticket, Image, Settings } from 'lucide-react';
+import { Shield, Users, FileImage, CreditCard, TrendingUp, RefreshCw, AlertCircle, MessageSquare, Ticket, Image, Settings, Code } from 'lucide-react';
 import { useAdminStats } from '../hooks/useAdminStats';
 import { AdminUsers } from './AdminUsers';
 import { AdminSubscriptions } from './AdminSubscriptions';
@@ -10,8 +10,9 @@ import { AdminGradiChats } from './AdminGradiChats';
 import { AdminAnalyses } from './AdminAnalyses';
 import { AdminSettings } from './AdminSettings';
 import { AdminStripeSettings } from './AdminStripeSettings';
+import { AdminOAuthApps } from './AdminOAuthApps';
 
-type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'chats' | 'analyses' | 'settings' | 'stripe';
+type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'chats' | 'analyses' | 'settings' | 'stripe' | 'oauth';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -154,6 +155,16 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
             Error Logs
           </button>
           <button
+            onClick={() => setActiveView('oauth')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeView === 'oauth'
+                ? 'bg-violet-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            OAuth Apps
+          </button>
+          <button
             onClick={() => setActiveView('stripe')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeView === 'stripe'
@@ -272,6 +283,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         {activeView === 'reviews' && <AdminReviews />}
         {activeView === 'chats' && <AdminGradiChats />}
         {activeView === 'analyses' && <AdminAnalyses />}
+        {activeView === 'oauth' && <AdminOAuthApps />}
         {activeView === 'stripe' && <AdminStripeSettings />}
         {activeView === 'settings' && <AdminSettings />}
       </div>
