@@ -4,7 +4,7 @@ import {
   Code, Key, Plus, Trash2, Copy, Check, ExternalLink, 
   Settings, Shield, Globe, Lock, Eye, EyeOff, RefreshCw,
   Users, Activity, AlertCircle, ChevronRight, X, Loader2,
-  Link as LinkIcon, Image, FileText, Webhook, Clock
+  Link as LinkIcon, Image, FileText, Webhook, Clock, Send, Github, ShieldCheck
 } from 'lucide-react';
 
 interface OAuthApp {
@@ -19,6 +19,9 @@ interface OAuthApp {
   scopes: string[];
   is_active: boolean;
   is_verified: boolean;
+  verification_status: 'none' | 'pending' | 'approved' | 'rejected';
+  verification_reason: string | null;
+  verification_requested_at: string | null;
   created_at: string;
 }
 
@@ -490,6 +493,9 @@ function AppDetails({
           </div>
         </div>
 
+        {/* Verification Status */}
+        <VerificationSection app={app} onUpdate={onUpdate} />
+
         {editing ? (
           <>
             {/* Edit Form */}
@@ -786,6 +792,155 @@ function CreateAppModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// Verification Section
+function VerificationSection({ app, onUpdate }: { app: OAuthApp; onUpdate: () => void }) {
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleRequestVerification = async () => {
+    setSubmitting(true);
+    
+    const { error } = await supabase
+      .from('oauth_clients')
+      .update({
+        verification_status: 'pending',
+        verification_reason: reason,
+        verification_requested_at: new Date().toISOString()
+      })
+      .eq('id', app.id);
+
+    if (!error) {
+      setShowRequestForm(false);
+      setReason('');
+      onUpdate();
+    }
+    setSubmitting(false);
+  };
+
+  if (app.is_verified || app.verification_status === 'approved') {
+    return (
+      <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+            <ShieldCheck className="text-emerald-400" size={20} />
+          </div>
+          <div>
+            <h3 className="text-emerald-400 font-medium">Verified Application</h3>
+            <p className="text-gray-400 text-sm">This app can access GitHub connections and sensitive scopes</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (app.verification_status === 'pending') {
+    return (
+      <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
+            <Clock className="text-amber-400" size={20} />
+          </div>
+          <div>
+            <h3 className="text-amber-400 font-medium">Verification Pending</h3>
+            <p className="text-gray-400 text-sm">
+              Your application is under review. We&apos;ll notify you once it&apos;s been reviewed.
+            </p>
+            {app.verification_requested_at && (
+              <p className="text-gray-500 text-xs mt-1">
+                Requested {new Date(app.verification_requested_at).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (app.verification_status === 'rejected') {
+    return (
+      <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <X className="text-red-400" size={20} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-red-400 font-medium">Verification Denied</h3>
+            <p className="text-gray-400 text-sm">
+              Your verification request was not approved. You can submit a new request after addressing the issues.
+            </p>
+            <button
+              onClick={() => setShowRequestForm(true)}
+              className="mt-3 px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] rounded-lg text-white text-sm transition-colors"
+            >
+              Request Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Not verified, show request option
+  return (
+    <div className="p-4 bg-violet-500/10 border border-violet-500/30 rounded-xl">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-violet-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+          <Shield className="text-violet-400" size={20} />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-violet-400 font-medium">Get Verified</h3>
+          <p className="text-gray-400 text-sm mb-3">
+            Verified apps can access GitHub connections and display a verified badge. This builds trust with users.
+          </p>
+          
+          {!showRequestForm ? (
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowRequestForm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-white text-sm font-medium transition-colors"
+              >
+                <Send size={16} />
+                Apply for Verification
+              </button>
+              <div className="flex items-center gap-2 text-gray-500 text-xs">
+                <Github size={14} />
+                <span>Required for GitHub scope</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Tell us about your app and why you need verification (e.g., user base, use case, company info)..."
+                rows={3}
+                className="w-full px-4 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 resize-none text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowRequestForm(false)}
+                  className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] rounded-lg text-white text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRequestVerification}
+                  disabled={submitting || !reason.trim()}
+                  className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {submitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                  Submit Request
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

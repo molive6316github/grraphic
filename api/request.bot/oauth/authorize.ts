@@ -63,7 +63,7 @@ export default async function handler(request: Request) {
     // Get client and verify redirect_uri
     const { data: client, error: clientError } = await supabase
       .from('oauth_clients')
-      .select('id, redirect_uris')
+      .select('id, redirect_uris, is_verified')
       .eq('client_id', client_id)
       .eq('is_active', true)
       .single();
@@ -78,6 +78,21 @@ export default async function handler(request: Request) {
     if (!client.redirect_uris.includes(redirect_uri)) {
       return new Response(JSON.stringify({ error: 'Invalid redirect_uri' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if client is trying to access restricted scopes without verification
+    const requestedScopes = Array.isArray(scope) ? scope : scope.split(' ');
+    const restrictedScopes = ['github', 'write:projects'];
+    const hasRestrictedScopes = requestedScopes.some((s: string) => restrictedScopes.includes(s));
+    
+    if (hasRestrictedScopes && !client.is_verified) {
+      return new Response(JSON.stringify({ 
+        error: 'Restricted scope', 
+        error_description: 'This application must be verified to access GitHub or write scopes' 
+      }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
