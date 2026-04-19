@@ -11,11 +11,7 @@
       "destination": "/api/request.bot/:path*"
     },
     {
-      "source": "/api/request.bot/:path*",
-      "destination": "/api/request.bot/:path*"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/:path((?!api/).*)",
       "destination": "/index.html"
     }
   ],
