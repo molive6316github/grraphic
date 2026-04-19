@@ -1,14 +1,13 @@
 import { DesignAnalysis } from '../types';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-// Check if Gemini API is configured
-const isGeminiConfigured = () => {
-  return GEMINI_API_KEY && 
-         GEMINI_API_KEY.trim() !== '' && 
-         GEMINI_API_KEY !== 'your-gemini-api-key-here' &&
-         GEMINI_API_KEY.startsWith('AIza');
+// Check if Groq API is configured
+const isGroqConfigured = () => {
+  return GROQ_API_KEY && 
+         GROQ_API_KEY.trim() !== '' && 
+         GROQ_API_KEY !== 'your-groq-api-key-here';
 };
 
 // Sanitize API responses to remove any potential sensitive data
@@ -24,9 +23,9 @@ const sanitizeApiResponse = (data: any): any => {
   return data;
 };
 
-export async function analyzeDesignWithGemini(imageFile: File): Promise<DesignAnalysis> {
-  if (!isGeminiConfigured()) {
-    throw new Error('Gemini API key not configured or invalid. Please set a valid VITE_GEMINI_API_KEY in your .env file. The key should start with "AIza".');
+export async function analyzeDesignWithGroq(imageFile: File): Promise<DesignAnalysis> {
+  if (!isGroqConfigured()) {
+    throw new Error('Groq API key not configured or invalid. Please set VITE_GROQ_API_KEY in your .env file.');
   }
 
   try {
@@ -34,14 +33,7 @@ export async function analyzeDesignWithGemini(imageFile: File): Promise<DesignAn
     const base64Image = await fileToBase64(imageFile);
     const mimeType = imageFile.type;
 
-    // Ensure we don't send any sensitive file metadata
-    const sanitizedFileName = 'design_image.' + (mimeType.split('/')[1] || 'png');
-
-    const requestBody = {
-      contents: [{
-        parts: [
-          {
-            text: `Analyze this graphic design image and provide a comprehensive, encouraging design review. Be generous with scores (aim for 75-95 range) and focus on constructive feedback. Try to understand the design's purpose, target audience, and goals from visual context.
+    const prompt = `Analyze this graphic design image and provide a comprehensive, encouraging design review. Be generous with scores (aim for 75-95 range) and focus on constructive feedback. Try to understand the design's purpose, target audience, and goals from visual context.
 
 CRITICAL: Return ONLY valid JSON. Do NOT include any markdown formatting, code blocks, or extra text. Return ONLY the raw JSON object with this exact structure:
 
@@ -100,9 +92,6 @@ For each category, provide:
 - feedback: detailed explanation of the assessment (2-3 sentences)
 - improvementIdeas: array of exactly 3 specific, actionable improvement ideas
 - references: array of 2-4 specific visual elements you're talking about (be concrete, like "the blue headline", "spacing between logo and menu", "contrast of the footer text")
-- visualReferences: (OPTIONAL - only include if you can accurately identify specific regions) array of 1-2 bounding boxes. Coordinates are NORMALIZED (0-1 range, use simple decimals like 0.1, 0.5):
-  * {"x": 0.1, "y": 0.2, "width": 0.3, "height": 0.15}
-  * ONLY include visualReferences if you're confident about the locations. It's better to omit than to guess.
 
 Categories to analyze:
 - typography: Font choices, readability, hierarchy, consistency
@@ -128,66 +117,61 @@ CRITICAL JSON FORMATTING RULES:
 - Keep all string values on a single line
 - Be encouraging and constructive in your feedback
 - Focus on what works well and provide gentle guidance for improvements
-- Be specific and actionable in your improvement ideas`
-          },
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data: base64Image
-            }
-          }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 4096,
-        responseMimeType: "application/json",
-      }
-    };
+- Be specific and actionable in your improvement ideas`;
 
-    const url = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
-
-    const response = await fetch(url, {
+    const response = await fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        model: 'llama-3.2-11b-vision-preview',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 4096
+      })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       if (response.status === 400) {
-        throw new Error(`Gemini API error (400): Invalid request. Check if the Generative Language API is enabled and your API key has proper restrictions configured.`);
+        throw new Error(`Groq API error (400): Invalid request. Check your API key and request format.`);
       } else if (response.status === 403) {
-        throw new Error(`Gemini API error (403): Access denied. Check your API key permissions and ensure localhost:5173 is allowed in HTTP referrer restrictions.`);
-      } else if (response.status === 404) {
-        throw new Error(`Gemini API error (404): Model not found. The 'gemini-2.5-flash' model may not be available or accessible with your current API key/project configuration.`);
+        throw new Error(`Groq API error (403): Access denied. Check your API key permissions.`);
       } else if (response.status === 429) {
-        throw new Error(`Gemini API rate limit exceeded (429). The free tier allows 15 requests per minute. Please wait a moment and try again, or consider upgrading to a paid plan for higher limits.`);
+        throw new Error(`Groq API rate limit exceeded (429). Please wait a moment and try again.`);
       } else {
-        throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+        throw new Error(`Groq API error (${response.status}): ${errorText}`);
       }
     }
 
     const rawData = await response.json();
     const data = sanitizeApiResponse(rawData);
 
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      console.error('Invalid Gemini response structure:', data);
-      throw new Error('Invalid response from Gemini API - missing candidates or content');
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid Groq response structure:', data);
+      throw new Error('Invalid response from Groq API - missing choices or message');
     }
 
-    if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      console.error('Invalid parts structure:', data.candidates[0].content);
-      throw new Error('Invalid response from Gemini API - missing content parts');
-    }
+    const analysisText = data.choices[0].message.content;
 
-    const analysisText = data.candidates[0].content.parts[0].text;
-
-    // With responseMimeType: "application/json", Gemini returns valid JSON directly
     let analysis;
     try {
       analysis = JSON.parse(analysisText);
@@ -198,37 +182,26 @@ CRITICAL JSON FORMATTING RULES:
       // Try to repair the JSON
       try {
         let repairedText = analysisText;
-
         // Remove any trailing commas before closing braces/brackets
         repairedText = repairedText.replace(/,(\s*[}\]])/g, '$1');
-
-        // Try to find and remove incomplete visualReferences if present
-        repairedText = repairedText.replace(/"visualReferences"\s*:\s*\[[^\]]*$/gm, '');
-
-        // Remove trailing commas again after removal
-        repairedText = repairedText.replace(/,(\s*[}\]])/g, '$1');
-
-        // Try parsing the repaired JSON
         analysis = JSON.parse(repairedText);
         console.log('Successfully repaired JSON');
       } catch (repairError) {
         console.error('Failed to repair JSON:', repairError);
-        throw new Error(`Failed to parse Gemini response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}. The response may be incomplete or malformed.`);
+        throw new Error(`Failed to parse Groq response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
       }
     }
     
     // Validate the structure
     if (!analysis.overall || !analysis.categories || !analysis.strengths) {
-      throw new Error('Invalid analysis structure from Gemini');
+      throw new Error('Invalid analysis structure from Groq');
     }
 
-    // Sanitize the final analysis to ensure no sensitive data
-    const sanitizedAnalysis = sanitizeApiResponse(analysis);
-    return sanitizedAnalysis;
+    return sanitizeApiResponse(analysis);
   } catch (error) {
-    console.error('Gemini analysis error:', error);
+    console.error('Groq analysis error:', error);
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new Error('Network error: Unable to connect to Gemini API. Please check your internet connection, ensure the Generative Language API is enabled in Google Cloud Console, and verify your API key restrictions allow requests from localhost:5173.');
+      throw new Error('Network error: Unable to connect to Groq API. Please check your internet connection.');
     }
     throw error;
   }
@@ -247,65 +220,61 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export async function analyzeWithGemini(prompt: string, apiKey: string, url?: string | null): Promise<any> {
-  const effectiveApiKey = apiKey || GEMINI_API_KEY;
+export async function analyzeWithGroq(prompt: string, apiKey: string): Promise<any> {
+  const effectiveApiKey = apiKey || GROQ_API_KEY;
 
-  if (!effectiveApiKey || effectiveApiKey.trim() === '' || !effectiveApiKey.startsWith('AIza')) {
-    throw new Error('Gemini API key not configured or invalid.');
+  if (!effectiveApiKey || effectiveApiKey.trim() === '') {
+    throw new Error('Groq API key not configured or invalid.');
   }
 
   try {
-    const requestBody = {
-      contents: [{
-        parts: [{ text: prompt }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 4096,
-        responseMimeType: "application/json",
-      }
-    };
-
-    const apiUrl = `${GEMINI_API_URL}?key=${effectiveApiKey}`;
-
-    const response = await fetch(apiUrl, {
+    const response = await fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${effectiveApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 4096
+      })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       if (response.status === 429) {
-        throw new Error(`Gemini API rate limit exceeded (429). The free tier allows 15 requests per minute. Please wait a moment and try again, or consider upgrading to a paid plan for higher limits.`);
+        throw new Error(`Groq API rate limit exceeded (429). Please wait a moment and try again.`);
       }
-      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+      throw new Error(`Groq API error (${response.status}): ${errorText}`);
     }
 
     const rawData = await response.json();
     const data = sanitizeApiResponse(rawData);
 
-    if (!data.candidates?.[0]?.content?.parts?.[0]) {
-      throw new Error('Invalid response from Gemini API');
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from Groq API');
     }
 
-    const analysisText = data.candidates[0].content.parts[0].text;
+    const analysisText = data.choices[0].message.content;
 
     try {
       const analysis = JSON.parse(analysisText);
       return sanitizeApiResponse(analysis);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      throw new Error(`Failed to parse Gemini response as JSON`);
+      // If not JSON, return as string
+      return { result: analysisText };
     }
   } catch (error) {
-    console.error('Gemini analysis error:', error);
+    console.error('Groq analysis error:', error);
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new Error('Network error: Unable to connect to Gemini API.');
+      throw new Error('Network error: Unable to connect to Groq API.');
     }
     throw error;
   }
