@@ -30,6 +30,7 @@ import { ApiDashboard } from './components/ApiDashboard';
 import { ApiDocs } from './components/ApiDocs';
 import { OAuthConsent } from './components/OAuthConsent';
 import { OAuthCallback } from './components/OAuthCallback';
+import { DeveloperPortal } from './components/DeveloperPortal';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { analyzeUI } from './utils/uiAnalyzer';
 import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode } from './types';
@@ -44,7 +45,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback' | 'developer';
 
 type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
 
@@ -135,6 +136,9 @@ function App() {
       return;
     } else if (path === '/api/auth/consent/callback') {
       setState('oauth-callback');
+      return;
+    } else if (path === '/developer' || path === '/developers') {
+      setState('developer');
       return;
     }
 
@@ -826,6 +830,16 @@ function App() {
 
         {state === 'oauth-callback' && (
           <OAuthCallback />
+        )}
+
+        {state === 'developer' && user && (
+          <DeveloperPortal
+            userId={user.id}
+            onBack={() => {
+              setState('upload');
+              window.history.pushState({}, '', '/');
+            }}
+          />
         )}
         
         {state === 'public' && publicAnalysis && (

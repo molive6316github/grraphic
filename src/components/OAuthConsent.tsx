@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { Shield, Check, X, ExternalLink, Github, Mail, User, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { Shield, Check, X, ExternalLink, Github, Mail, User, Lock, AlertCircle, Loader2, RefreshCw, Clock } from 'lucide-react';
 
 interface OAuthClient {
   id: string;
@@ -53,6 +53,7 @@ export function OAuthConsent() {
   const [error, setError] = useState<string | null>(null);
   const [client, setClient] = useState<OAuthClient | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [existingConsent, setExistingConsent] = useState<{ granted_at: string; scopes: string[] } | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -119,6 +120,22 @@ export function OAuthConsent() {
             username: profile.username,
             avatar_url: null
           });
+          
+          // Check for existing consent for this client
+          const { data: consent } = await supabase
+            .from('oauth_user_consents')
+            .select('granted_at, scopes, oauth_clients!inner(client_id)')
+            .eq('user_id', authUser.id)
+            .eq('oauth_clients.client_id', clientId)
+            .is('revoked_at', null)
+            .maybeSingle();
+          
+          if (consent) {
+            setExistingConsent({
+              granted_at: consent.granted_at,
+              scopes: consent.scopes
+            });
+          }
         }
       } else {
         setShowLogin(true);
@@ -402,6 +419,245 @@ export function OAuthConsent() {
           <p className="text-center text-gray-500 text-xs mt-6">
             Don&apos;t have an account?{' '}
             <a href="/" className="text-violet-400 hover:text-violet-300">Create one</a>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Returning user flow - already authorized this app before
+  if (existingConsent && user && client) {
+    const grantedDate = new Date(existingConsent.granted_at).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    
+    // Check if requesting new scopes
+    const newScopes = requestedScopes.filter(s => !existingConsent.scopes.includes(s));
+    const hasNewScopes = newScopes.length > 0;
+    
+    if (!hasNewScopes) {
+      // Quick sign-in flow - no new permissions needed
+      return (
+        <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+          <div className="bg-[#12121a] border border-white/[0.08] rounded-2xl p-8 max-w-md w-full">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-4 mb-6">
+                {client.logo_url ? (
+                  <img src={client.logo_url} alt={client.name} className="w-14 h-14 rounded-xl" />
+                ) : (
+                  <div className="w-14 h-14 bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white">{client.name.charAt(0)}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-gray-500">
+                  <div className="w-8 h-[2px] bg-gradient-to-r from-gray-700 to-gray-600" />
+                  <RefreshCw size={14} />
+                  <div className="w-8 h-[2px] bg-gradient-to-r from-gray-600 to-gray-700" />
+                </div>
+                <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">G</span>
+                </div>
+              </div>
+              
+              <h1 className="text-xl font-semibold text-white mb-2">
+                Sign back in to {client.name}
+              </h1>
+              <p className="text-sm text-gray-400">
+                You&apos;ve used Grraphic with this app before
+              </p>
+            </div>
+
+            {/* User Info */}
+            <div className="flex items-center gap-3 p-3 bg-white/[0.03] rounded-xl border border-white/[0.06] mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-medium">
+                  {user.username?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-medium truncate">{user.username || 'User'}</p>
+                <p className="text-gray-500 text-sm truncate">{user.email}</p>
+              </div>
+              <button 
+                onClick={() => {
+                  supabase.auth.signOut();
+                  setUser(null);
+                  setExistingConsent(null);
+                  setShowLogin(true);
+                }}
+                className="text-xs text-gray-500 hover:text-gray-400"
+              >
+                Switch
+              </button>
+            </div>
+
+            {/* Previous authorization info */}
+            <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-6">
+              <Clock size={16} className="text-emerald-400" />
+              <span className="text-sm text-emerald-400">
+                Previously authorized on {grantedDate}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeny}
+                disabled={authorizing}
+                className="flex-1 py-3 bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-white font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAuthorize}
+                disabled={authorizing}
+                className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-xl text-white font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {authorizing ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <>
+                    <Check size={18} />
+                    Continue
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Footer */}
+            <p className="text-center text-gray-600 text-xs mt-6">
+              Powered by <span className="text-violet-400">Grraphic Auth</span>
+            </p>
+          </div>
+        </div>
+      );
+    }
+    
+    // New scopes requested - show what's new
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+        <div className="bg-[#12121a] border border-white/[0.08] rounded-2xl p-8 max-w-md w-full">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center gap-4 mb-6">
+              {client.logo_url ? (
+                <img src={client.logo_url} alt={client.name} className="w-14 h-14 rounded-xl" />
+              ) : (
+                <div className="w-14 h-14 bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">{client.name.charAt(0)}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-gray-500">
+                <div className="w-8 h-[2px] bg-gradient-to-r from-gray-700 to-gray-600" />
+                <Lock size={14} />
+                <div className="w-8 h-[2px] bg-gradient-to-r from-gray-600 to-gray-700" />
+              </div>
+              <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
+                <span className="text-xl font-bold text-white">G</span>
+              </div>
+            </div>
+            
+            <h1 className="text-xl font-semibold text-white mb-2">
+              {client.name} is requesting additional access
+            </h1>
+            <p className="text-sm text-gray-400">
+              You authorized this app on {grantedDate}
+            </p>
+          </div>
+
+          {/* User Info */}
+          <div className="flex items-center gap-3 p-3 bg-white/[0.03] rounded-xl border border-white/[0.06] mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center">
+              <span className="text-white font-medium">
+                {user.username?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium truncate">{user.username || 'User'}</p>
+              <p className="text-gray-500 text-sm truncate">{user.email}</p>
+            </div>
+          </div>
+
+          {/* New Scopes */}
+          <div className="mb-6">
+            <p className="text-sm text-amber-400 mb-3 flex items-center gap-2">
+              <AlertCircle size={14} />
+              New permissions requested:
+            </p>
+            <div className="space-y-2">
+              {newScopes.map((scopeKey) => {
+                const scopeInfo = SCOPE_DESCRIPTIONS[scopeKey] || {
+                  label: scopeKey,
+                  description: `Access to ${scopeKey}`,
+                  icon: <Shield size={16} />
+                };
+                return (
+                  <div 
+                    key={scopeKey}
+                    className="flex items-start gap-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20"
+                  >
+                    <div className="text-amber-400 mt-0.5">{scopeInfo.icon}</div>
+                    <div>
+                      <p className="text-white text-sm font-medium">{scopeInfo.label}</p>
+                      <p className="text-gray-500 text-xs">{scopeInfo.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Previously Granted */}
+          {existingConsent.scopes.length > 0 && (
+            <div className="mb-6">
+              <p className="text-sm text-gray-500 mb-3">Already authorized:</p>
+              <div className="flex flex-wrap gap-2">
+                {existingConsent.scopes.map((scopeKey) => {
+                  const scopeInfo = SCOPE_DESCRIPTIONS[scopeKey];
+                  return (
+                    <span 
+                      key={scopeKey}
+                      className="px-2 py-1 bg-white/[0.05] rounded text-xs text-gray-400"
+                    >
+                      {scopeInfo?.label || scopeKey}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleDeny}
+              disabled={authorizing}
+              className="flex-1 py-3 bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-white font-medium transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAuthorize}
+              disabled={authorizing}
+              className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-xl text-white font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {authorizing ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  <Check size={18} />
+                  Authorize
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-gray-600 text-xs mt-6">
+            Powered by <span className="text-violet-400">Grraphic Auth</span>
           </p>
         </div>
       </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Key, Plus, Trash2, Copy, Check, Eye, EyeOff, 
   BarChart3, Clock, Shield, AlertCircle, RefreshCw,
-  ChevronRight, Activity, Zap, Settings, ExternalLink
+  ChevronRight, Activity, Zap, Settings, ExternalLink, Code
 } from 'lucide-react';
 import { apiKeysService, apiUsageService, copyToClipboard } from '../services/apiService';
 
@@ -136,6 +136,13 @@ export function ApiDashboard({ onBack }: Props) {
               }`}>
                 {usage?.tier === 'pro' ? 'Pro' : 'Free'} Tier
               </span>
+              <button
+                onClick={() => window.location.href = '/developer'}
+                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition-colors"
+              >
+                <Code size={16} />
+                Developer Portal
+              </button>
               <button
                 onClick={() => window.open('/api/docs', '_blank')}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
