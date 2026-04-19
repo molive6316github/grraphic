@@ -22,7 +22,14 @@ export default async function handler(request: Request) {
   }
 
   const url = new URL(request.url);
-  const pathParts = url.pathname.replace('/api/request.bot/', '').split('/');
+  // Handle both /api/request.bot/path and /path (from api.grraphic.xyz rewrite)
+  let pathname = url.pathname;
+  if (pathname.startsWith('/api/request.bot/')) {
+    pathname = pathname.replace('/api/request.bot/', '');
+  } else if (pathname.startsWith('/')) {
+    pathname = pathname.slice(1);
+  }
+  const pathParts = pathname.split('/').filter(Boolean);
   
   // Route mapping
   const routeMap: Record<string, string> = {
@@ -39,6 +46,14 @@ export default async function handler(request: Request) {
 
   const routePath = pathParts.join('/');
   const functionName = routeMap[routePath];
+
+  console.log('[v0] API Gateway:', { 
+    originalPath: url.pathname, 
+    parsedPath: pathname, 
+    routePath, 
+    functionName,
+    method: request.method 
+  });
 
   if (!functionName) {
     return new Response(
