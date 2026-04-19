@@ -59,13 +59,20 @@ export default async function handler(request: Request) {
     // Forward request to Supabase Edge Function
     const supabaseUrl = `${SUPABASE_URL}/functions/v1/${functionName}`;
     
-    // Clone headers and add service key for internal calls
-    const headers = new Headers(request.headers);
+    // Clone headers - preserve user's Authorization header
+    const headers = new Headers();
     headers.set('Content-Type', 'application/json');
     
-    // If this is an internal OAuth call, add service key
-    if (functionName.startsWith('oauth-') && SUPABASE_SERVICE_KEY) {
-      headers.set('Authorization', `Bearer ${SUPABASE_SERVICE_KEY}`);
+    // Forward Authorization header if present (for user auth)
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader) {
+      headers.set('Authorization', authHeader);
+    }
+    
+    // Forward API key if present
+    const apiKey = request.headers.get('X-API-Key');
+    if (apiKey) {
+      headers.set('X-API-Key', apiKey);
     }
 
     const response = await fetch(supabaseUrl, {
