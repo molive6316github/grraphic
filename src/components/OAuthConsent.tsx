@@ -124,9 +124,8 @@ export function OAuthConsent() {
         setShowLogin(true);
       }
 
-      // Fetch client info directly from Supabase Edge Function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/oauth-client-info`, {
+      // Fetch client info using API endpoint
+      const response = await fetch(`/api/request.bot/oauth/client-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_id: clientId })
@@ -234,9 +233,8 @@ export function OAuthConsent() {
         return;
       }
 
-      // Call Supabase Edge Function to generate authorization code
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/oauth-authorize`, {
+      // Call API endpoint to generate authorization code
+      const response = await fetch(`/api/request.bot/oauth/authorize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
