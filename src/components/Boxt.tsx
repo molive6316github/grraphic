@@ -263,7 +263,6 @@ export function Boxt({ userId }: BoxtProps) {
     setGradiMessages(prev => [...prev, { role: 'assistant', content: '🤖 Agent Mode: Creating your professional design...' }]);
 
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-    const fallbackKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     try {
       const initialPrompt = `You are creating a ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
@@ -300,7 +299,7 @@ NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Generating design elements...' }]);
 
-      let response = await callAI(apiKey, fallbackKey, initialPrompt);
+      let response = await callAI(apiKey, initialPrompt);
       console.log('Agent AI Response:', response);
       let actions = parseAgentActions(response);
       console.log('Parsed Actions:', actions);
@@ -379,7 +378,7 @@ IMPROVEMENTS:
 - Suggestion 2
 - Suggestion 3`;
 
-      const analysis = await callAI(apiKey, fallbackKey, analysisPrompt);
+      const analysis = await callAI(apiKey, analysisPrompt);
 
       const scoreMatch = analysis.match(/OVERALL_SCORE:\s*(\d+)/i);
       const score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
@@ -404,7 +403,7 @@ Add 5-10 commands to improve:
 
 COMMANDS ONLY, one per line:`;
 
-        const improvements = await callAI(apiKey, fallbackKey, improvementPrompt);
+        const improvements = await callAI(apiKey, improvementPrompt);
         const improvementActions = parseAgentActions(improvements);
 
         if (improvementActions.length > 0) {
@@ -423,7 +422,7 @@ COMMANDS ONLY, one per line:`;
     setAgentWorking(false);
   };
 
-  const callAI = async (groqKey: string, geminiKey: string, prompt: string): Promise<string> => {
+  const callAI = async (groqKey: string, prompt: string): Promise<string> => {
     const systemPrompt = 'You are a world-class graphic designer who creates stunning, professional designs in ANY style. You analyze each request and choose the perfect aesthetic - whether neon gaming, elegant luxury, corporate professional, or playful colorful. You create complex, multi-layered, beautiful compositions. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
 
     // Try Llama 3.3 70B Versatile (best reasoning)
@@ -522,7 +521,7 @@ COMMANDS ONLY, one per line:`;
       console.log('❌ Mixtral 8x7B unavailable:', error);
     }
 
-    // Try Gemma2 9B
+    // Final fallback: Try Gemma2 9B
     try {
       console.log('🤖 Attempting Gemma2 9B via Groq...');
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -537,7 +536,7 @@ COMMANDS ONLY, one per line:`;
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          temperature: 1.0,
+          temperature: 0.95,
           max_tokens: 4000,
           top_p: 0.98,
         }),
@@ -554,22 +553,7 @@ COMMANDS ONLY, one per line:`;
       console.log('❌ Gemma2 9B unavailable:', error);
     }
 
-    // Final fallback: Gemini 1.5 Flash
-    console.log('🤖 Using Gemini 1.5 Flash (final fallback)');
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.95, maxOutputTokens: 3500, topP: 0.98 }
-        })
-      }
-    );
-    const geminiData = await geminiResponse.json();
-    console.log('✅ Gemini 1.5 Flash success!');
-    return geminiData.candidates[0]?.content?.parts[0]?.text || '';
+    throw new Error('All Groq models failed. Please check your API key and try again.');
   };
 
   const executeActionsWithProgress = async (actions: any[]) => {
