@@ -124,8 +124,9 @@ export function OAuthConsent() {
         setShowLogin(true);
       }
 
-      // Fetch client info using API endpoint
-      const response = await fetch(`https://api.grraphic.xyz/oauth/client-info`, {
+      // Fetch client info directly from Supabase Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/oauth-client-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_id: clientId })
@@ -233,8 +234,9 @@ export function OAuthConsent() {
         return;
       }
 
-      // Call API endpoint to generate authorization code
-      const response = await fetch(`https://api.grraphic.xyz/oauth/authorize`, {
+      // Call Supabase Edge Function to generate authorization code
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/oauth-authorize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
