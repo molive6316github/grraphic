@@ -9,8 +9,9 @@ import { AdminReviews } from './AdminReviews';
 import { AdminGradiChats } from './AdminGradiChats';
 import { AdminAnalyses } from './AdminAnalyses';
 import { AdminSettings } from './AdminSettings';
+import { AdminStripeSettings } from './AdminStripeSettings';
 
-type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'chats' | 'analyses' | 'settings';
+type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'chats' | 'analyses' | 'settings' | 'stripe';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -153,6 +154,16 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
             Error Logs
           </button>
           <button
+            onClick={() => setActiveView('stripe')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeView === 'stripe'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Stripe
+          </button>
+          <button
             onClick={() => setActiveView('settings')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeView === 'settings'
@@ -261,6 +272,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         {activeView === 'reviews' && <AdminReviews />}
         {activeView === 'chats' && <AdminGradiChats />}
         {activeView === 'analyses' && <AdminAnalyses />}
+        {activeView === 'stripe' && <AdminStripeSettings />}
         {activeView === 'settings' && <AdminSettings />}
       </div>
     </div>

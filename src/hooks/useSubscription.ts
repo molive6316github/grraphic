@@ -27,15 +27,16 @@ export function useSubscription(userId: string | undefined) {
       const { data, error } = await supabase
         .from('stripe_user_subscriptions')
         .select('*')
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        throw error;
+        console.warn('Warning fetching subscription:', error);
       }
       
       setSubscription(data);
     } catch (error) {
-      console.error('Error fetching subscription:', error);
+      console.warn('Warning fetching subscription:', error);
       setSubscription(null);
     } finally {
       setLoading(false);

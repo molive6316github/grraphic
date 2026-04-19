@@ -39,7 +39,12 @@ export function AdminSubscriptions() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Warning fetching subscriptions:', error);
+        setSubscriptions([]);
+        setLoading(false);
+        return;
+      }
 
       const subscriptionsWithUsers = await Promise.all(
         (subsData || []).map(async (sub) => {
@@ -77,7 +82,8 @@ export function AdminSubscriptions() {
         monthlyRevenue: activeCount * 9.99
       });
     } catch (error) {
-      console.error('Error fetching subscriptions:', error);
+      console.warn('Warning fetching subscriptions:', error);
+      setSubscriptions([]);
     } finally {
       setLoading(false);
     }
