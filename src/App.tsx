@@ -80,6 +80,18 @@ function App() {
     const analysisId = urlParams.get('analysis');
     const success = urlParams.get('success');
 
+    // Handle Supabase OAuth error redirects (both query params and hash fragment)
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const authError = urlParams.get('error') || hashParams.get('error');
+    const authErrorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+    if (authError) {
+      const message = authErrorDescription
+        ? decodeURIComponent(authErrorDescription)
+        : 'Sign-in failed. Please try again.';
+      setErrorMessage(message);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Check for custom landing pages and legal pages
     if (path === '/design-help') {
       setState('design-help');
