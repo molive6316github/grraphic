@@ -10,7 +10,7 @@ const getEncryptionKey = (): string => {
   return CryptoJS.SHA256(userSession + secret).toString();
 };
 
-export const encryptData = (data: any): string => {
+export const encryptData = (data: unknown): string => {
   try {
     const key = getEncryptionKey();
     const jsonString = JSON.stringify(data);
@@ -23,7 +23,7 @@ export const encryptData = (data: any): string => {
   }
 };
 
-export const decryptData = (encryptedData: string): any => {
+export const decryptData = (encryptedData: string): unknown => {
   try {
     const key = getEncryptionKey();
     const decrypted = CryptoJS.AES.decrypt(encryptedData, key);
