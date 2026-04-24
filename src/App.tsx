@@ -33,7 +33,7 @@ import { OAuthCallback } from './components/OAuthCallback';
 import { DeveloperPortal } from './components/DeveloperPortal';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { analyzeUI } from './utils/uiAnalyzer';
-import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode } from './types';
+import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode, AnalysisRecord } from './types';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useAuth } from './hooks/useAuth';
 import { useAnalysisHistory } from './hooks/useAnalysisHistory';
@@ -58,33 +58,19 @@ function App() {
   const [uiAnalysis, setUIAnalysis] = useState<UIAnalysis | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
-  const [viewingAnalysis, setViewingAnalysis] = useState<any>(null);
-  const [publicAnalysis, setPublicAnalysis] = useState<any>(null);
+  const [viewingAnalysis, setViewingAnalysis] = useState<AnalysisRecord | null>(null);
+  const [publicAnalysis, setPublicAnalysis] = useState<AnalysisRecord | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mockupSection, setMockupSection] = useState<MockupSection>('home');
   const { isDark, toggleDarkMode } = useDarkMode();
-  const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
+  const { user, session, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
   const { analyses, loading: historyLoading, saveAnalysis, deleteAnalysis, togglePublic, getPublicAnalysis } = useAnalysisHistory(user?.id);
   const { credits, loading: creditsLoading, hasProCredits, useProCredit } = useCredits(user?.id);
   const { subscription, loading: subscriptionLoading, refreshSubscription } = useSubscription(user?.id);
   const { username, loading: usernameLoading, error: usernameError, updateUsername, clearError } = useUsername(user?.id);
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
   
-  // Get user session for authenticated requests
-  const [userSession, setUserSession] = useState<any>(null);
-
-  useEffect(() => {
-    if (user) {
-      // Get the current session
-      import('./lib/supabase').then(({ supabase }) => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          setUserSession(session);
-        });
-      });
-    }
-  }, [user]);
-
 
 
   // Check for shared analysis and custom pages in URL on component mount
@@ -191,7 +177,7 @@ function App() {
       // Ensure price_id is clean - no quotes, no whitespace
       const cleanPriceId = STRIPE_PRODUCTS.grraphicPro.priceId.trim().replace(/['"]/g, '');
       
-      const requestBody: any = {
+      const requestBody: Record<string, string> = {
         price_id: cleanPriceId,
         success_url: `${window.location.origin}?success=true`,
         cancel_url: `${window.location.origin}?canceled=true`,
@@ -205,7 +191,7 @@ function App() {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${userSession?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
@@ -323,7 +309,7 @@ function App() {
     window.history.replaceState({}, document.title, window.location.pathname);
   };
 
-  const handleViewAnalysis = (analysisRecord: any) => {
+  const handleViewAnalysis = (analysisRecord: AnalysisRecord) => {
     setViewingAnalysis(analysisRecord);
     setAnalysis(analysisRecord.analysis_data);
     setMode('design'); // Set mode to design when viewing from history

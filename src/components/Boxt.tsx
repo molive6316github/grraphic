@@ -19,9 +19,9 @@ interface BoxtProps {
 }
 
 const FREE_DESIGN_LIMIT = 5;
-const PIXABAY_API_KEY = '53498346-800474751f60780eb0202c736';
-const FLATICON_API_KEY = 'FPSXa55f69c5febf8aac742b879e83209ffb';
-const FLATICON_WEBHOOK_SECRET = 'a2e442ab2fb7511111a98a4b677996cd';
+const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY as string;
+const FLATICON_API_KEY = import.meta.env.VITE_FLATICON_API_KEY as string;
+const FLATICON_WEBHOOK_SECRET = import.meta.env.VITE_FLATICON_WEBHOOK_SECRET as string;
 
 export function Boxt({ userId }: BoxtProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -300,9 +300,7 @@ NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Generating design elements...' }]);
 
       let response = await callAI(apiKey, initialPrompt);
-      console.log('Agent AI Response:', response);
       let actions = parseAgentActions(response);
-      console.log('Parsed Actions:', actions);
 
       if (actions.length === 0) {
         setGradiMessages(prev => [...prev, {
@@ -338,9 +336,6 @@ NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
         currentBg = prev;
         return prev;
       });
-
-      console.log('Current elements count:', currentElements.length);
-      console.log('Current elements:', currentElements);
 
       if (currentElements.length === 0) {
         setGradiMessages(prev => [...prev, { role: 'assistant', content: `❌ No elements found after execution. Executed ${actions.length} actions. Check console for details.` }]);
@@ -427,7 +422,6 @@ COMMANDS ONLY, one per line:`;
 
     // Try Llama 3.3 70B Versatile (best reasoning)
     try {
-      console.log('🤖 Attempting Llama 3.3 70B Versatile via Groq...');
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -448,18 +442,14 @@ COMMANDS ONLY, one per line:`;
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Llama 3.3 70B Versatile success!');
         return data.choices[0]?.message?.content || '';
-      } else {
-        console.log('❌ Llama 3.3 70B failed:', response.status);
       }
-    } catch (error) {
-      console.log('❌ Llama 3.3 70B unavailable:', error);
+    } catch {
+      // fall through to next model
     }
 
     // Try Llama 3.1 70B Versatile
     try {
-      console.log('🤖 Attempting Llama 3.1 70B Versatile via Groq...');
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -480,18 +470,14 @@ COMMANDS ONLY, one per line:`;
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Llama 3.1 70B Versatile success!');
         return data.choices[0]?.message?.content || '';
-      } else {
-        console.log('❌ Llama 3.1 70B failed:', response.status);
       }
-    } catch (error) {
-      console.log('❌ Llama 3.1 70B unavailable:', error);
+    } catch {
+      // fall through to next model
     }
 
     // Try Mixtral 8x7B
     try {
-      console.log('🤖 Attempting Mixtral 8x7B via Groq...');
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -512,18 +498,14 @@ COMMANDS ONLY, one per line:`;
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Mixtral 8x7B success!');
         return data.choices[0]?.message?.content || '';
-      } else {
-        console.log('❌ Mixtral 8x7B failed:', response.status);
       }
-    } catch (error) {
-      console.log('❌ Mixtral 8x7B unavailable:', error);
+    } catch {
+      // fall through to next model
     }
 
     // Final fallback: Try Gemma2 9B
     try {
-      console.log('🤖 Attempting Gemma2 9B via Groq...');
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -544,13 +526,10 @@ COMMANDS ONLY, one per line:`;
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Gemma2 9B success!');
         return data.choices[0]?.message?.content || '';
-      } else {
-        console.log('❌ Gemma2 9B failed:', response.status);
       }
-    } catch (error) {
-      console.log('❌ Gemma2 9B unavailable:', error);
+    } catch {
+      // fall through
     }
 
     throw new Error('All Groq models failed. Please check your API key and try again.');
@@ -559,7 +538,6 @@ COMMANDS ONLY, one per line:`;
   const executeActionsWithProgress = async (actions: any[]) => {
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
-      console.log(`Executing action ${i + 1}/${actions.length}:`, action.tool, action.params);
       await executeAction(action);
       await new Promise(resolve => setTimeout(resolve, 600));
       setGradiMessages(prev => {
@@ -571,7 +549,6 @@ COMMANDS ONLY, one per line:`;
         return newMessages;
       });
     }
-    console.log('All actions executed');
   };
 
   const parseAgentActions = (response: string): any[] => {
@@ -620,7 +597,6 @@ COMMANDS ONLY, one per line:`;
       }
     }
 
-    console.log('Parsed actions count:', actions.length);
     return actions;
   };
 
@@ -639,11 +615,10 @@ COMMANDS ONLY, one per line:`;
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        console.log('Executing:', tool, 'with params:', params);
         switch (tool) {
           case 'ADD_RECT':
             const rect = {
-              id: Date.now().toString() + Math.random(),
+              id: crypto.randomUUID(),
               type: 'rect' as const,
               x: Number(params[0]) || 100,
               y: Number(params[1]) || 100,
@@ -653,10 +628,8 @@ COMMANDS ONLY, one per line:`;
               stroke: String(params[5]) || strokeColor,
               strokeWidth: 2
             };
-            console.log('Adding rect:', rect);
             setElements(prev => {
               const newElements = [...prev, rect];
-              console.log('Elements after ADD_RECT:', newElements.length);
               addToHistory(newElements);
               return newElements;
             });
@@ -664,7 +637,7 @@ COMMANDS ONLY, one per line:`;
 
           case 'ADD_CIRCLE':
             const circle = {
-              id: Date.now().toString() + Math.random(),
+              id: crypto.randomUUID(),
               type: 'circle' as const,
               x: Number(params[0]) || 100,
               y: Number(params[1]) || 100,
@@ -685,7 +658,7 @@ COMMANDS ONLY, one per line:`;
             const textX = Number(params[0]) || 100;
             const textAlign = (textX >= canvasWidth * 0.4 && textX <= canvasWidth * 0.6) ? 'center' : 'left';
             const text = {
-              id: Date.now().toString() + Math.random(),
+              id: crypto.randomUUID(),
               type: 'text' as const,
               x: textX,
               y: Number(params[1]) || 100,
@@ -699,10 +672,8 @@ COMMANDS ONLY, one per line:`;
               fontStyle: params[7] ? 'italic' : 'normal',
               textAlign: textAlign
             };
-            console.log('Adding text:', text);
             setElements(prev => {
               const newElements = [...prev, text];
-              console.log('Elements after ADD_TEXT:', newElements.length);
               addToHistory(newElements);
               return newElements;
             });
@@ -727,7 +698,7 @@ COMMANDS ONLY, one per line:`;
           case 'ADD_IMAGE':
             if (params[4]) {
               const image = {
-                id: Date.now().toString() + Math.random(),
+                id: crypto.randomUUID(),
                 type: 'image' as const,
                 x: Number(params[0]) || 100,
                 y: Number(params[1]) || 100,
@@ -820,7 +791,7 @@ COMMANDS ONLY, one per line:`;
                 const original = prev[index];
                 const duplicate = {
                   ...original,
-                  id: Date.now().toString() + Math.random(),
+                  id: crypto.randomUUID(),
                   x: original.x + 20,
                   y: original.y + 20
                 };
@@ -946,7 +917,7 @@ COMMANDS ONLY, one per line:`;
       if (data.hits && data.hits.length > 0) {
         const randomImage = data.hits[Math.floor(Math.random() * data.hits.length)];
         const image = {
-          id: Date.now().toString() + Math.random(),
+          id: crypto.randomUUID(),
           type: 'image' as const,
           x: 100,
           y: 100,
@@ -983,7 +954,7 @@ COMMANDS ONLY, one per line:`;
         const iconUrl = icon.images['512'];
 
         const iconElement = {
-          id: Date.now().toString() + Math.random(),
+          id: crypto.randomUUID(),
           type: 'image' as const,
           x: xPos,
           y: yPos,
@@ -1249,7 +1220,7 @@ COMMANDS ONLY, one per line:`;
 
     const newElement: DesignElement = {
       ...element,
-      id: Date.now().toString() + Math.random(),
+      id: crypto.randomUUID(),
       x: element.x + 20,
       y: element.y + 20
     };
