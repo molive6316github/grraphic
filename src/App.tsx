@@ -64,7 +64,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mockupSection, setMockupSection] = useState<MockupSection>('home');
   const { isDark, toggleDarkMode } = useDarkMode();
-  const { user, session, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
+  const { user, session, loading: authLoading, signIn, signUp, signInWithGoogle, signInWithGitHub, signOut } = useAuth();
   const { analyses, loading: historyLoading, saveAnalysis, deleteAnalysis, togglePublic, getPublicAnalysis } = useAnalysisHistory(user?.id);
   const { credits, loading: creditsLoading, hasProCredits, useProCredit } = useCredits(user?.id);
   const { subscription, loading: subscriptionLoading, refreshSubscription } = useSubscription(user?.id);
@@ -369,6 +369,7 @@ function App() {
           onSignIn={signIn}
   onSignUp={signUp}
   onSignInWithGoogle={signInWithGoogle}
+  onSignInWithGitHub={signInWithGitHub}
   />
       </>
     );
@@ -389,6 +390,7 @@ function App() {
           onSignIn={signIn}
   onSignUp={signUp}
   onSignInWithGoogle={signInWithGoogle}
+  onSignInWithGitHub={signInWithGitHub}
   />
       </>
     );
@@ -442,6 +444,7 @@ function App() {
             onSignIn={signIn}
   onSignUp={signUp}
   onGoogleSignIn={signInWithGoogle}
+  onSignInWithGitHub={signInWithGitHub}
   />
         </div>
       );
@@ -476,6 +479,7 @@ function App() {
             onSignIn={signIn}
   onSignUp={signUp}
   onGoogleSignIn={signInWithGoogle}
+  onSignInWithGitHub={signInWithGitHub}
   />
         </div>
       );
@@ -513,6 +517,7 @@ function App() {
             onSignIn={signIn}
   onSignUp={signUp}
   onGoogleSignIn={signInWithGoogle}
+  onSignInWithGitHub={signInWithGitHub}
   />
         </div>
       );
@@ -935,6 +940,7 @@ function App() {
         onSignIn={signIn}
         onSignUp={signUp}
         onSignInWithGoogle={signInWithGoogle}
+  onSignInWithGitHub={signInWithGitHub}
       />
 
       {/* Username Modal */}

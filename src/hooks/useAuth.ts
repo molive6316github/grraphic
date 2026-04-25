@@ -106,6 +106,23 @@ export function useAuth() {
     }
   };
 
+  const signInWithGitHub = async () => {
+    if (!isSupabaseConfigured()) {
+      return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to sign in with GitHub.' } };
+    }
+
+    const redirectUrl = window.location.origin;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: redirectUrl,
+        scopes: 'user:email',
+      }
+    });
+    return { data, error };
+  };
+
   const signInWithGoogle = async () => {
     if (!isSupabaseConfigured()) {
       return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to sign in with Google.' } };
@@ -156,6 +173,7 @@ export function useAuth() {
     signUp,
     signIn,
     signInWithGoogle,
+    signInWithGitHub,
     signOut,
     resetPassword,
   };
