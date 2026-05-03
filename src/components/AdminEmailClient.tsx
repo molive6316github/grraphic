@@ -3,12 +3,37 @@ import {
   Send, Loader2, Check, AlertCircle,
   Bold, Italic, Underline, List, ListOrdered,
   Link, X, Clock, Trash2, RefreshCw,
-  Strikethrough, Users, UserCheck, PenSquare
+  Strikethrough, Users, UserCheck, PenSquare,
+  Inbox, Star, Reply, ChevronDown,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-type View = 'compose' | 'sent' | 'drafts';
+type View = 'inbox' | 'compose' | 'sent' | 'drafts';
 type RecipientType = 'manual' | 'all-users' | 'verified-only';
+
+const FROM_ADDRESSES = [
+  'noreply@grraphic.xyz',
+  'admin@grraphic.xyz',
+  'support@grraphic.xyz',
+  'info@grraphic.xyz',
+  'hello@grraphic.xyz',
+] as const;
+
+type FromAddress = typeof FROM_ADDRESSES[number];
+
+interface ReceivedEmail {
+  id: string;
+  from_email: string;
+  from_name: string | null;
+  to_email: string;
+  reply_to: string | null;
+  subject: string;
+  body_html: string | null;
+  body_text: string | null;
+  received_at: string;
+  is_read: boolean;
+  starred: boolean;
+}
 
 interface SentEmail {
   id: string;
@@ -17,6 +42,7 @@ interface SentEmail {
   body: string;
   recipient_type: string;
   recipient_count: number;
+  from_address: string;
   sent_at: string;
 }
 
@@ -28,6 +54,7 @@ interface Draft {
   subject: string;
   body: string;
   recipientType: RecipientType;
+  fromAddress: FromAddress;
   savedAt: string;
 }
 
@@ -37,10 +64,15 @@ const stripHtml = (html: string) =>
   html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
 
 export function AdminEmailClient() {
-  const [view, setView] = useState<View>('compose');
-  const [selectedSent, setSelectedSent] = useState<SentEmail | null>(null);
+  const [view, setView] = useState<View>('inbox');
+
+  // List selection (derived from arrays for auto-sync)
+  const [selectedInboxId, setSelectedInboxId] = useState<string | null>(null);
+  const [selectedSentId, setSelectedSentId] = useState<string | null>(null);
 
   // Compose fields
+  const [fromAddress, setFromAddress] = useState<FromAddress>(FROM_ADDRESSES[0]);
+  const [showFromMenu, setShowFromMenu] = useState(false);
   const [toEmails, setToEmails] = useState<string[]>([]);
   const [toInput, setToInput] = useState('');
   const [ccEmails, setCcEmails] = useState<string[]>([]);
@@ -63,7 +95,14 @@ export function AdminEmailClient() {
   // Data
   const [sentEmails, setSentEmails] = useState<SentEmail[]>([]);
   const [loadingSent, setLoadingSent] = useState(false);
+  const [receivedEmails, setReceivedEmails] = useState<ReceivedEmail[]>([]);
+  const [loadingInbox, setLoadingInbox] = useState(false);
   const [drafts, setDrafts] = useState<Draft[]>([]);
+
+  // Derived selections
+  const selectedInbox = receivedEmails.find(e => e.id === selectedInboxId) ?? null;
+  const selectedSent  = sentEmails.find(e => e.id === selectedSentId) ?? null;
+  const unreadCount   = receivedEmails.filter(e => !e.is_read).length;
 
   const loadSentEmails = useCallback(async () => {
     setLoadingSent(true);
@@ -76,6 +115,17 @@ export function AdminEmailClient() {
     setLoadingSent(false);
   }, []);
 
+  const loadInbox = useCallback(async () => {
+    setLoadingInbox(true);
+    const { data } = await supabase
+      .from('received_emails')
+      .select('*')
+      .order('received_at', { ascending: false })
+      .limit(100);
+    if (data) setReceivedEmails(data);
+    setLoadingInbox(false);
+  }, []);
+
   const loadDrafts = useCallback(() => {
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
@@ -84,11 +134,57 @@ export function AdminEmailClient() {
   }, []);
 
   useEffect(() => {
+    loadInbox();
     loadSentEmails();
     loadDrafts();
-  }, [loadSentEmails, loadDrafts]);
+  }, [loadInbox, loadSentEmails, loadDrafts]);
 
-  // Rich text commands
+  const markAsRead = async (id: string) => {
+    setReceivedEmails(prev => prev.map(e => e.id === id ? { ...e, is_read: true } : e));
+    await supabase.from('received_emails').update({ is_read: true }).eq('id', id);
+  };
+
+  const toggleStar = async (id: string) => {
+    const email = receivedEmails.find(e => e.id === id);
+    if (!email) return;
+    const starred = !email.starred;
+    setReceivedEmails(prev => prev.map(e => e.id === id ? { ...e, starred } : e));
+    await supabase.from('received_emails').update({ starred }).eq('id', id);
+  };
+
+  const openInboxEmail = (email: ReceivedEmail) => {
+    setSelectedInboxId(email.id);
+    if (!email.is_read) markAsRead(email.id);
+  };
+
+  const replyToEmail = (email: ReceivedEmail) => {
+    const replyTo = email.reply_to || email.from_email;
+    const replySubject = email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`;
+    const quoted = email.body_html
+      ? `<br><br><blockquote style="border-left:2px solid #444;padding-left:12px;color:#888;margin:0">${email.body_html}</blockquote>`
+      : email.body_text
+      ? `<br><br><blockquote style="border-left:2px solid #444;padding-left:12px;color:#888;margin:0">${email.body_text.replace(/\n/g, '<br>')}</blockquote>`
+      : '';
+
+    setToEmails([replyTo]);
+    setToInput('');
+    setCcEmails([]); setBccEmails([]);
+    setSubject(replySubject);
+    setRecipientType('manual');
+    setShowCc(false); setShowBcc(false);
+    const addr = (FROM_ADDRESSES as readonly string[]).includes(email.to_email)
+      ? email.to_email as FromAddress
+      : FROM_ADDRESSES[0];
+    setFromAddress(addr);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = quoted;
+      setBodyEmpty(false);
+    }
+    setStatus(null);
+    setView('compose');
+  };
+
+  // Rich text
   const applyFormat = (cmd: string, value?: string) => {
     editorRef.current?.focus();
     document.execCommand(cmd, false, value);
@@ -104,7 +200,7 @@ export function AdminEmailClient() {
     raw: string,
     setInput: (v: string) => void,
     list: string[],
-    setList: (v: string[]) => void
+    setList: (v: string[]) => void,
   ) => {
     const email = raw.trim().replace(/,+$/, '');
     if (email && !list.includes(email)) setList([...list, email]);
@@ -116,7 +212,7 @@ export function AdminEmailClient() {
     input: string,
     setInput: (v: string) => void,
     list: string[],
-    setList: (v: string[]) => void
+    setList: (v: string[]) => void,
   ) => {
     if (['Enter', ',', 'Tab'].includes(e.key)) {
       e.preventDefault();
@@ -133,7 +229,7 @@ export function AdminEmailClient() {
     const draft: Draft = {
       id: Date.now().toString(),
       to: toEmails, cc: ccEmails, bcc: bccEmails,
-      subject, body, recipientType,
+      subject, body, recipientType, fromAddress,
       savedAt: new Date().toISOString(),
     };
     const existing: Draft[] = JSON.parse(localStorage.getItem(DRAFT_KEY) || '[]');
@@ -142,7 +238,7 @@ export function AdminEmailClient() {
     setDrafts(updated);
     setDraftSaved(true);
     setTimeout(() => setDraftSaved(false), 2000);
-  }, [toEmails, ccEmails, bccEmails, subject, recipientType]);
+  }, [toEmails, ccEmails, bccEmails, subject, recipientType, fromAddress]);
 
   const loadDraft = (draft: Draft) => {
     setToEmails(draft.to);
@@ -150,6 +246,7 @@ export function AdminEmailClient() {
     setBccEmails(draft.bcc);
     setSubject(draft.subject);
     setRecipientType(draft.recipientType);
+    setFromAddress(draft.fromAddress ?? FROM_ADDRESSES[0]);
     setShowCc(draft.cc.length > 0);
     setShowBcc(draft.bcc.length > 0);
     if (editorRef.current) {
@@ -175,7 +272,6 @@ export function AdminEmailClient() {
     setStatus(null);
   };
 
-  // Get final recipient list
   const getRecipients = async (): Promise<string[]> => {
     if (recipientType === 'manual') return toEmails;
     const { data } = recipientType === 'verified-only'
@@ -197,6 +293,8 @@ export function AdminEmailClient() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      const prefix = fromAddress.split('@')[0];
+      const fromName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
 
       const response = await fetch('/api/request.bot/email/send', {
         method: 'POST',
@@ -204,14 +302,14 @@ export function AdminEmailClient() {
           'Content-Type': 'application/json',
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ to: recipients, subject, body, fromName: 'Grraphic' }),
+        body: JSON.stringify({ to: recipients, subject, body, fromAddress, fromName }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
         await supabase.from('sent_emails').insert({
-          recipients, subject, body,
+          recipients, subject, body, from_address: fromAddress,
           recipient_type: recipientType,
           recipient_count: recipients.length,
         });
@@ -228,7 +326,8 @@ export function AdminEmailClient() {
     }
   };
 
-  // --- Sub-components ---
+  // ── Shared sub-components ───────────────────────────────────────────────────
+
   const EmailChip = ({ email, onRemove }: { email: string; onRemove: () => void }) => (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-600/25 border border-blue-500/40 rounded-full text-blue-200 text-xs">
       {email}
@@ -262,29 +361,41 @@ export function AdminEmailClient() {
     </div>
   );
 
-  const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso);
+    const isToday = d.toDateString() === new Date().toDateString();
+    return isToday
+      ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex h-[calc(100vh-160px)] min-h-[580px] rounded-xl border border-white/[0.08] overflow-hidden bg-[#0c0c13]">
 
-      {/* ── Sidebar ── */}
+      {/* Sidebar */}
       <div className="w-48 flex-shrink-0 border-r border-white/[0.06] p-3 flex flex-col gap-0.5">
         <button
-          onClick={() => setView('compose')}
+          onClick={() => { clearCompose(); setView('compose'); }}
           className="flex items-center gap-2.5 px-4 py-2.5 mb-4 bg-[#1c1c2e] hover:bg-[#22223a] border border-white/[0.1] rounded-2xl text-white text-sm font-medium transition-colors w-full"
         >
           <PenSquare size={16} />
           Compose
         </button>
 
-        {[
-          { id: 'sent' as View, icon: Send, label: 'Sent', count: sentEmails.length, countClass: 'text-gray-400 bg-white/10' },
-          { id: 'drafts' as View, icon: Clock, label: 'Drafts', count: drafts.length, countClass: 'text-yellow-400 bg-yellow-400/10' },
-        ].map(({ id, icon: Icon, label, count, countClass }) => (
+        {([
+          { id: 'inbox'  as View, icon: Inbox, label: 'Inbox',  count: unreadCount,    countClass: 'text-blue-300 bg-blue-400/15 font-semibold' },
+          { id: 'sent'   as View, icon: Send,  label: 'Sent',   count: 0,              countClass: '' },
+          { id: 'drafts' as View, icon: Clock, label: 'Drafts', count: drafts.length,  countClass: 'text-yellow-400 bg-yellow-400/10' },
+        ] as const).map(({ id, icon: Icon, label, count, countClass }) => (
           <button
             key={id}
-            onClick={() => { setView(id); if (id === 'sent') { loadSentEmails(); setSelectedSent(null); } }}
+            onClick={() => {
+              setView(id);
+              if (id === 'sent')  { loadSentEmails(); setSelectedSentId(null); }
+              if (id === 'inbox') { loadInbox();      setSelectedInboxId(null); }
+            }}
             className={`flex items-center justify-between px-3 py-2 rounded-full text-sm transition-colors w-full ${
               view === id ? 'bg-blue-600/20 text-blue-300 font-medium' : 'text-gray-400 hover:bg-white/[0.05] hover:text-white'
             }`}
@@ -300,14 +411,146 @@ export function AdminEmailClient() {
         ))}
       </div>
 
+      {/* ── Inbox ── */}
+      {view === 'inbox' && (
+        <div className="flex flex-1 overflow-hidden">
+
+          {/* List pane */}
+          <div className={`flex flex-col overflow-hidden border-r border-white/[0.05] ${selectedInbox ? 'w-72' : 'flex-1'}`}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05]">
+              <span className="text-white text-sm font-medium">Inbox</span>
+              <button onClick={loadInbox} className="p-1.5 text-gray-500 hover:text-white rounded hover:bg-white/[0.05] transition-colors">
+                <RefreshCw size={13} className={loadingInbox ? 'animate-spin' : ''} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {loadingInbox ? (
+                <div className="flex justify-center items-center h-24 text-gray-600">
+                  <Loader2 size={18} className="animate-spin" />
+                </div>
+              ) : receivedEmails.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-gray-600 gap-2">
+                  <Inbox size={22} />
+                  <p className="text-xs">No emails yet</p>
+                  <p className="text-xs text-gray-700">Add MX record → inbound.resend.com</p>
+                </div>
+              ) : receivedEmails.map(email => (
+                <button
+                  key={email.id}
+                  onClick={() => openInboxEmail(email)}
+                  className={`w-full text-left px-3 py-3 border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors ${
+                    selectedInbox?.id === email.id ? 'bg-blue-600/10 border-l-2 border-l-blue-500' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {email.starred && <Star size={10} className="text-yellow-400 fill-yellow-400 flex-shrink-0" />}
+                    <span className={`flex-1 text-sm truncate ${!email.is_read ? 'text-white font-semibold' : 'text-gray-300'}`}>
+                      {email.from_name || email.from_email}
+                    </span>
+                    <span className="text-xs text-gray-600 flex-shrink-0">{fmtDate(email.received_at)}</span>
+                  </div>
+                  <p className={`text-xs truncate ${!email.is_read ? 'text-gray-200' : 'text-gray-500'}`}>{email.subject}</p>
+                  <p className="text-xs text-gray-600 truncate mt-0.5">
+                    {email.body_text ? email.body_text.slice(0, 80) : stripHtml(email.body_html || '')}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Detail pane */}
+          {selectedInbox && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-white/[0.05]">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <h2 className="text-white font-medium leading-snug">{selectedInbox.subject}</h2>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => toggleStar(selectedInbox.id)}
+                      title={selectedInbox.starred ? 'Unstar' : 'Star'}
+                      className="p-1.5 rounded hover:bg-white/[0.05] transition-colors"
+                    >
+                      <Star size={15} className={selectedInbox.starred ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600 hover:text-gray-300'} />
+                    </button>
+                    <button
+                      onClick={() => replyToEmail(selectedInbox)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.08] rounded-full transition-colors"
+                    >
+                      <Reply size={12} />
+                      Reply
+                    </button>
+                    <button
+                      onClick={() => setSelectedInboxId(null)}
+                      className="p-1.5 text-gray-500 hover:text-white rounded hover:bg-white/[0.05] transition-colors"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1 text-xs">
+                  {[
+                    { label: 'From', value: selectedInbox.from_name ? `${selectedInbox.from_name} <${selectedInbox.from_email}>` : selectedInbox.from_email },
+                    { label: 'To', value: selectedInbox.to_email },
+                    { label: 'Date', value: new Date(selectedInbox.received_at).toLocaleString() },
+                    ...(selectedInbox.reply_to ? [{ label: 'Reply-To', value: selectedInbox.reply_to }] : []),
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex gap-3">
+                      <span className="text-gray-600 w-16 text-right flex-shrink-0">{label}:</span>
+                      <span className="text-gray-300 break-all">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div
+                className="flex-1 overflow-y-auto p-6 text-white text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: selectedInbox.body_html
+                    || (selectedInbox.body_text
+                      ? `<pre style="white-space:pre-wrap;font-family:inherit">${selectedInbox.body_text}</pre>`
+                      : '<em style="color:#666">No content</em>'),
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Compose ── */}
       {view === 'compose' && (
         <div className="flex-1 flex flex-col overflow-hidden">
 
-          {/* From + audience */}
-          <div className="px-4 py-2.5 border-b border-white/[0.05] bg-[#0a0a11]">
-            <span className="text-gray-500 text-xs">From: <span className="text-gray-300">noreply@grraphic.xyz</span></span>
-            <div className="flex items-center gap-1.5 mt-1.5">
+          {/* From dropdown */}
+          <div className="relative px-4 py-2.5 border-b border-white/[0.05] bg-[#0a0a11]">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-xs w-10 flex-shrink-0">From</span>
+              <button
+                onClick={() => setShowFromMenu(v => !v)}
+                className="flex items-center gap-1.5 text-sm text-gray-200 hover:text-white transition-colors"
+              >
+                {fromAddress}
+                <ChevronDown size={13} className="text-gray-500" />
+              </button>
+            </div>
+            {showFromMenu && (
+              <div className="absolute top-full left-4 mt-1 z-10 bg-[#18182a] border border-white/[0.1] rounded-lg shadow-xl overflow-hidden min-w-[230px]">
+                {FROM_ADDRESSES.map(addr => (
+                  <button
+                    key={addr}
+                    onClick={() => { setFromAddress(addr); setShowFromMenu(false); }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                      fromAddress === addr ? 'bg-blue-600/20 text-blue-300' : 'text-gray-300 hover:bg-white/[0.05] hover:text-white'
+                    }`}
+                  >
+                    {addr}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Audience selector */}
+          <div className="px-4 py-2 border-b border-white/[0.05] bg-[#0a0a11]">
+            <div className="flex items-center gap-1.5">
               <span className="text-gray-600 text-xs">To:</span>
               {(['manual', 'all-users', 'verified-only'] as RecipientType[]).map(t => (
                 <button
@@ -325,7 +568,6 @@ export function AdminEmailClient() {
             </div>
           </div>
 
-          {/* To chips (manual only) */}
           {recipientType === 'manual' && (
             <ChipRow
               label="To"
@@ -333,13 +575,13 @@ export function AdminEmailClient() {
               setInput={setToInput} setChips={setToEmails}
               right={
                 <div className="flex gap-2 ml-2 flex-shrink-0 pt-1">
-                  {!showCc && <button onClick={() => setShowCc(true)} className="text-xs text-gray-600 hover:text-blue-400">Cc</button>}
+                  {!showCc  && <button onClick={() => setShowCc(true)}  className="text-xs text-gray-600 hover:text-blue-400">Cc</button>}
                   {!showBcc && <button onClick={() => setShowBcc(true)} className="text-xs text-gray-600 hover:text-blue-400">Bcc</button>}
                 </div>
               }
             />
           )}
-          {showCc && <ChipRow label="Cc" chips={ccEmails} input={ccInput} setInput={setCcInput} setChips={setCcEmails} />}
+          {showCc  && <ChipRow label="Cc"  chips={ccEmails}  input={ccInput}  setInput={setCcInput}  setChips={setCcEmails} />}
           {showBcc && <ChipRow label="Bcc" chips={bccEmails} input={bccInput} setInput={setBccInput} setChips={setBccEmails} />}
 
           {/* Subject */}
@@ -355,10 +597,10 @@ export function AdminEmailClient() {
           {/* Formatting toolbar */}
           <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-white/[0.05] bg-[#09090f]">
             {[
-              { icon: Bold,          cmd: 'bold',              title: 'Bold' },
-              { icon: Italic,        cmd: 'italic',            title: 'Italic' },
-              { icon: Underline,     cmd: 'underline',         title: 'Underline' },
-              { icon: Strikethrough, cmd: 'strikeThrough',     title: 'Strikethrough' },
+              { icon: Bold,          cmd: 'bold',          title: 'Bold' },
+              { icon: Italic,        cmd: 'italic',        title: 'Italic' },
+              { icon: Underline,     cmd: 'underline',     title: 'Underline' },
+              { icon: Strikethrough, cmd: 'strikeThrough', title: 'Strikethrough' },
             ].map(({ icon: Icon, cmd, title }) => (
               <button
                 key={cmd}
@@ -412,7 +654,6 @@ export function AdminEmailClient() {
                 {draftSaved ? 'Saved' : 'Save draft'}
               </button>
             </div>
-
             <div className="flex items-center gap-3">
               {status && (
                 <span className={`flex items-center gap-1.5 text-xs ${status.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
@@ -432,7 +673,7 @@ export function AdminEmailClient() {
       {view === 'sent' && (
         <div className="flex flex-1 overflow-hidden">
 
-          {/* List */}
+          {/* List pane */}
           <div className={`flex flex-col overflow-hidden border-r border-white/[0.05] ${selectedSent ? 'w-72' : 'flex-1'}`}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05]">
               <span className="text-white text-sm font-medium">Sent</span>
@@ -451,15 +692,15 @@ export function AdminEmailClient() {
               ) : sentEmails.map(email => (
                 <button
                   key={email.id}
-                  onClick={() => setSelectedSent(email)}
+                  onClick={() => setSelectedSentId(email.id)}
                   className={`w-full text-left px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors ${
                     selectedSent?.id === email.id ? 'bg-blue-600/10 border-l-2 border-l-blue-500' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-sm text-white font-medium truncate">
-                      {email.recipient_type === 'all-users'      ? 'All Users' :
-                       email.recipient_type === 'verified-only'  ? 'Verified Users' :
+                      {email.recipient_type === 'all-users'     ? 'All Users' :
+                       email.recipient_type === 'verified-only' ? 'Verified Users' :
                        email.recipients.slice(0, 2).join(', ') + (email.recipients.length > 2 ? ` +${email.recipients.length - 2}` : '')}
                     </span>
                     <span className="text-xs text-gray-600 flex-shrink-0 ml-2">{fmtDate(email.sent_at)}</span>
@@ -471,19 +712,19 @@ export function AdminEmailClient() {
             </div>
           </div>
 
-          {/* Detail */}
+          {/* Detail pane */}
           {selectedSent && (
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="px-6 py-4 border-b border-white/[0.05]">
                 <div className="flex items-start justify-between gap-4">
                   <h2 className="text-white font-medium">{selectedSent.subject}</h2>
-                  <button onClick={() => setSelectedSent(null)} className="p-1.5 text-gray-500 hover:text-white rounded hover:bg-white/[0.05] flex-shrink-0">
+                  <button onClick={() => setSelectedSentId(null)} className="p-1.5 text-gray-500 hover:text-white rounded hover:bg-white/[0.05] flex-shrink-0">
                     <X size={15} />
                   </button>
                 </div>
                 <div className="mt-3 space-y-1 text-xs">
                   {[
-                    { label: 'From', value: 'noreply@grraphic.xyz' },
+                    { label: 'From', value: selectedSent.from_address || 'noreply@grraphic.xyz' },
                     {
                       label: 'To',
                       value: selectedSent.recipient_type === 'all-users'
