@@ -16,11 +16,16 @@
   }
 
   body {
-    @apply text-slate-900 dark:text-slate-100;
+    @apply font-sans text-slate-900 dark:text-slate-100;
+  }
+
+  ::selection {
+    background: rgba(139, 92, 246, 0.35);
+    color: #fff;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+    @apply font-display font-semibold tracking-tight;
   }
 
   h1 {
@@ -331,4 +336,99 @@
 
 .animate-idle-bounce {
   animation: idle-bounce 2s ease-in-out infinite;
+}
+
+/* ============ Midnight atelier atmosphere ============ */
+
+/* Film-grain overlay: sits above the glows, below the content */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.32'/%3E%3C/svg%3E");
+}
+
+/* Faint blueprint dot grid that fades toward the edges */
+.dot-grid {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 25%, black 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 25%, black 30%, transparent 75%);
+}
+
+/* Slow-breathing aurora glows */
+@keyframes aurora-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.7;
+  }
+  33% {
+    transform: translate3d(4%, -3%, 0) scale(1.08);
+    opacity: 1;
+  }
+  66% {
+    transform: translate3d(-3%, 3%, 0) scale(0.96);
+    opacity: 0.8;
+  }
+}
+
+.aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  will-change: transform, opacity;
+  animation: aurora-drift 16s ease-in-out infinite;
+}
+
+/* Staggered page-load choreography */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.reveal-1 { animation-delay: 0.05s; }
+.reveal-2 { animation-delay: 0.15s; }
+.reveal-3 { animation-delay: 0.25s; }
+.reveal-4 { animation-delay: 0.38s; }
+.reveal-5 { animation-delay: 0.5s; }
+
+/* Floating score chips that orbit the hero */
+@keyframes chip-float {
+  0%, 100% {
+    transform: translateY(0) rotate(var(--chip-tilt, -2deg));
+  }
+  50% {
+    transform: translateY(-10px) rotate(var(--chip-tilt, -2deg));
+  }
+}
+
+.score-chip {
+  animation: chip-float 6s ease-in-out infinite;
+  animation-delay: var(--chip-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-1, .reveal-2, .reveal-3, .reveal-4, .reveal-5 {
+    animation: none;
+    opacity: 1;
+  }
+  .aurora,
+  .score-chip {
+    animation: none;
+  }
 }
