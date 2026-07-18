@@ -727,7 +727,7 @@ function App() {
             )}
 
             {/* Pro Subscription Card - Show for non-pro users below upload */}
-            {user && !credits?.is_pro_subscriber && user.email !== 'maxolive6316@gmail.com' && (
+            {user && !credits?.is_pro_subscriber && (
               <div className="mt-8">
                 <ProSubscriptionCard onSubscribe={handleSubscribe} loading={checkoutLoading} />
               </div>
@@ -742,7 +742,7 @@ function App() {
             analysis={analysis}
             fileName={uploadedFile?.name || viewingAnalysis?.file_name || 'Unknown'}
             imagePreview={uploadedFile?.preview}
-            isProSubscriber={credits?.is_pro_subscriber || user?.email === 'maxolive6316@gmail.com' || false}
+            isProSubscriber={credits?.is_pro_subscriber || false}
             onUpgrade={handleSubscribe}
             userId={user?.id}
           />
@@ -755,7 +755,7 @@ function App() {
             uploadType={uploadedUI.type}
             uploadUrl={uploadedUI.url}
             screenshotUrl={(uiAnalysis as any).screenshotUrl}
-            isProSubscriber={credits?.is_pro_subscriber || user?.email === 'maxolive6316@gmail.com' || false}
+            isProSubscriber={credits?.is_pro_subscriber || false}
             onUpgrade={handleSubscribe}
             userId={user?.id}
           />

@@ -55,24 +55,10 @@ export function validateUsername(username: string): { valid: boolean; error?: st
   return { valid: true };
 }
 
-// Check if email is already registered
-export async function checkEmailExists(email: string): Promise<boolean> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', email)
-    .single();
-  return !!data;
-}
-
-// Check if username is available
+// Check if username is available (RPC avoids exposing user rows to anon)
 export async function checkUsernameAvailable(username: string): Promise<boolean> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('username', username)
-    .single();
-  return !data;
+  const { data } = await supabase.rpc('is_username_available', { p_username: username });
+  return data !== false;
 }
 
 // Request magic link (passwordless login)

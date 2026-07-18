@@ -8,18 +8,6 @@ interface CreditsDisplayProps {
 }
 
 export function CreditsDisplay({ credits, loading }: CreditsDisplayProps) {
-  // Get current user to check for special status
-  const [isSpecialUser, setIsSpecialUser] = React.useState(false);
-  
-  React.useEffect(() => {
-    const checkSpecialUser = async () => {
-      const { supabase } = await import('../lib/supabase');
-      const { data: userData } = await supabase.auth.getUser();
-      setIsSpecialUser(userData?.user?.email === 'maxolive6316@gmail.com');
-    };
-    checkSpecialUser();
-  }, []);
-
   if (loading) {
     return (
       <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-white/20 p-3 animate-pulse">
@@ -30,14 +18,14 @@ export function CreditsDisplay({ credits, loading }: CreditsDisplayProps) {
 
   if (!credits) return null;
 
-  if (credits.is_pro_subscriber || isSpecialUser) {
+  if (credits.is_pro_subscriber || credits.is_admin) {
     return (
       <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-white/20 p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Crown size={16} className="text-yellow-500" />
             <span className="text-sm font-medium text-gray-900 dark:text-white">
-              {isSpecialUser ? 'Pro (Lifetime)' : 'Pro Subscriber'}
+              {credits.is_admin ? 'Pro (Lifetime)' : 'Pro Subscriber'}
             </span>
           </div>
           <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400">

@@ -67,39 +67,20 @@ export function useAuth() {
       });
       return { data, error };
     } else {
-      // Look up email by username from profiles table
-      const { data: userData, error: lookupError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('username', emailOrUsername.toLowerCase())
-        .maybeSingle();
+      // Resolve the username to its sign-in email via a narrow RPC
+      // (direct table access for anonymous users is disabled)
+      const { data: email, error: lookupError } = await supabase
+        .rpc('get_email_for_username', { p_username: emailOrUsername });
 
-      if (lookupError || !userData) {
-        // Also try case-insensitive search
-        const { data: userDataILike } = await supabase
-          .from('profiles')
-          .select('email')
-          .ilike('username', emailOrUsername)
-          .maybeSingle();
-        
-        if (!userDataILike) {
-          return {
-            data: null,
-            error: { message: 'Username not found. Please check your username or try signing in with your email address.' }
-          };
-        }
-        
-        // Sign in with the found email (case-insensitive match)
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: userDataILike.email,
-          password,
-        });
-        return { data, error };
+      if (lookupError || !email) {
+        return {
+          data: null,
+          error: { message: 'Username not found. Please check your username or try signing in with your email address.' }
+        };
       }
 
-      // Sign in with the found email
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: userData.email,
+        email,
         password,
       });
       return { data, error };
