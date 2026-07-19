@@ -62,6 +62,7 @@ function App() {
   const [uiAnalysis, setUIAnalysis] = useState<UIAnalysis | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [viewingAnalysis, setViewingAnalysis] = useState<AnalysisRecord | null>(null);
   const [publicAnalysis, setPublicAnalysis] = useState<AnalysisRecord | null>(null);
   const [sharedToken, setSharedToken] = useState<string | null>(null);
@@ -82,6 +83,22 @@ function App() {
   useEffect(() => {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
+
+    // Surface auth errors that Supabase appends to the callback URL
+    // (query for PKCE flow, hash for implicit flow) instead of failing silently
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const authError = urlParams.get('error_description') || hashParams.get('error_description')
+      || urlParams.get('error') || hashParams.get('error');
+    if (authError) {
+      const friendly = decodeURIComponent(authError.replace(/\+/g, ' '));
+      setErrorMessage(
+        friendly.includes('exchange external code')
+          ? 'Google sign-in is misconfigured (the provider rejected the sign-in). Please try email sign-in, or contact support.'
+          : `Sign-in failed: ${friendly}`
+      );
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     const analysisId = urlParams.get('analysis');
     const shareToken = urlParams.get('share');
     if (shareToken) {
@@ -643,6 +660,17 @@ function App() {
                     <User size={16} className="text-gray-400" />
                     <span className="text-sm text-gray-300 hidden sm:inline">@{username || 'user'}</span>
                   </button>
+                  <button
+                    onClick={() => setShowMobileMenu(!showMobileMenu)}
+                    className="md:hidden p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                    aria-label="Menu"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-300">
+                      {showMobileMenu
+                        ? <><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></>
+                        : <><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></>}
+                    </svg>
+                  </button>
                 </>
               ) : (
                 <button
@@ -656,6 +684,50 @@ function App() {
             </div>
           </div>
         </div>
+
+        {/* Mobile navigation */}
+        {user && showMobileMenu && (
+          <nav className="md:hidden border-t border-white/10 bg-[#0b0b12]/95 backdrop-blur-xl animate-slide-up">
+            <div className="px-4 py-3 grid grid-cols-2 gap-1.5">
+              {([
+                ['Analyze', 'upload', '/'],
+                ['Boxt', 'boxt', '/boxt'],
+                ['Gradi AI', 'gradi', '/gradi'],
+                ['Projects', 'projects', '/projects'],
+                ['Site Designer', 'site-designer', '/site-designer'],
+                ['History', 'history', null],
+                ['PaletteX', 'palettex', null],
+                ['Mockups', 'mockup', '/mockup'],
+                ['Assets', 'assets', null],
+                ['API', 'api', '/api'],
+              ] as const).map(([label, target, path]) => (
+                <button
+                  key={target}
+                  onClick={() => {
+                    setState(target as AppState);
+                    if (target === 'mockup') setMockupSection('home');
+                    if (path) window.history.pushState({}, '', path);
+                    setShowMobileMenu(false);
+                    window.scrollTo({ top: 0 });
+                  }}
+                  className={`px-3 py-2.5 rounded-lg text-sm text-left transition-colors ${
+                    state === target ? 'bg-violet-500/20 text-violet-200' : 'text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              {isAdmin && (
+                <button
+                  onClick={() => { setState('admin'); setShowMobileMenu(false); window.scrollTo({ top: 0 }); }}
+                  className="px-3 py-2.5 rounded-lg text-sm text-left text-purple-300 hover:bg-purple-500/10 transition-colors"
+                >
+                  Admin
+                </button>
+              )}
+            </div>
+          </nav>
+        )}
       </header>
 
       {/* Hero */}

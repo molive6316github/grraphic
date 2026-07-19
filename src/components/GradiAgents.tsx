@@ -241,9 +241,9 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
       {/* Agent roster */}
-      <div className="w-72 border-r border-white/[0.07] flex flex-col bg-black/20">
+      <div className="w-full md:w-72 max-h-52 md:max-h-none border-b md:border-b-0 md:border-r border-white/[0.07] flex flex-col bg-black/20 flex-shrink-0">
         <div className="p-4 flex items-center justify-between border-b border-white/[0.07]">
           <h3 className="font-display font-semibold text-white text-sm">Your agents</h3>
           <button

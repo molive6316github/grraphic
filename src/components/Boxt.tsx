@@ -1419,7 +1419,7 @@ COMMANDS ONLY, one per line:`;
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
         <div className="w-24 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-r border-white/20 dark:border-slate-700/50 flex flex-col items-center py-6 space-y-3 shadow-2xl">
           <button onClick={() => setTool('select')} className={`group relative p-4 rounded-2xl transition-all duration-300 hover:scale-110 ${tool === 'select' ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' : 'bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-md'}`} title="Select">
             <Move size={24} className={tool === 'select' ? 'text-white' : 'text-gray-700 dark:text-gray-300'} />
@@ -1566,7 +1566,7 @@ COMMANDS ONLY, one per line:`;
           )}
         </div>
 
-        <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
+        <div className="w-full lg:w-80 max-h-64 lg:max-h-none bg-white dark:bg-gray-800 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto flex-shrink-0">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Properties</h3>
           <div className="space-y-4">
             <div>

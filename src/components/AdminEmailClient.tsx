@@ -118,9 +118,9 @@ export function AdminEmailClient() {
         </button>
       </div>
 
-      <div className="flex rounded-2xl bg-[#12121a] border border-white/[0.08] overflow-hidden" style={{ height: '640px' }}>
+      <div className="flex flex-col sm:flex-row rounded-2xl bg-[#12121a] border border-white/[0.08] overflow-hidden" style={{ height: '640px' }}>
         {/* Folders */}
-        <div className="w-44 border-r border-white/[0.07] p-3 space-y-1 flex-shrink-0">
+        <div className="w-full sm:w-44 border-b sm:border-b-0 sm:border-r border-white/[0.07] p-2 sm:p-3 flex sm:flex-col gap-1 sm:space-y-1 flex-shrink-0 overflow-x-auto">
           {FOLDERS.map(f => (
             <button
               key={f.id}
@@ -136,7 +136,7 @@ export function AdminEmailClient() {
               )}
             </button>
           ))}
-          <div className="pt-2 mt-2 border-t border-white/[0.06]">
+          <div className="sm:pt-2 sm:mt-2 sm:border-t border-white/[0.06] flex-shrink-0">
             <button
               onClick={() => loadEmails(true)}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/[0.05] hover:text-white transition-colors"
@@ -148,7 +148,7 @@ export function AdminEmailClient() {
         </div>
 
         {/* Message list */}
-        <div className={`${selected ? 'hidden lg:block lg:w-80' : 'flex-1'} border-r border-white/[0.07] overflow-y-auto flex-shrink-0`}>
+        <div className={`${selected ? 'hidden lg:block lg:w-80' : 'flex-1'} border-r border-white/[0.07] overflow-y-auto sm:flex-shrink-0 min-h-0`}>
           {loading ? (
             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-violet-400" size={22} /></div>
           ) : visible.length === 0 ? (
