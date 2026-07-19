@@ -34,6 +34,7 @@ export function Boxt({ userId }: BoxtProps) {
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [fillColor, setFillColor] = useState('#3B82F6');
+  const [myPalettes, setMyPalettes] = useState<{ id: string; name: string; colors: { hex: string }[] }[]>([]);
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [canvasWidth, setCanvasWidth] = useState(1920);
   const [canvasHeight, setCanvasHeight] = useState(1080);
@@ -82,6 +83,50 @@ export function Boxt({ userId }: BoxtProps) {
   useEffect(() => {
     drawCanvas();
   }, [elements, backgroundColor, zoom, showGrid, canvasWidth, canvasHeight]);
+
+  // Pull the user's PaletteX palettes for one-click colors
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from('color_palettes')
+      .select('id, name, colors')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .then(({ data }) => {
+        if (data) {
+          setMyPalettes(data.map(pal => ({
+            id: pal.id,
+            name: pal.name,
+            colors: (Array.isArray(pal.colors) ? pal.colors : []).map((c: any) =>
+              typeof c === 'string' ? { hex: c } : { hex: c?.hex || '#000000' }
+            ),
+          })));
+        }
+      });
+  }, [userId]);
+
+  const applyColor = (hex: string) => {
+    setFillColor(hex);
+    if (selectedId) {
+      setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fill: hex } : el));
+    }
+  };
+
+  const alignSelected = (edge: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom') => {
+    if (!selectedId) return;
+    setElements(prev => prev.map(el => {
+      if (el.id !== selectedId) return el;
+      switch (edge) {
+        case 'left': return { ...el, x: 0 };
+        case 'centerX': return { ...el, x: Math.round((canvasWidth - el.width) / 2) };
+        case 'right': return { ...el, x: canvasWidth - el.width };
+        case 'top': return { ...el, y: 0 };
+        case 'centerY': return { ...el, y: Math.round((canvasHeight - el.height) / 2) };
+        case 'bottom': return { ...el, y: canvasHeight - el.height };
+      }
+    }));
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1526,8 +1571,53 @@ COMMANDS ONLY, one per line:`;
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fill Color</label>
-              <input type="color" value={fillColor} onChange={(e) => setFillColor(e.target.value)} className="w-full h-10 rounded cursor-pointer" />
+              <input type="color" value={fillColor} onChange={(e) => applyColor(e.target.value)} className="w-full h-10 rounded cursor-pointer" />
             </div>
+
+            {myPalettes.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">My Palettes</label>
+                <div className="space-y-2">
+                  {myPalettes.map(pal => (
+                    <div key={pal.id}>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">{pal.name}</div>
+                      <div className="flex rounded-lg overflow-hidden h-7">
+                        {pal.colors.slice(0, 8).map((c, i) => (
+                          <button
+                            key={i}
+                            onClick={() => applyColor(c.hex)}
+                            className="flex-1 hover:opacity-80 transition-opacity"
+                            style={{ backgroundColor: c.hex }}
+                            title={c.hex}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedElement && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Align to canvas</label>
+                <div className="grid grid-cols-6 gap-1">
+                  {([
+                    ['left', 'L'], ['centerX', 'CX'], ['right', 'R'],
+                    ['top', 'T'], ['centerY', 'CY'], ['bottom', 'B'],
+                  ] as const).map(([edge, label]) => (
+                    <button
+                      key={edge}
+                      onClick={() => alignSelected(edge)}
+                      className="py-1.5 text-[10px] font-mono bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                      title={`Align ${edge}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Background</label>
               <input type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-full h-10 rounded cursor-pointer" />

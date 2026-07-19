@@ -27,6 +27,8 @@ import { PaletteX } from './components/PaletteX';
 import { MockupStudio } from './components/MockupStudio';
 import { AssetVault } from './components/AssetVault';
 import { SharedView } from './components/SharedView';
+import { ProjectsHub } from './components/ProjectsHub';
+import { supabase } from './lib/supabase';
 import { ApiDashboard } from './components/ApiDashboard';
 import { ApiDocs } from './components/ApiDocs';
 import { OAuthConsent } from './components/OAuthConsent';
@@ -46,7 +48,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback' | 'developer' | 'shared';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback' | 'developer' | 'shared' | 'projects';
 
 type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
 
@@ -84,6 +86,24 @@ function App() {
     if (shareToken) {
       setSharedToken(shareToken);
       setState('shared');
+      return;
+    }
+    const inviteToken = urlParams.get('invite');
+    if (inviteToken) {
+      if (!user) {
+        setShowAuthModal(true);
+        return;
+      }
+      supabase.rpc('accept_team_invite', { p_token: inviteToken }).then(({ data }) => {
+        const result = data as { success?: boolean; error?: string } | null;
+        window.history.replaceState({}, '', '/projects');
+        setState('projects');
+        if (result?.success) {
+          alert('Welcome to the team!');
+        } else {
+          alert(result?.error || 'Could not accept this invite.');
+        }
+      });
       return;
     }
     const success = urlParams.get('success');
@@ -133,6 +153,9 @@ function App() {
       return;
     } else if (path === '/developer' || path === '/developers') {
       setState('developer');
+      return;
+    } else if (path === '/projects' || path === '/teams') {
+      setState('projects');
       return;
     }
 
@@ -562,6 +585,12 @@ function App() {
                       Gradi AI
                     </button>
                     <button
+                      onClick={() => { setState('projects'); window.history.pushState({}, '', '/projects'); }}
+                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      Projects
+                    </button>
+                    <button
                       onClick={() => { setState('site-designer'); window.history.pushState({}, '', '/site-designer'); }}
                       className="px-3 py-2 text-sm text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 rounded-lg transition-colors"
                     >
@@ -885,6 +914,23 @@ function App() {
           />
         )}
         
+        {state === 'projects' && (
+          user ? (
+            <ProjectsHub userId={user.id} />
+          ) : (
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-12 text-center backdrop-blur-sm">
+              <h3 className="text-xl font-semibold text-white mb-2">Sign in required</h3>
+              <p className="text-gray-400 mb-6">Sign in to create projects and teams.</p>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-violet-500/25"
+              >
+                Sign in
+              </button>
+            </div>
+          )
+        )}
+
         {state === 'shared' && sharedToken && (
           <SharedView
             token={sharedToken}
