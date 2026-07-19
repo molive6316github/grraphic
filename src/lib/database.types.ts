@@ -465,6 +465,7 @@ export type Database = {
           file_url: string
           folder_id?: string | null
           id?: string
+          is_favorite?: boolean | null
           is_public?: boolean | null
           metadata?: Json | null
           name: string
@@ -485,6 +486,7 @@ export type Database = {
           file_url?: string
           folder_id?: string | null
           id?: string
+          is_favorite?: boolean | null
           is_public?: boolean | null
           metadata?: Json | null
           name?: string

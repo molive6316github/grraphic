@@ -26,6 +26,7 @@ import { Boxt } from './components/Boxt';
 import { PaletteX } from './components/PaletteX';
 import { MockupStudio } from './components/MockupStudio';
 import { AssetVault } from './components/AssetVault';
+import { SharedView } from './components/SharedView';
 import { ApiDashboard } from './components/ApiDashboard';
 import { ApiDocs } from './components/ApiDocs';
 import { OAuthConsent } from './components/OAuthConsent';
@@ -45,7 +46,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback' | 'developer';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback' | 'developer' | 'shared';
 
 type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
 
@@ -60,6 +61,7 @@ function App() {
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [viewingAnalysis, setViewingAnalysis] = useState<AnalysisRecord | null>(null);
   const [publicAnalysis, setPublicAnalysis] = useState<AnalysisRecord | null>(null);
+  const [sharedToken, setSharedToken] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mockupSection, setMockupSection] = useState<MockupSection>('home');
@@ -78,6 +80,12 @@ function App() {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     const analysisId = urlParams.get('analysis');
+    const shareToken = urlParams.get('share');
+    if (shareToken) {
+      setSharedToken(shareToken);
+      setState('shared');
+      return;
+    }
     const success = urlParams.get('success');
 
     // Check for custom landing pages and legal pages
@@ -877,6 +885,17 @@ function App() {
           />
         )}
         
+        {state === 'shared' && sharedToken && (
+          <SharedView
+            token={sharedToken}
+            onGoHome={() => {
+              setSharedToken(null);
+              setState('upload');
+              window.history.pushState({}, '', '/');
+            }}
+          />
+        )}
+
         {state === 'public' && publicAnalysis && (
           <PublicAnalysisView
             analysis={publicAnalysis}
