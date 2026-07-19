@@ -421,6 +421,49 @@
   animation-delay: var(--chip-delay, 0s);
 }
 
+/* Smooth cross-view transition: <main key={state}> remounts per view */
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-enter {
+  animation: view-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Tool showcase cards: lift + accent glow that follows each card's color */
+.tool-card {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.35s ease, background-color 0.35s ease;
+  will-change: transform;
+}
+
+.tool-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--tool-accent) 35%, transparent);
+}
+
+.tool-card-glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background:
+    radial-gradient(60% 80% at 50% 0%,
+      color-mix(in srgb, var(--tool-accent) 14%, transparent), transparent);
+  pointer-events: none;
+}
+
+.tool-card:hover .tool-card-glow {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .reveal-1, .reveal-2, .reveal-3, .reveal-4, .reveal-5 {
@@ -430,5 +473,12 @@
   .aurora,
   .score-chip {
     animation: none;
+  }
+  .view-enter {
+    animation: none;
+  }
+  .tool-card,
+  .tool-card:hover {
+    transform: none;
   }
 }

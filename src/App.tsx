@@ -28,6 +28,7 @@ import { MockupStudio } from './components/MockupStudio';
 import { AssetVault } from './components/AssetVault';
 import { SharedView } from './components/SharedView';
 import { ProjectsHub } from './components/ProjectsHub';
+import { ToolShowcase } from './components/ToolShowcase';
 import { supabase } from './lib/supabase';
 import { ApiDashboard } from './components/ApiDashboard';
 import { ApiDocs } from './components/ApiDocs';
@@ -696,7 +697,7 @@ function App() {
           </h1>
           <p className="reveal reveal-3 text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed text-balance">
             {mode === 'design'
-              ? 'Drop in any design and get an honest, detailed read on typography, color harmony, composition, and hierarchy — the feedback of a seasoned art director, on demand.'
+              ? 'Drop in any design for an honest, detailed read from your AI art director — then fix it in Boxt, pull a palette, mock it up, and ship it with your team. The whole studio lives here.'
               : 'Upload HTML or paste a URL for a full UI/UX read — usability, accessibility, responsiveness, and performance, scored and explained.'}
           </p>
 
@@ -761,7 +762,7 @@ function App() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <main key={state} className="view-enter max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {state === 'success' && (
           <CheckoutSuccess onContinue={startNewAnalysis} />
         )}
@@ -818,6 +819,23 @@ function App() {
                 <ProSubscriptionCard onSubscribe={handleSubscribe} loading={checkoutLoading} />
               </div>
             )}
+
+            {/* The whole studio */}
+            <ToolShowcase
+              onNavigate={(path) => {
+                const stateFor: Record<string, AppState> = {
+                  '/boxt': 'boxt', '/gradi': 'gradi', '/palettex': 'palettex',
+                  '/mockup': 'mockup', '/assets': 'assets', '/projects': 'projects',
+                  '/site-designer': 'site-designer', '/api': 'api',
+                };
+                const next = stateFor[path];
+                if (next) {
+                  setState(next);
+                  window.history.pushState({}, '', path);
+                  window.scrollTo({ top: 0 });
+                }
+              }}
+            />
           </>
         )}
 

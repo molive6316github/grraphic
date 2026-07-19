@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_emails: {
+        Row: {
+          created_at: string | null
+          direction: string
+          error: string | null
+          from_email: string
+          from_name: string | null
+          html: string | null
+          id: string
+          is_read: boolean | null
+          is_starred: boolean | null
+          resend_id: string | null
+          status: string
+          subject: string
+          text_body: string | null
+          to_emails: string[]
+        }
+        Insert: {
+          created_at?: string | null
+          direction: string
+          error?: string | null
+          from_email: string
+          from_name?: string | null
+          html?: string | null
+          id?: string
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          resend_id?: string | null
+          status?: string
+          subject?: string
+          text_body?: string | null
+          to_emails?: string[]
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string
+          error?: string | null
+          from_email?: string
+          from_name?: string | null
+          html?: string | null
+          id?: string
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          resend_id?: string | null
+          status?: string
+          subject?: string
+          text_body?: string | null
+          to_emails?: string[]
+        }
+        Relationships: []
+      }
       admins: {
         Row: {
           created_at: string | null
