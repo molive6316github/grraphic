@@ -24,17 +24,19 @@ export function useSubscription(userId: string | undefined) {
     
     setLoading(true);
     try {
+      // The stripe_user_subscriptions view is already scoped to the
+      // signed-in user (it joins stripe_customers on auth.uid()) and has
+      // no user_id column to filter on.
       const { data, error } = await supabase
         .from('stripe_user_subscriptions')
         .select('*')
-        .eq('user_id', userId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.warn('Warning fetching subscription:', error);
       }
       
-      setSubscription(data);
+      setSubscription(data as unknown as UserSubscription | null);
     } catch (error) {
       console.warn('Warning fetching subscription:', error);
       setSubscription(null);

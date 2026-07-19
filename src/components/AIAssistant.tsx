@@ -481,7 +481,7 @@ export function AIAssistant({ onNavigate, isAdmin = false, userId, screenshotUrl
       let errorMessage: string;
 
       // Try to use intelligent response as fallback if we have analysis data
-      if (analysisData && needsAnalysis) {
+      if (analysisData) {
         try {
           const intelligentResponse = generateIntelligentResponse(userMessage, analysisData);
           errorMessage = intelligentResponse.message;

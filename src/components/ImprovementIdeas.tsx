@@ -23,25 +23,16 @@ export function ImprovementIdeas({ analysis, fileName, isProSubscriber, onUpgrad
   const [ideas, setIdeas] = useState<ImprovementIdea[]>([]);
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState(false);
-  const [isSpecialUser, setIsSpecialUser] = useState(false);
   const { credits, useProCredit, refreshCredits } = useCredits(userId);
-
-  React.useEffect(() => {
-    const checkSpecialUser = async () => {
-      const { supabase } = await import('../lib/supabase');
-      const { data: userData } = await supabase.auth.getUser();
-      setIsSpecialUser(userData?.user?.email === 'maxolive6316@gmail.com');
-    };
-    checkSpecialUser();
-  }, []);
+  const hasUnlimitedAccess = isProSubscriber || !!credits?.is_admin;
 
   const generateImprovementIdeas = async () => {
-    if (!isProSubscriber && !isSpecialUser && (!credits || credits.pro_credits_remaining < 2)) {
+    if (!hasUnlimitedAccess && (!credits || credits.pro_credits_remaining < 2)) {
       alert('You need 2 pro credits to generate improvement ideas. Please upgrade to Pro or wait for your monthly credit reset.');
       return;
     }
 
-    if (!isProSubscriber && !isSpecialUser) {
+    if (!hasUnlimitedAccess) {
       for (let i = 0; i < 2; i++) {
         const success = await useProCredit();
         if (!success) {
@@ -175,7 +166,7 @@ export function ImprovementIdeas({ analysis, fileName, isProSubscriber, onUpgrad
     }
   };
 
-  if (!isProSubscriber && !isSpecialUser) {
+  if (!hasUnlimitedAccess) {
     return (
       <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-white/20 p-6 transition-colors duration-300">
         <div className="text-center">
@@ -226,7 +217,7 @@ export function ImprovementIdeas({ analysis, fileName, isProSubscriber, onUpgrad
             ) : (
               <>
                 <Sparkles size={16} />
-                <span>Generate Ideas {!isProSubscriber && !isSpecialUser ? '(2 credits)' : ''}</span>
+                <span>Generate Ideas {!hasUnlimitedAccess ? '(2 credits)' : ''}</span>
               </>
             )}
           </button>

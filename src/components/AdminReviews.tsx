@@ -55,7 +55,7 @@ export function AdminReviews() {
         user_email: userEmailMap.get(analysis.user_id) || 'Unknown'
       })) || [];
 
-      setAnalyses(formattedAnalyses);
+      setAnalyses(formattedAnalyses as unknown as Analysis[]);
     } catch (error) {
       console.error('Error fetching analyses:', error);
     } finally {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Package, Upload, Search, Download, Trash2, Tag, Folder, FolderPlus, 
   Image as ImageIcon, FileText, Grid3x3, List, X, ChevronRight, 
-  Home, MoreVertical, Edit2, Move, ArrowLeft, Plus, File
+  Home, MoreVertical, Edit2, Move, ArrowLeft, Plus, File, Star, Share2, HardDrive, Link2, Check
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -23,6 +23,7 @@ interface DesignAsset {
   created_at: string;
   user_id: string;
   folder_id?: string;
+  is_favorite?: boolean;
 }
 
 interface AssetFolder {
@@ -65,6 +66,9 @@ export function AssetVault({ userId }: AssetVaultProps) {
   const [editingFolder, setEditingFolder] = useState<AssetFolder | null>(null);
   const [bucketExists, setBucketExists] = useState(true);
   const [dragOver, setDragOver] = useState(false);
+  const [storageUsage, setStorageUsage] = useState<{ total_bytes: number; file_count: number } | null>(null);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [sharedAssetId, setSharedAssetId] = useState<string | null>(null);
 
   // Check if bucket exists by trying to list files (more reliable than getBucket)
   const checkBucket = useCallback(async () => {
@@ -96,6 +100,12 @@ export function AssetVault({ userId }: AssetVaultProps) {
       setLoading(true);
       await checkBucket();
 
+      supabase.rpc('get_storage_usage').then(({ data }) => {
+        if (data && typeof data === 'object') {
+          setStorageUsage(data as { total_bytes: number; file_count: number });
+        }
+      });
+
       // Load folders
       const { data: folderData } = await supabase
         .from('asset_folders')
@@ -103,7 +113,7 @@ export function AssetVault({ userId }: AssetVaultProps) {
         .eq('user_id', userId)
         .order('name');
 
-      setFolders(folderData || []);
+      setFolders((folderData || []) as unknown as AssetFolder[]);
 
       // Load assets for current folder
       let query = supabase
@@ -118,7 +128,7 @@ export function AssetVault({ userId }: AssetVaultProps) {
       }
 
       const { data: assetData } = await query.order('created_at', { ascending: false });
-      setAssets(assetData || []);
+      setAssets((assetData || []) as unknown as DesignAsset[]);
 
       // Build folder path
       if (currentFolder && folderData) {
@@ -127,7 +137,7 @@ export function AssetVault({ userId }: AssetVaultProps) {
         while (folderId) {
           const folder = folderData.find(f => f.id === folderId);
           if (folder) {
-            path.unshift(folder);
+            path.unshift(folder as unknown as AssetFolder);
             folderId = folder.parent_id;
           } else {
             break;
@@ -320,6 +330,29 @@ export function AssetVault({ userId }: AssetVaultProps) {
     }
   };
 
+  const toggleFavorite = async (asset: DesignAsset) => {
+    const next = !asset.is_favorite;
+    setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, is_favorite: next } : a));
+    await supabase.from('design_assets').update({ is_favorite: next }).eq('id', asset.id);
+  };
+
+  const shareAsset = async (asset: DesignAsset) => {
+    if (!userId) return;
+    const { data, error } = await supabase
+      .from('share_links')
+      .insert({ owner_id: userId, resource_type: 'asset', resource_id: asset.id })
+      .select('token')
+      .single();
+    if (!error && data) {
+      const url = `${window.location.origin}/?share=${data.token}`;
+      await navigator.clipboard.writeText(url);
+      setSharedAssetId(asset.id);
+      setTimeout(() => setSharedAssetId(null), 2000);
+    } else {
+      alert('Failed to create share link.');
+    }
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
@@ -339,8 +372,9 @@ export function AssetVault({ userId }: AssetVaultProps) {
   };
 
   const currentFolders = folders.filter(f => f.parent_id === currentFolder);
-  const filteredAssets = assets.filter(a => 
-    a.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAssets = assets.filter(a =>
+    a.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    (!showFavoritesOnly || a.is_favorite)
   );
   const filteredFolders = currentFolders.filter(f =>
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -468,13 +502,52 @@ export function AssetVault({ userId }: AssetVaultProps) {
             />
           </div>
           <button
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            className={`p-2.5 border rounded-xl transition-colors ${
+              showFavoritesOnly
+                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+            }`}
+            title="Show favorites"
+          >
+            <Star size={20} fill={showFavoritesOnly ? 'currentColor' : 'none'} />
+          </button>
+          <button
             onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
             className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
           >
             {viewMode === 'grid' ? <List size={20} /> : <Grid3x3 size={20} />}
           </button>
         </div>
+
+        {/* Storage quota */}
+        {storageUsage && (() => {
+          const limit = 1024 * 1024 * 1024; // 1 GB soft quota display
+          const pct = Math.min(100, (storageUsage.total_bytes / limit) * 100);
+          return (
+            <div className="mt-4 flex items-center gap-3">
+              <HardDrive size={15} className="text-gray-500 flex-shrink-0" />
+              <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${pct > 90 ? 'bg-red-400' : pct > 70 ? 'bg-amber-400' : 'bg-gradient-to-r from-emerald-400 to-blue-400'}`}
+                  style={{ width: `${Math.max(pct, 1)}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-500 font-mono flex-shrink-0">
+                {formatFileSize(storageUsage.total_bytes)} / 1 GB · {storageUsage.file_count} files
+              </span>
+            </div>
+          );
+        })()}
       </div>
+
+      {/* Share link copied toast */}
+      {sharedAssetId && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 bg-emerald-500/15 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm backdrop-blur-md animate-slide-up">
+          <Check size={15} />
+          Share link copied to clipboard
+        </div>
+      )}
 
       {/* Drop Zone Overlay */}
       {dragOver && (
@@ -680,6 +753,18 @@ export function AssetVault({ userId }: AssetVaultProps) {
                 className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/10 flex items-center gap-2"
               >
                 <Download size={16} /> Download
+              </button>
+              <button
+                onClick={() => { shareAsset(contextMenu.item); setContextMenu(null); }}
+                className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/10 flex items-center gap-2"
+              >
+                <Link2 size={16} /> Copy share link
+              </button>
+              <button
+                onClick={() => { toggleFavorite(contextMenu.item); setContextMenu(null); }}
+                className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/10 flex items-center gap-2"
+              >
+                <Star size={16} /> {contextMenu.item.is_favorite ? 'Unfavorite' : 'Favorite'}
               </button>
               <button
                 onClick={() => { deleteAsset(contextMenu.item.id); setContextMenu(null); }}

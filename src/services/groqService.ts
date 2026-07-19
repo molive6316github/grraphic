@@ -115,6 +115,46 @@ export async function chatWithGroq(
   }
 }
 
+// Run a custom Gradi agent (Pro feature) with its own instructions/model
+export async function runCustomAgent(
+  systemPrompt: string,
+  userMessage: string,
+  options?: { model?: string; temperature?: number }
+): Promise<string> {
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('Groq API key not configured');
+  }
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: options?.model || 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: options?.temperature ?? 0.7,
+      max_tokens: 6000,
+      top_p: 1,
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Groq API error (${response.status}): ${errorData}`);
+  }
+
+  const data: GroqResponse = await response.json();
+  return data.choices[0]?.message?.content || 'The agent returned an empty response.';
+}
+
 export async function gradiChat(
   userMessage: string,
   conversationHistory: { role: 'user' | 'assistant'; content: string }[],

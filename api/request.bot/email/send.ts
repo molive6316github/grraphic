@@ -21,21 +21,32 @@ export default async function handler(request: Request) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    
-    // Verify the user is an admin (in a real app, check against your admin list)
-    // For now, we'll just verify it's a valid Supabase token
-    const { data: { user }, error: authError } = await (async () => {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        process.env.VITE_SUPABASE_URL || '',
-        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-      );
-      return supabase.auth.getUser(token);
-    })();
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Only admins may send mail as grraphic.xyz
+    const { data: adminRow } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!adminRow) {
+      return new Response(JSON.stringify({ error: 'Admin access required' }), {
+        status: 403,
         headers: { 'Content-Type': 'application/json' }
       });
     }

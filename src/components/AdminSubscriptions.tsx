@@ -71,7 +71,7 @@ export function AdminSubscriptions() {
         })
       );
 
-      setSubscriptions(subscriptionsWithUsers);
+      setSubscriptions(subscriptionsWithUsers as unknown as SubscriptionWithUser[]);
 
       const activeCount = subscriptionsWithUsers.filter(s => s.status === 'active').length;
       const canceledCount = subscriptionsWithUsers.filter(s => s.cancel_at_period_end).length;

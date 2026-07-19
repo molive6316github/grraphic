@@ -33,10 +33,10 @@ export function AdminAnalyses() {
     setLoading(true);
     try {
       let query = supabase
-        .from('analysis_history')
+        .from('design_analyses')
         .select(`
           *,
-          profiles:user_id (
+          profiles!design_analyses_user_id_fkey (
             email,
             username
           )
@@ -45,7 +45,7 @@ export function AdminAnalyses() {
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
       if (searchQuery) {
-        query = query.or(`file_name.ilike.%${searchQuery}%,public_slug.ilike.%${searchQuery}%`);
+        query = query.or(`file_name.ilike.%${searchQuery}%`);
       }
 
       const { data, error, count } = await query;
@@ -54,11 +54,11 @@ export function AdminAnalyses() {
 
       const formattedData = data?.map(item => ({
         ...item,
-        user_email: item.profiles?.email || 'Unknown',
-        username: item.profiles?.username || 'No username'
+        user_email: (item as any).profiles?.email || 'Unknown',
+        username: (item as any).profiles?.username || 'No username'
       })) || [];
 
-      setAnalyses(formattedData);
+      setAnalyses(formattedData as unknown as Analysis[]);
       setTotalCount(count || 0);
     } catch (error) {
       console.error('Error fetching analyses:', error);
@@ -72,7 +72,7 @@ export function AdminAnalyses() {
 
     try {
       const { error } = await supabase
-        .from('analysis_history')
+        .from('design_analyses')
         .delete()
         .eq('id', id);
 
@@ -86,7 +86,7 @@ export function AdminAnalyses() {
   async function togglePublic(id: string, isPublic: boolean) {
     try {
       const { error } = await supabase
-        .from('analysis_history')
+        .from('design_analyses')
         .update({ is_public: !isPublic })
         .eq('id', id);
 

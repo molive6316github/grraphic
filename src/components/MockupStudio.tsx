@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Monitor, Smartphone, Tablet, Laptop, Watch, Tv, Film, Play, Pause, SkipBack, SkipForward, Upload, Download, Save, Trash2, Copy, Grid3x3, LayoutGrid as Layout, Layers, Type, Image as ImageIcon, Sparkles, Wand2, Palette, Settings, ChevronRight, ChevronLeft, Plus, X, Check, Search, Filter, SlidersHorizontal, Shirt, Coffee, ShoppingBag, FileText, Share2, Video, Camera, Zap, Star, Crown, Lock, RotateCcw, ZoomIn, ZoomOut, Move, Eye, EyeOff, Sun, Moon, Droplet, Wind, Flame, Snowflake, Box, Cube, Globe, Building, Car, Gamepad2, Headphones, Speaker, Frame, Gift, Package, BookOpen, Newspaper, CreditCard, PenTool, Brush, Paintbrush, Scissors, Stamp, Sticker, Tag, Award, Medal, Trophy, Target, Crosshair, Compass, Map, Navigation, Rocket, Plane, Ship, Train, Bus, Bike, Mountain, TreePine, Waves, CloudSun, Sunrise, Sunset, Stars, MoonStar, Heart, ThumbsUp, MessageCircle, Send, Mail, Bell, Music, Mic, Radio, Wifi, Bluetooth, Battery, Power, Lightbulb, Flashlight, Home, Store, Warehouse, Factory, Hospital, School, Library, Church, Castle, Tent, Umbrella, Glasses, Watch as WatchIcon, Ring, Gem, Diamond, Crown as CrownIcon } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Laptop, Watch, Tv, Film, Play, Pause, SkipBack, SkipForward, Upload, Download, Save, Trash2, Copy, Grid3x3, LayoutGrid as Layout, Layers, Type, Image as ImageIcon, Sparkles, Wand2, Palette, Settings, ChevronRight, ChevronLeft, Plus, X, Check, Search, Filter, SlidersHorizontal, Shirt, Coffee, ShoppingBag, FileText, Share2, Video, Camera, Zap, Star, Crown, Lock, RotateCcw, ZoomIn, ZoomOut, Move, Eye, EyeOff, Sun, Moon, Droplet, Wind, Flame, Snowflake, Box, Box as Cube, Globe, Building, Car, Gamepad2, Headphones, Speaker, Frame, Gift, Package, BookOpen, Newspaper, CreditCard, PenTool, Brush, Paintbrush, Scissors, Stamp, Sticker, Tag, Award, Medal, Trophy, Target, Crosshair, Compass, Map, Navigation, Rocket, Plane, Ship, Train, Bus, Bike, Mountain, TreePine, Waves, CloudSun, Sunrise, Sunset, Stars, MoonStar, Heart, ThumbsUp, MessageCircle, Send, Mail, Bell, Music, Mic, Radio, Wifi, Bluetooth, Battery, Power, Lightbulb, Flashlight, Home, Store, Warehouse, Factory, Building2 as Hospital, School, Library, Church, Castle, Tent, Umbrella, Glasses, Watch as WatchIcon, Circle as Ring, Gem, Diamond, Crown as CrownIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { VideoTimeline, TimelineClip } from './mockup/VideoTimeline';
 import { DeviceMockup, deviceConfigs, DeviceConfig } from './mockup/DeviceMockup';
@@ -328,6 +328,7 @@ export function MockupStudio({ userId, initialSection = 'home', onNavigate }: Mo
   }, [isPlaying, duration]);
 
   const loadProjects = async () => {
+    if (!userId) return;
     try {
       setLoading(true);
       const { data, error } = await supabase

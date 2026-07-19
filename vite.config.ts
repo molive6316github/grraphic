@@ -11,12 +11,12 @@ export default defineConfig({
     proxy: {
       // Proxy API routes to Supabase Edge Functions in development
       '/api/request.bot/oauth': {
-        target: process.env.VITE_SUPABASE_URL || 'https://wyqyypixtdnnnzilsubj.supabase.co',
+        target: process.env.VITE_SUPABASE_URL || 'https://snqpircwrkwadzceqjuc.supabase.co',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/request\.bot\/oauth/, '/functions/v1/oauth'),
       },
       '/api/request.bot/api': {
-        target: process.env.VITE_SUPABASE_URL || 'https://wyqyypixtdnnnzilsubj.supabase.co',
+        target: process.env.VITE_SUPABASE_URL || 'https://snqpircwrkwadzceqjuc.supabase.co',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/request\.bot\/api/, '/functions/v1/api'),
       },

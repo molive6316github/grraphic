@@ -266,7 +266,7 @@ export class ExportEngine {
     encoder.finish();
 
     const buffer = encoder.stream().getData();
-    return new Blob([buffer], { type: 'image/gif' });
+    return new Blob([buffer as unknown as BlobPart], { type: 'image/gif' });
   }
 
   downloadBlob(blob: Blob, filename: string): void {

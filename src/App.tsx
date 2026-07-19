@@ -26,6 +26,10 @@ import { Boxt } from './components/Boxt';
 import { PaletteX } from './components/PaletteX';
 import { MockupStudio } from './components/MockupStudio';
 import { AssetVault } from './components/AssetVault';
+import { SharedView } from './components/SharedView';
+import { ProjectsHub } from './components/ProjectsHub';
+import { ToolShowcase } from './components/ToolShowcase';
+import { supabase } from './lib/supabase';
 import { ApiDashboard } from './components/ApiDashboard';
 import { ApiDocs } from './components/ApiDocs';
 import { OAuthConsent } from './components/OAuthConsent';
@@ -45,7 +49,7 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback' | 'developer';
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback' | 'developer' | 'shared' | 'projects';
 
 type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
 
@@ -60,6 +64,7 @@ function App() {
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [viewingAnalysis, setViewingAnalysis] = useState<AnalysisRecord | null>(null);
   const [publicAnalysis, setPublicAnalysis] = useState<AnalysisRecord | null>(null);
+  const [sharedToken, setSharedToken] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mockupSection, setMockupSection] = useState<MockupSection>('home');
@@ -78,6 +83,30 @@ function App() {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     const analysisId = urlParams.get('analysis');
+    const shareToken = urlParams.get('share');
+    if (shareToken) {
+      setSharedToken(shareToken);
+      setState('shared');
+      return;
+    }
+    const inviteToken = urlParams.get('invite');
+    if (inviteToken) {
+      if (!user) {
+        setShowAuthModal(true);
+        return;
+      }
+      supabase.rpc('accept_team_invite', { p_token: inviteToken }).then(({ data }) => {
+        const result = data as { success?: boolean; error?: string } | null;
+        window.history.replaceState({}, '', '/projects');
+        setState('projects');
+        if (result?.success) {
+          alert('Welcome to the team!');
+        } else {
+          alert(result?.error || 'Could not accept this invite.');
+        }
+      });
+      return;
+    }
     const success = urlParams.get('success');
 
     // Check for custom landing pages and legal pages
@@ -126,6 +155,9 @@ function App() {
     } else if (path === '/developer' || path === '/developers') {
       setState('developer');
       return;
+    } else if (path === '/projects' || path === '/teams') {
+      setState('projects');
+      return;
     }
 
     if (analysisId) {
@@ -145,7 +177,7 @@ function App() {
     try {
       const analysis = await getPublicAnalysis(analysisId);
       if (analysis) {
-        setPublicAnalysis(analysis);
+        setPublicAnalysis(analysis as any);
         setAnalysis(analysis.analysis_data);
         setState('public');
       } else {
@@ -510,12 +542,15 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white relative">
-      {/* Subtle background gradient */}
+    <div className="min-h-screen bg-[#0b0b12] text-white relative">
+      {/* Atmosphere: aurora glows + dot grid + film grain */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-blue-600/10 via-transparent to-transparent rounded-full blur-3xl" />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-purple-600/10 via-transparent to-transparent rounded-full blur-3xl" />
+        <div className="aurora w-[42rem] h-[42rem] -top-48 -left-32 bg-indigo-600/20" />
+        <div className="aurora w-[36rem] h-[36rem] top-1/4 -right-40 bg-fuchsia-600/15" style={{ animationDelay: '-6s' }} />
+        <div className="aurora w-[30rem] h-[30rem] -bottom-32 left-1/4 bg-violet-500/10" style={{ animationDelay: '-11s' }} />
+        <div className="dot-grid absolute inset-0" />
       </div>
+      <div className="grain-overlay" aria-hidden="true" />
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/10">
@@ -528,10 +563,10 @@ function App() {
               }}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 ring-1 ring-white/20">
                 <Sparkles size={20} className="text-white" />
               </div>
-              <span className="text-xl font-bold text-white">Grraphic</span>
+              <span className="font-display text-xl font-bold tracking-tight text-white">Grraphic</span>
             </button>
             
             <div className="flex items-center gap-2">
@@ -549,6 +584,12 @@ function App() {
                       className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
                       Gradi AI
+                    </button>
+                    <button
+                      onClick={() => { setState('projects'); window.history.pushState({}, '', '/projects'); }}
+                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      Projects
                     </button>
                     <button
                       onClick={() => { setState('site-designer'); window.history.pushState({}, '', '/site-designer'); }}
@@ -606,7 +647,7 @@ function App() {
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <User size={16} />
                   <span>Sign In</span>
@@ -617,26 +658,54 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Hero */}
       <div className="relative">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center relative z-10">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight tracking-tight">
-            <span className="block text-balance">Get AI-Powered</span>
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400">
-              {mode === 'design' ? 'Design Feedback' : 'UI Analysis'}
+          {/* Floating score chips — the product, orbiting the headline */}
+          <div className="hidden lg:block" aria-hidden="true">
+            <div className="score-chip absolute left-2 top-28 flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-md shadow-lg shadow-black/20" style={{ '--chip-tilt': '-4deg', '--chip-delay': '0s' } as React.CSSProperties}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="text-xs font-medium text-gray-300">Typography</span>
+              <span className="text-xs font-mono font-semibold text-emerald-300">94</span>
+            </div>
+            <div className="score-chip absolute right-4 top-20 flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-md shadow-lg shadow-black/20" style={{ '--chip-tilt': '3deg', '--chip-delay': '-2s' } as React.CSSProperties}>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span className="text-xs font-medium text-gray-300">Color harmony</span>
+              <span className="text-xs font-mono font-semibold text-amber-300">88</span>
+            </div>
+            <div className="score-chip absolute right-14 bottom-6 flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-md shadow-lg shadow-black/20" style={{ '--chip-tilt': '-2deg', '--chip-delay': '-4s' } as React.CSSProperties}>
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+              <span className="text-xs font-medium text-gray-300">Composition</span>
+              <span className="text-xs font-mono font-semibold text-violet-300">91</span>
+            </div>
+          </div>
+
+          <div className="reveal reveal-1 inline-flex items-center gap-2 px-4 py-1.5 mb-7 rounded-full border border-white/10 bg-white/[0.05] backdrop-blur-md">
+            <Sparkles size={13} className="text-violet-300" />
+            <span className="text-xs font-medium tracking-wide text-gray-300 uppercase">Your AI design studio</span>
+          </div>
+
+          <h1 className="reveal reveal-2 font-display text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-[1.05] tracking-tight">
+            <span className="block text-balance">
+              {mode === 'design' ? 'Design critique,' : 'UI analysis,'}
+            </span>
+            <span className="block">
+              <em className="not-italic text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-violet-300 to-fuchsia-300">
+                {mode === 'design' ? 'graded in seconds' : 'graded in seconds'}
+              </em>
             </span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed text-balance">
+          <p className="reveal reveal-3 text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed text-balance">
             {mode === 'design'
-              ? 'Upload your graphic design and receive comprehensive feedback on typography, color harmony, composition, and more.'
-              : 'Upload HTML or enter a website URL to receive comprehensive UI/UX analysis covering usability, accessibility, responsiveness, and performance.'}
+              ? 'Drop in any design for an honest, detailed read from your AI art director — then fix it in Boxt, pull a palette, mock it up, and ship it with your team. The whole studio lives here.'
+              : 'Upload HTML or paste a URL for a full UI/UX read — usability, accessibility, responsiveness, and performance, scored and explained.'}
           </p>
 
           {(state === 'results' || state === 'history' || state === 'success') && (
             <>
               <button
                 onClick={startNewAnalysis}
-                className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:opacity-90 transition-opacity mb-8"
+                className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 text-white font-medium rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:-translate-y-0.5 transition-all duration-300 mb-8"
               >
                 <Sparkles size={20} />
                 Analyze New Design
@@ -693,45 +762,80 @@ function App() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <main key={state} className="view-enter max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {state === 'success' && (
           <CheckoutSuccess onContinue={startNewAnalysis} />
         )}
         
         {state === 'upload' && (
           <>
-            <div className="mb-8 flex justify-center">
+            <div className="reveal reveal-4 mb-8 flex justify-center">
               <ModeToggle mode={mode} onModeChange={handleModeChange} />
             </div>
 
-            {mode === 'design' ? (
-              <FileUpload
-                onFileUpload={handleFileUpload}
-                uploadedFile={uploadedFile}
-                onRemoveFile={handleRemoveFile}
-                hasProCredits={hasProCredits}
-                isProSubscriber={credits?.is_pro_subscriber || false}
-                isAuthenticated={!!user}
-                onShowAuth={() => setShowAuthModal(true)}
-              />
-            ) : (
-              <UIUploadComponent
-                onUpload={handleUIUpload}
-                uploadedUI={uploadedUI}
-                onRemove={handleRemoveUI}
-                hasProCredits={hasProCredits}
-                isProSubscriber={credits?.is_pro_subscriber || false}
-                isAuthenticated={!!user}
-                onShowAuth={() => setShowAuthModal(true)}
-              />
-            )}
+            <div className="reveal reveal-5">
+              {mode === 'design' ? (
+                <FileUpload
+                  onFileUpload={handleFileUpload}
+                  uploadedFile={uploadedFile}
+                  onRemoveFile={handleRemoveFile}
+                  hasProCredits={hasProCredits}
+                  isProSubscriber={credits?.is_pro_subscriber || false}
+                  isAuthenticated={!!user}
+                  onShowAuth={() => setShowAuthModal(true)}
+                />
+              ) : (
+                <UIUploadComponent
+                  onUpload={handleUIUpload}
+                  uploadedUI={uploadedUI}
+                  onRemove={handleRemoveUI}
+                  hasProCredits={hasProCredits}
+                  isProSubscriber={credits?.is_pro_subscriber || false}
+                  isAuthenticated={!!user}
+                  onShowAuth={() => setShowAuthModal(true)}
+                />
+              )}
+            </div>
+
+            {/* Quiet proof strip under the upload zone */}
+            <div className="reveal reveal-5 mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+              <div className="group p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] hover:border-violet-400/30 hover:bg-white/[0.05] transition-all duration-300">
+                <div className="font-mono text-[11px] tracking-widest text-violet-300/80 uppercase mb-2">01 — Grade</div>
+                <p className="text-sm text-gray-300 leading-relaxed">Six-category scorecard across typography, color, composition, hierarchy, spacing, and contrast.</p>
+              </div>
+              <div className="group p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] hover:border-violet-400/30 hover:bg-white/[0.05] transition-all duration-300">
+                <div className="font-mono text-[11px] tracking-widest text-violet-300/80 uppercase mb-2">02 — Fix</div>
+                <p className="text-sm text-gray-300 leading-relaxed">Concrete, prioritized improvement ideas — not vague vibes. Know exactly what to change first.</p>
+              </div>
+              <div className="group p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] hover:border-violet-400/30 hover:bg-white/[0.05] transition-all duration-300">
+                <div className="font-mono text-[11px] tracking-widest text-violet-300/80 uppercase mb-2">03 — Ship</div>
+                <p className="text-sm text-gray-300 leading-relaxed">Iterate in Boxt, build palettes in PaletteX, mock it up, and share your polished work.</p>
+              </div>
+            </div>
 
             {/* Pro Subscription Card - Show for non-pro users below upload */}
-            {user && !credits?.is_pro_subscriber && user.email !== 'maxolive6316@gmail.com' && (
+            {user && !credits?.is_pro_subscriber && (
               <div className="mt-8">
                 <ProSubscriptionCard onSubscribe={handleSubscribe} loading={checkoutLoading} />
               </div>
             )}
+
+            {/* The whole studio */}
+            <ToolShowcase
+              onNavigate={(path) => {
+                const stateFor: Record<string, AppState> = {
+                  '/boxt': 'boxt', '/gradi': 'gradi', '/palettex': 'palettex',
+                  '/mockup': 'mockup', '/assets': 'assets', '/projects': 'projects',
+                  '/site-designer': 'site-designer', '/api': 'api',
+                };
+                const next = stateFor[path];
+                if (next) {
+                  setState(next);
+                  window.history.pushState({}, '', path);
+                  window.scrollTo({ top: 0 });
+                }
+              }}
+            />
           </>
         )}
 
@@ -742,7 +846,7 @@ function App() {
             analysis={analysis}
             fileName={uploadedFile?.name || viewingAnalysis?.file_name || 'Unknown'}
             imagePreview={uploadedFile?.preview}
-            isProSubscriber={credits?.is_pro_subscriber || user?.email === 'maxolive6316@gmail.com' || false}
+            isProSubscriber={credits?.is_pro_subscriber || false}
             onUpgrade={handleSubscribe}
             userId={user?.id}
           />
@@ -755,7 +859,7 @@ function App() {
             uploadType={uploadedUI.type}
             uploadUrl={uploadedUI.url}
             screenshotUrl={(uiAnalysis as any).screenshotUrl}
-            isProSubscriber={credits?.is_pro_subscriber || user?.email === 'maxolive6316@gmail.com' || false}
+            isProSubscriber={credits?.is_pro_subscriber || false}
             onUpgrade={handleSubscribe}
             userId={user?.id}
           />
@@ -781,7 +885,7 @@ function App() {
             userId={user?.id}
             initialSection={mockupSection}
             onNavigate={(section) => {
-              setMockupSection(section);
+              setMockupSection(section as MockupSection);
               const newPath = section === 'home' ? '/mockup' : `/mockup/${section}`;
               window.history.pushState({}, '', newPath);
             }}
@@ -828,6 +932,34 @@ function App() {
           />
         )}
         
+        {state === 'projects' && (
+          user ? (
+            <ProjectsHub userId={user.id} />
+          ) : (
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-12 text-center backdrop-blur-sm">
+              <h3 className="text-xl font-semibold text-white mb-2">Sign in required</h3>
+              <p className="text-gray-400 mb-6">Sign in to create projects and teams.</p>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-violet-500/25"
+              >
+                Sign in
+              </button>
+            </div>
+          )
+        )}
+
+        {state === 'shared' && sharedToken && (
+          <SharedView
+            token={sharedToken}
+            onGoHome={() => {
+              setSharedToken(null);
+              setState('upload');
+              window.history.pushState({}, '', '/');
+            }}
+          />
+        )}
+
         {state === 'public' && publicAnalysis && (
           <PublicAnalysisView
             analysis={publicAnalysis}
@@ -837,42 +969,42 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white/80 dark:bg-black/20 backdrop-blur-sm border-t border-gray-200 dark:border-white/10 mt-16 transition-colors duration-300">
+      <footer className="relative z-10 border-t border-white/[0.07] bg-black/20 backdrop-blur-sm mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg">
-                  <Sparkles size={20} className="text-white" />
+                <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 rounded-lg shadow-lg shadow-violet-500/25 ring-1 ring-white/20">
+                  <Sparkles size={16} className="text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white transition-colors duration-300">Grraphic</h3>
+                <h3 className="font-display text-lg font-bold text-white">Grraphic</h3>
               </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-300">
-                AI-powered design analysis tool that helps creators improve their graphic designs 
-                with professional feedback and actionable insights.
+              <p className="text-gray-400 mb-4 max-w-md leading-relaxed">
+                The AI design studio that grades your work like a seasoned art director —
+                honest scores, concrete fixes, and the tools to ship something better.
               </p>
             </div>
-            
+
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">Features</h4>
-              <ul className="space-y-2 text-gray-600 dark:text-gray-300 transition-colors duration-300">
+              <h4 className="font-mono text-[11px] tracking-widest text-violet-300/80 uppercase mb-4">Studio</h4>
+              <ul className="space-y-2 text-gray-400">
                 <li>Typography Analysis</li>
                 <li>Color Harmony Check</li>
                 <li>Composition Review</li>
                 <li>Accessibility Testing</li>
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">Legal</h4>
-              <ul className="space-y-2 text-gray-600 dark:text-gray-300 transition-colors duration-300">
+              <h4 className="font-mono text-[11px] tracking-widest text-violet-300/80 uppercase mb-4">Legal</h4>
+              <ul className="space-y-2 text-gray-400">
                 <li>
                   <button
                     onClick={() => {
                       setState('privacy');
                       window.history.pushState({}, '', '/privacy');
                     }}
-                    className="hover:text-gray-900 dark:hover:text-white transition-colors"
+                    className="hover:text-white transition-colors"
                   >
                     Privacy Policy
                   </button>
@@ -883,13 +1015,13 @@ function App() {
                       setState('terms');
                       window.history.pushState({}, '', '/terms');
                     }}
-                    className="hover:text-gray-900 dark:hover:text-white transition-colors"
+                    className="hover:text-white transition-colors"
                   >
                     Terms of Service
                   </button>
                 </li>
                 <li>
-                  <a href="mailto:support@grraphic.com" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <a href="mailto:support@grraphic.com" className="hover:text-white transition-colors">
                     Contact Us
                   </a>
                 </li>
@@ -897,8 +1029,9 @@ function App() {
             </div>
           </div>
 
-          <div className="border-t border-gray-200 dark:border-white/10 pt-8 mt-8 text-center text-gray-600 dark:text-gray-300 transition-colors duration-300">
-            <p>&copy; 2025 Grraphic. Built with ❤️ for designers.</p>
+          <div className="border-t border-white/[0.07] pt-8 mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
+            <p>&copy; {new Date().getFullYear()} Grraphic. Built with care for designers.</p>
+            <p className="font-mono text-xs text-gray-600">grade · fix · ship</p>
           </div>
         </div>
       </footer>

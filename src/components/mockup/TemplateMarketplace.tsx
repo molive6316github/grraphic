@@ -75,7 +75,7 @@ export function TemplateMarketplace({ onTemplateSelect, filterCategory }: Templa
 
       if (error) throw error;
 
-      setTemplates(data?.map(t => ({
+      setTemplates((data?.map(t => ({
         id: t.id,
         name: t.name,
         category: t.category,
@@ -85,8 +85,8 @@ export function TemplateMarketplace({ onTemplateSelect, filterCategory }: Templa
         isPremium: t.is_premium || false,
         tags: t.tags || [],
         usageCount: t.usage_count || 0,
-        createdAt: new Date(t.created_at)
-      })) || []);
+        createdAt: new Date(t.created_at ?? Date.now())
+      })) || []) as Template[]);
     } catch (error) {
       console.error('Error loading templates:', error);
     }
@@ -95,9 +95,14 @@ export function TemplateMarketplace({ onTemplateSelect, filterCategory }: Templa
 
   const incrementUsageCount = async (templateId: string) => {
     try {
+      const { data: current } = await supabase
+        .from('mockup_templates')
+        .select('usage_count')
+        .eq('id', templateId)
+        .maybeSingle();
       await supabase
         .from('mockup_templates')
-        .update({ usage_count: supabase.raw('usage_count + 1') })
+        .update({ usage_count: (current?.usage_count || 0) + 1 })
         .eq('id', templateId);
     } catch (error) {
       console.error('Error updating usage count:', error);

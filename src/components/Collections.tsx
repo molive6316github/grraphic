@@ -60,7 +60,7 @@ export function Collections({ userId, selectedAnalysisId, onClose }: Collections
         })
       );
 
-      setCollections(collectionsWithCounts);
+      setCollections(collectionsWithCounts as unknown as Collection[]);
     } catch (error) {
       console.error('Error loading collections:', error);
     } finally {

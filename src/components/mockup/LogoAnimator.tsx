@@ -230,7 +230,7 @@ export function LogoAnimator({
     };
 
     // Special animation states
-    if ((config.animation === 'neon-glow' || config.animation === 'neon-city' || config.animation === 'electric-surge') && animationPhase !== 'waiting') {
+    if ((config.animation === 'neon-glow' || config.animation === 'neon-city' || config.animation === 'electric-surge')) {
       const glowColor = config.color || '#00ffff';
       const glowIntensity = config.glowIntensity || 30;
       animatingStyles.filter = `drop-shadow(0 0 ${glowIntensity}px ${glowColor}) drop-shadow(0 0 ${glowIntensity * 2}px ${glowColor}) drop-shadow(0 0 ${glowIntensity * 3}px ${glowColor})`;
@@ -240,21 +240,21 @@ export function LogoAnimator({
       animatingStyles.transform = `translate(${glitchOffset.x}px, ${glitchOffset.y}px)`;
     }
 
-    if ((config.animation === 'stroke-draw' || config.animation === 'line-draw') && animationPhase !== 'waiting') {
+    if ((config.animation === 'stroke-draw' || config.animation === 'line-draw')) {
       animatingStyles.clipPath = 'inset(0 0 0 0)';
     }
 
-    if (config.animation === 'hologram-3d' && animationPhase !== 'waiting') {
+    if (config.animation === 'hologram-3d') {
       animatingStyles.filter = `drop-shadow(0 0 10px ${config.color || '#00ffff'}) drop-shadow(0 0 20px ${config.color || '#00ffff'})`;
       animatingStyles.transform = 'perspective(800px) rotateY(0deg) rotateX(0deg)';
     }
 
-    if ((config.animation === 'luxury-gold' || config.animation === 'diamond-sparkle') && animationPhase !== 'waiting') {
+    if ((config.animation === 'luxury-gold' || config.animation === 'diamond-sparkle')) {
       const sparkleColor = config.animation === 'luxury-gold' ? '#ffd700' : '#ffffff';
       animatingStyles.filter = `drop-shadow(0 0 15px ${sparkleColor}) drop-shadow(0 0 30px ${sparkleColor})`;
     }
 
-    if (config.animation === 'space-nebula' && animationPhase !== 'waiting') {
+    if (config.animation === 'space-nebula') {
       animatingStyles.filter = 'drop-shadow(0 0 20px #8b5cf6) drop-shadow(0 0 40px #a855f7)';
     }
 

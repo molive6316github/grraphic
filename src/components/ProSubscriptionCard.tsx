@@ -65,7 +65,7 @@ export function ProSubscriptionCard({ onSubscribe, loading }: ProSubscriptionCar
       }
 
       // Check if max uses reached
-      if (data.max_uses && data.current_uses >= data.max_uses) {
+      if (data.max_uses && (data.current_uses ?? 0) >= data.max_uses) {
         setDiscountError('This discount code has reached its maximum uses');
         setValidatingDiscount(false);
         return;
@@ -74,8 +74,8 @@ export function ProSubscriptionCard({ onSubscribe, loading }: ProSubscriptionCar
       // Valid discount
       setDiscountApplied(true);
       setDiscountDetails({
-        percent: data.discount_percent,
-        amount: data.discount_amount
+        percent: data.discount_percent ?? 0,
+        amount: data.discount_amount ?? 0
       });
       setDiscountError('');
     } catch (err) {
@@ -104,7 +104,7 @@ export function ProSubscriptionCard({ onSubscribe, loading }: ProSubscriptionCar
   const calculateDiscountedPrice = () => {
     if (!discountDetails) return product.price;
 
-    let finalPrice = parseFloat(product.price);
+    let finalPrice = parseFloat(String(product.price));
 
     if (discountDetails.percent > 0) {
       finalPrice = finalPrice * (1 - discountDetails.percent / 100);

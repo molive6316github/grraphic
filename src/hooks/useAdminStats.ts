@@ -78,7 +78,7 @@ export function useAdminStats() {
         totalAnalyses: totalAnalyses || 0,
         proSubscribers: proSubscribers || 0,
         totalRevenue: 0,
-        recentUsers: recentUsers || [],
+        recentUsers: (recentUsers || []) as any,
         recentAnalyses: analysesWithUsers
       });
     } catch (err) {

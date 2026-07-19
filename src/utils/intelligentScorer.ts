@@ -241,32 +241,37 @@ export function generateIntelligentAnalysis(metrics: AnalysisMetrics): DesignAna
     categories: {
       typography: {
         score: typography.score,
-        feedback: typography.feedback
+        feedback: typography.feedback,
+        improvementIdeas: typography.suggestions
       },
-      colors: {
+      colorHarmony: {
         score: scores.colors.score,
-        feedback: scores.colors.feedback
+        feedback: scores.colors.feedback,
+        improvementIdeas: scores.colors.suggestions
       },
       spacing: {
         score: scores.spacing.score,
-        feedback: scores.spacing.feedback
+        feedback: scores.spacing.feedback,
+        improvementIdeas: scores.spacing.suggestions
       },
       composition: {
         score: scores.composition.score,
-        feedback: scores.composition.feedback
+        feedback: scores.composition.feedback,
+        improvementIdeas: scores.composition.suggestions
+      },
+      hierarchy: {
+        score: scores.composition.score,
+        feedback: 'Visual hierarchy derived from composition analysis',
+        improvementIdeas: []
       },
       contrast: {
         score: scores.contrast.score,
-        feedback: scores.contrast.feedback
+        feedback: scores.contrast.feedback,
+        improvementIdeas: scores.contrast.suggestions
       }
     },
     strengths: generateStrengths(metrics, scores),
-    weaknesses: generateWeaknesses(scores),
-    improvements: generateImprovements(scores),
-    summary: `Overall design scored ${overallScore}/100. ${
-      overallScore >= 80 ? 'Excellent work with strong fundamentals!' :
-      overallScore >= 60 ? 'Good foundation with room for improvement.' :
-      'Design has potential - focus on the suggested improvements.'
-    }`
+    improvements: [...generateWeaknesses(scores), ...generateImprovements(scores)],
+    designPrinciples: []
   };
 }
