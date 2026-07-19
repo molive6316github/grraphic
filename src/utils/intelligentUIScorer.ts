@@ -287,6 +287,9 @@ export function generateIntelligentUIAnalysis(metrics: AnalysisMetrics): UIAnaly
         references: ['Design consistency', 'Visual patterns', 'User expectations']
       }
     },
+    strengths: [],
+    improvements: [],
+    bestPractices: [],
     summary: `UI scored ${overallScore}/100. ${
       overallScore >= 80 ? 'Excellent user experience with strong fundamentals.' :
       overallScore >= 60 ? 'Good foundation with opportunities for enhancement.' :

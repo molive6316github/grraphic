@@ -260,7 +260,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                         <p className="font-medium text-gray-900 dark:text-white">{user.email}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">@{user.username || 'no username'}</p>
                       </div>
-                      {user.is_pro_subscriber && (
+                      {user.subscription_tier === 'pro' && (
                         <span className="px-2 py-1 text-xs font-semibold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded">
                           PRO
                         </span>

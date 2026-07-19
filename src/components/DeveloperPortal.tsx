@@ -60,7 +60,7 @@ export function DeveloperPortal({ onBack, userId }: Props) {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      setApps(data);
+      setApps(data as unknown as OAuthApp[]);
     }
     setLoading(false);
   };
@@ -708,7 +708,7 @@ function CreateAppModal({
       .single();
 
     if (!error && app) {
-      onCreated(app, clientSecret);
+      onCreated(app as unknown as OAuthApp, clientSecret);
     }
     setLoading(false);
   };

@@ -81,37 +81,14 @@ export async function sendMagicLink(email: string): Promise<{ success: boolean; 
   }
 }
 
-// Get active sessions
+// Session listing UI was never shipped and the user_sessions table does
+// not exist; Supabase Auth manages sessions itself.
 export async function getActiveSessions(): Promise<any[]> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return [];
-  
-  const { data } = await supabase
-    .from('user_sessions')
-    .select('*')
-    .eq('user_id', session.user.id)
-    .eq('is_active', true)
-    .order('last_activity_at', { ascending: false });
-  
-  return data || [];
+  return [];
 }
 
-// Revoke a session
-export async function revokeSession(sessionId: string): Promise<{ success: boolean; error?: string }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { success: false, error: 'Not authenticated' };
-  
-  const { error } = await supabase
-    .from('user_sessions')
-    .update({ is_active: false })
-    .eq('id', sessionId)
-    .eq('user_id', session.user.id);
-  
-  if (error) {
-    return { success: false, error: error.message };
-  }
-  
-  return { success: true };
+export async function revokeSession(_sessionId: string): Promise<{ success: boolean; error?: string }> {
+  return { success: false, error: 'Session management is handled by Supabase Auth' };
 }
 
 // Change password
@@ -155,28 +132,8 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
   return { success: true };
 }
 
-// Track login for session management
-export async function trackLogin(userId: string): Promise<void> {
-  const deviceInfo = {
-    userAgent: navigator.userAgent,
-    platform: navigator.platform,
-    language: navigator.language,
-  };
-  
-  const sessionToken = crypto.randomUUID();
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 30); // 30 day session
-  
-  await supabase
-    .from('user_sessions')
-    .insert({
-      user_id: userId,
-      session_token: sessionToken,
-      device_info: deviceInfo,
-      user_agent: navigator.userAgent,
-      expires_at: expiresAt.toISOString(),
-    });
-}
+// Supabase Auth tracks sessions itself; nothing extra to record.
+export async function trackLogin(_userId: string): Promise<void> {}
 
 // Export session for use elsewhere
 export { supabase };

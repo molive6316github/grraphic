@@ -137,7 +137,7 @@ export function GradiChat({ userId }: GradiChatProps) {
   const recognitionRef = useRef<any>(null);
   const { subscription } = useSubscription(userId);
 
-  const isPro = subscription?.status === 'active';
+  const isPro = subscription?.subscription_status === 'active';
   const canSendMessage = isPro || messageCount < FREE_MESSAGE_LIMIT;
 
   useEffect(() => {
@@ -173,7 +173,7 @@ export function GradiChat({ userId }: GradiChatProps) {
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
 
-    setSessions(data || []);
+    setSessions((data || []) as ChatSession[]);
     if (!currentSessionId && data && data.length > 0) {
       setCurrentSessionId(data[0].id);
     } else if (!currentSessionId) {
@@ -189,11 +189,11 @@ export function GradiChat({ userId }: GradiChatProps) {
       .order('created_at', { ascending: true });
 
     setMessages((data || []).map(msg => ({
-      role: msg.role,
+      role: msg.role as 'user' | 'assistant',
       content: msg.content,
-      timestamp: new Date(msg.created_at),
-      imageUrl: msg.image_url
-    })));
+      timestamp: new Date(msg.created_at ?? Date.now()),
+      imageUrl: msg.image_url ?? undefined
+    })) as Message[]);
   };
 
   const loadUsage = async () => {
@@ -205,7 +205,7 @@ export function GradiChat({ userId }: GradiChatProps) {
       .maybeSingle();
 
     if (data) {
-      const resetDate = new Date(data.last_reset);
+      const resetDate = new Date(data.last_reset ?? Date.now());
       const now = new Date();
       if (resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
         await supabase.from('gradi_usage').update({ message_count: 0, last_reset: now.toISOString() }).eq('user_id', userId);
@@ -225,7 +225,7 @@ export function GradiChat({ userId }: GradiChatProps) {
       .single();
 
     if (data) {
-      setSessions(prev => [data, ...prev]);
+      setSessions(prev => [data as ChatSession, ...prev]);
       setCurrentSessionId(data.id);
       setMessages([]);
     }

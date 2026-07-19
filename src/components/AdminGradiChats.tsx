@@ -54,10 +54,10 @@ export function AdminGradiChats() {
       messages?.forEach(msg => {
         const userEmail = userEmailMap.get(msg.user_id) || 'Unknown';
 
-        const formattedMsg: ChatMessage = {
+        const formattedMsg = {
           ...msg,
           user_email: userEmail
-        };
+        } as ChatMessage;
 
         if (!sessionMap.has(msg.session_id)) {
           sessionMap.set(msg.session_id, {
@@ -65,7 +65,7 @@ export function AdminGradiChats() {
             user_email: userEmail,
             message_count: 0,
             first_message: msg.message_role === 'user' ? msg.message_content : '',
-            last_activity: msg.created_at,
+            last_activity: msg.created_at ?? '',
             messages: []
           });
         }

@@ -51,8 +51,8 @@ export function AdminUsers() {
         })
       );
 
-      setAdmins(adminsWithEmails);
-      setUsers(usersData || []);
+      setAdmins(adminsWithEmails as unknown as Admin[]);
+      setUsers((usersData || []) as unknown as User[]);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -108,7 +108,7 @@ export function AdminUsers() {
           .from('profiles')
           .update({
             subscription_tier: 'free'
-          })
+          } as any)
           .eq('id', userId);
 
         if (error) throw error;
@@ -159,7 +159,7 @@ export function AdminUsers() {
         .from('profiles')
         .update({
           subscription_tier: 'pro'
-        })
+        } as any)
         .eq('id', selectedUserId);
 
       if (error) throw error;

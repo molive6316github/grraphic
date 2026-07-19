@@ -35,6 +35,156 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          scopes: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          scopes?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          scopes?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_rate_limits: {
+        Row: {
+          api_key_id: string
+          created_at: string | null
+          endpoint: string
+          id: string
+          request_count: number | null
+          window_start: string
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          request_count?: number | null
+          window_start?: string
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          request_count?: number | null
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_rate_limits_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_usage: {
+        Row: {
+          api_key_id: string | null
+          created_at: string | null
+          endpoint: string
+          id: string
+          method: string
+          request_count: number | null
+          updated_at: string | null
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          method: string
+          request_count?: number | null
+          updated_at?: string | null
+          usage_date?: string
+          user_id: string
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          method?: string
+          request_count?: number | null
+          updated_at?: string | null
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asset_collections: {
         Row: {
           asset_ids: string[] | null
@@ -65,6 +215,44 @@ export type Database = {
         }
         Relationships: []
       }
+      asset_folders: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "asset_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boxt_designs: {
         Row: {
           created_at: string | null
@@ -73,6 +261,7 @@ export type Database = {
           id: string
           is_public: boolean | null
           is_template: boolean | null
+          team_id: string | null
           thumbnail: string | null
           title: string
           updated_at: string | null
@@ -86,6 +275,7 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           is_template?: boolean | null
+          team_id?: string | null
           thumbnail?: string | null
           title?: string
           updated_at?: string | null
@@ -99,13 +289,22 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           is_template?: boolean | null
+          team_id?: string | null
           thumbnail?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string
           width?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "boxt_designs_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       boxt_templates: {
         Row: {
@@ -150,6 +349,7 @@ export type Database = {
           name: string
           source_image_url: string | null
           tags: string[] | null
+          team_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -162,6 +362,7 @@ export type Database = {
           name: string
           source_image_url?: string | null
           tags?: string[] | null
+          team_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -174,10 +375,19 @@ export type Database = {
           name?: string
           source_image_url?: string | null
           tags?: string[] | null
+          team_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "color_palettes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       design_analyses: {
         Row: {
@@ -186,7 +396,8 @@ export type Database = {
           file_name: string
           id: string
           image_url: string | null
-          is_public: string | null
+          is_public: boolean
+          team_id: string | null
           updated_at: string
           user_id: string
         }
@@ -196,7 +407,8 @@ export type Database = {
           file_name: string
           id?: string
           image_url?: string | null
-          is_public?: string | null
+          is_public?: boolean
+          team_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -206,11 +418,20 @@ export type Database = {
           file_name?: string
           id?: string
           image_url?: string | null
-          is_public?: string | null
+          is_public?: boolean
+          team_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "design_analyses_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       design_assets: {
         Row: {
@@ -222,11 +443,13 @@ export type Database = {
           file_format: string
           file_size: number | null
           file_url: string
+          folder_id: string | null
           id: string
           is_public: boolean | null
           metadata: Json | null
           name: string
           tags: string[] | null
+          team_id: string | null
           thumbnail_url: string | null
           updated_at: string | null
           user_id: string
@@ -240,11 +463,13 @@ export type Database = {
           file_format: string
           file_size?: number | null
           file_url: string
+          folder_id?: string | null
           id?: string
           is_public?: boolean | null
           metadata?: Json | null
           name: string
           tags?: string[] | null
+          team_id?: string | null
           thumbnail_url?: string | null
           updated_at?: string | null
           user_id: string
@@ -258,16 +483,33 @@ export type Database = {
           file_format?: string
           file_size?: number | null
           file_url?: string
+          folder_id?: string | null
           id?: string
           is_public?: boolean | null
           metadata?: Json | null
           name?: string
           tags?: string[] | null
+          team_id?: string | null
           thumbnail_url?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "design_assets_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "asset_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_assets_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       design_collection_items: {
         Row: {
@@ -548,6 +790,127 @@ export type Database = {
         }
         Relationships: []
       }
+      gradi_agent_tasks: {
+        Row: {
+          agent_id: string
+          completed_at: string | null
+          created_at: string | null
+          error: string | null
+          id: string
+          instructions: string
+          result: string | null
+          started_at: string | null
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          instructions: string
+          result?: string | null
+          started_at?: string | null
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          instructions?: string
+          result?: string | null
+          started_at?: string | null
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gradi_agent_tasks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "gradi_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gradi_agent_tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gradi_agent_tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gradi_agents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          emoji: string | null
+          id: string
+          is_active: boolean | null
+          model: string
+          name: string
+          system_prompt: string
+          temperature: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean | null
+          model?: string
+          name: string
+          system_prompt: string
+          temperature?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean | null
+          model?: string
+          name?: string
+          system_prompt?: string
+          temperature?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gradi_agents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gradi_agents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gradi_chat_logs: {
         Row: {
           created_at: string | null
@@ -774,6 +1137,7 @@ export type Database = {
           mockup_type: string
           preview_url: string | null
           rendered_url: string | null
+          team_id: string | null
           template_data: Json | null
           title: string | null
           updated_at: string | null
@@ -792,6 +1156,7 @@ export type Database = {
           mockup_type: string
           preview_url?: string | null
           rendered_url?: string | null
+          team_id?: string | null
           template_data?: Json | null
           title?: string | null
           updated_at?: string | null
@@ -810,13 +1175,22 @@ export type Database = {
           mockup_type?: string
           preview_url?: string | null
           rendered_url?: string | null
+          team_id?: string | null
           template_data?: Json | null
           title?: string | null
           updated_at?: string | null
           user_id?: string
           video_duration?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mockup_projects_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mockup_templates: {
         Row: {
@@ -866,6 +1240,311 @@ export type Database = {
         }
         Relationships: []
       }
+      oauth_access_tokens: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          scopes: string[]
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_access_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_access_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_access_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_auth_codes: {
+        Row: {
+          client_id: string
+          code: string
+          code_challenge: string | null
+          code_challenge_method: string | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          redirect_uri: string
+          scopes: string[]
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          code: string
+          code_challenge?: string | null
+          code_challenge_method?: string | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          redirect_uri: string
+          scopes?: string[]
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          code?: string
+          code_challenge?: string | null
+          code_challenge_method?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          redirect_uri?: string
+          scopes?: string[]
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_auth_codes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_auth_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_auth_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_clients: {
+        Row: {
+          client_id: string
+          client_secret_hash: string
+          created_at: string | null
+          description: string | null
+          homepage_url: string | null
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          logo_url: string | null
+          name: string
+          redirect_uris: string[]
+          scopes: string[]
+          updated_at: string | null
+          user_id: string
+          verification_reason: string | null
+          verification_requested_at: string | null
+          verification_status: string | null
+        }
+        Insert: {
+          client_id: string
+          client_secret_hash: string
+          created_at?: string | null
+          description?: string | null
+          homepage_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          logo_url?: string | null
+          name: string
+          redirect_uris?: string[]
+          scopes?: string[]
+          updated_at?: string | null
+          user_id: string
+          verification_reason?: string | null
+          verification_requested_at?: string | null
+          verification_status?: string | null
+        }
+        Update: {
+          client_id?: string
+          client_secret_hash?: string
+          created_at?: string | null
+          description?: string | null
+          homepage_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          logo_url?: string | null
+          name?: string
+          redirect_uris?: string[]
+          scopes?: string[]
+          updated_at?: string | null
+          user_id?: string
+          verification_reason?: string | null
+          verification_requested_at?: string | null
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_clients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_clients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_refresh_tokens: {
+        Row: {
+          access_token_id: string | null
+          client_id: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          access_token_id?: string | null
+          client_id: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          revoked_at?: string | null
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          access_token_id?: string | null
+          client_id?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_refresh_tokens_access_token_id_fkey"
+            columns: ["access_token_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_access_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_refresh_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_refresh_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_refresh_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_user_consents: {
+        Row: {
+          client_id: string
+          granted_at: string | null
+          id: string
+          revoked_at: string | null
+          scopes: string[]
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          granted_at?: string | null
+          id?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          granted_at?: string | null
+          id?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_user_consents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_user_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_user_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       palette_likes: {
         Row: {
           created_at: string | null
@@ -891,6 +1570,176 @@ export type Database = {
             columns: ["palette_id"]
             isOneToOne: false
             referencedRelation: "color_palettes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_items: {
+        Row: {
+          added_by: string | null
+          content: Json | null
+          created_at: string | null
+          id: string
+          item_id: string | null
+          item_type: string
+          project_id: string
+          sort_order: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          item_type: string
+          project_id: string
+          sort_order?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          item_type?: string
+          project_id?: string
+          sort_order?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_items_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          owner_id: string
+          status: string
+          team_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          status?: string
+          team_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          status?: string
+          team_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      share_links: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          owner_id: string
+          resource_id: string
+          resource_type: string
+          revoked_at: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          owner_id: string
+          resource_id: string
+          resource_type: string
+          revoked_at?: string | null
+          token?: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          owner_id?: string
+          resource_id?: string
+          resource_type?: string
+          revoked_at?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_links_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_links_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1015,6 +1864,182 @@ export type Database = {
         }
         Relationships: []
       }
+      system_config: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      team_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: string
+          team_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          team_id: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          team_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invites_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          id: string
+          joined_at: string | null
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           analysis_focus: Json | null
@@ -1089,6 +2114,39 @@ export type Database = {
       }
     }
     Views: {
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_admin: boolean | null
+          is_verified: boolean | null
+          subscription_tier: string | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_admin?: never
+          is_verified?: never
+          subscription_tier?: never
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_admin?: never
+          is_verified?: never
+          subscription_tier?: never
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       stripe_user_orders: {
         Row: {
           amount_subtotal: number | null
@@ -1124,10 +2182,33 @@ export type Database = {
       }
     }
     Functions: {
+      accept_team_invite: { Args: { p_token: string }; Returns: Json }
       expire_pro_subscriptions: { Args: never; Returns: undefined }
       get_admin_emails: { Args: never; Returns: Json }
+      get_email_for_username: { Args: { p_username: string }; Returns: string }
+      get_shared_resource: { Args: { p_token: string }; Returns: Json }
+      get_storage_usage: { Args: never; Returns: Json }
+      increment_api_usage: {
+        Args: {
+          p_api_key_id: string
+          p_endpoint: string
+          p_method: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       is_admin: { Args: { check_user_id: string }; Returns: boolean }
+      is_pro_user: { Args: { p_user_id: string }; Returns: boolean }
+      is_team_admin: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_team_member: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_user_admin: { Args: { check_user_id: string }; Returns: boolean }
+      is_username_available: { Args: { p_username: string }; Returns: boolean }
       reset_monthly_credits: { Args: never; Returns: undefined }
     }
     Enums: {

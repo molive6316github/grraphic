@@ -123,7 +123,7 @@ export function PaletteX({ userId }: PaletteXProps) {
 
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
-      setPalettes(data || []);
+      setPalettes((data || []) as any);
     } catch (error) {
       console.error('Error loading palettes:', error);
     } finally {
@@ -265,7 +265,7 @@ export function PaletteX({ userId }: PaletteXProps) {
         .insert([{
           user_id: userId,
           name: paletteName.trim(),
-          colors: generatedColors,
+          colors: generatedColors as any,
           is_public: false,
           tags: [],
           likes_count: 0

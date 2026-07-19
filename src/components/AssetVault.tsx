@@ -103,7 +103,7 @@ export function AssetVault({ userId }: AssetVaultProps) {
         .eq('user_id', userId)
         .order('name');
 
-      setFolders(folderData || []);
+      setFolders((folderData || []) as unknown as AssetFolder[]);
 
       // Load assets for current folder
       let query = supabase
@@ -118,7 +118,7 @@ export function AssetVault({ userId }: AssetVaultProps) {
       }
 
       const { data: assetData } = await query.order('created_at', { ascending: false });
-      setAssets(assetData || []);
+      setAssets((assetData || []) as unknown as DesignAsset[]);
 
       // Build folder path
       if (currentFolder && folderData) {
@@ -127,7 +127,7 @@ export function AssetVault({ userId }: AssetVaultProps) {
         while (folderId) {
           const folder = folderData.find(f => f.id === folderId);
           if (folder) {
-            path.unshift(folder);
+            path.unshift(folder as unknown as AssetFolder);
             folderId = folder.parent_id;
           } else {
             break;

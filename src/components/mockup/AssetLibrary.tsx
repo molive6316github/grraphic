@@ -93,9 +93,9 @@ export function AssetLibrary({ userId, onAssetSelect, filterType = 'all', compac
         folderId: a.folder_id,
         tags: a.tags || [],
         isFavorite: a.is_favorite || false,
-        createdAt: new Date(a.created_at),
-        updatedAt: new Date(a.updated_at)
-      })) || []);
+        createdAt: new Date(a.created_at ?? Date.now()),
+        updatedAt: new Date(a.updated_at ?? Date.now())
+      })) as Asset[] || []);
     } catch (error) {
       console.error('Error loading assets:', error);
     }
@@ -118,8 +118,8 @@ export function AssetLibrary({ userId, onAssetSelect, filterType = 'all', compac
         name: f.name,
         color: f.color,
         parentId: f.parent_id,
-        createdAt: new Date(f.created_at)
-      })) || []);
+        createdAt: new Date(f.created_at ?? Date.now())
+      })) as AssetFolder[] || []);
     } catch (error) {
       console.error('Error loading folders:', error);
     }

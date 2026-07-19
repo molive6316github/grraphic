@@ -34,7 +34,7 @@ export function AdminEmailClient() {
         setMessage({ type: 'error', text: 'Failed to fetch users' });
         return;
       }
-      emailList = profiles?.map(p => p.email) || [];
+      emailList = (profiles?.map(p => p.email) || []).filter((e): e is string => !!e);
     } else if (recipientType === 'verified-only') {
       const { data: profiles, error } = await supabase
         .from('profiles')
@@ -46,7 +46,7 @@ export function AdminEmailClient() {
         setMessage({ type: 'error', text: 'Failed to fetch verified users' });
         return;
       }
-      emailList = profiles?.map(p => p.email) || [];
+      emailList = (profiles?.map(p => p.email) || []).filter((e): e is string => !!e);
     }
 
     if (emailList.length === 0) {

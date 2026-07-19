@@ -61,7 +61,7 @@ export function AdminOAuthApps() {
     const { data, error } = await query;
 
     if (!error && data) {
-      setApps(data);
+      setApps(data as unknown as OAuthApp[]);
     }
     setLoading(false);
   };

@@ -28,9 +28,9 @@ interface MockupRenderer3DProps {
 // Phone 3D Model
 function Phone({ screenImage }: { screenImage?: string }) {
   const texture = screenImage ? useTexture(screenImage) : null;
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<THREE.Group>(null);
   
-  useFrame((state) => {
+  useFrame((state: any) => {
     if (meshRef.current) {
       meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
     }
@@ -56,7 +56,7 @@ function Phone({ screenImage }: { screenImage?: string }) {
         
         {/* Camera notch */}
         <mesh position={[0, 2.1, 0.16]}>
-          <cylinderGeometry args={[0.08, 0.08, 0.02, 32]} rotation={[Math.PI / 2, 0, 0]} />
+          <cylinderGeometry args={[0.08, 0.08, 0.02, 32]} />
           <meshStandardMaterial color="#0a0a15" />
         </mesh>
         
@@ -113,7 +113,7 @@ function Laptop({ screenImage }: { screenImage?: string }) {
           
           {/* Webcam */}
           <mesh position={[0, 3.85, 0.07]}>
-            <cylinderGeometry args={[0.04, 0.04, 0.02, 32]} rotation={[Math.PI / 2, 0, 0]} />
+            <cylinderGeometry args={[0.04, 0.04, 0.02, 32]} />
             <meshStandardMaterial color="#0a0a15" />
           </mesh>
         </group>
@@ -163,9 +163,9 @@ function Monitor({ screenImage }: { screenImage?: string }) {
 // 3D Box/Package
 function ProductBox({ screenImage }: { screenImage?: string }) {
   const texture = screenImage ? useTexture(screenImage) : null;
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<THREE.Group>(null);
   
-  useFrame((state) => {
+  useFrame((state: any) => {
     if (meshRef.current) {
       meshRef.current.rotation.y = state.clock.elapsedTime * 0.2;
     }

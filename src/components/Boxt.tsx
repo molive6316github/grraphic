@@ -69,7 +69,7 @@ export function Boxt({ userId }: BoxtProps) {
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const { subscription } = useSubscription(userId);
-  const isPro = subscription?.status === 'active';
+  const isPro = subscription?.subscription_status === 'active';
   const canCreateDesign = isPro || myDesigns.length < FREE_DESIGN_LIMIT;
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export function Boxt({ userId }: BoxtProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextArea) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
@@ -150,11 +150,11 @@ export function Boxt({ userId }: BoxtProps) {
 
     if (currentDesignId) {
       await supabase.from('boxt_designs').update({
-        title: designTitle, thumbnail, data: designData, width: canvasWidth, height: canvasHeight
+        title: designTitle, thumbnail, data: designData as any, width: canvasWidth, height: canvasHeight
       }).eq('id', currentDesignId);
     } else {
       const { data } = await supabase.from('boxt_designs').insert({
-        user_id: userId, title: designTitle, thumbnail, data: designData, width: canvasWidth, height: canvasHeight
+        user_id: userId, title: designTitle, thumbnail, data: designData as any, width: canvasWidth, height: canvasHeight
       }).select().single();
       if (data) setCurrentDesignId(data.id);
     }
@@ -980,12 +980,9 @@ COMMANDS ONLY, one per line:`;
     setGrraphicLoading(true);
     try {
       const imageData = canvas.toDataURL('image/png');
-      const analysis = await analyzeDesign({
-        url: imageData,
-        name: designTitle,
-        size: canvas.width * canvas.height,
-        type: 'image/png'
-      });
+      const imageBlob = await (await fetch(imageData)).blob();
+      const imageFile = new File([imageBlob], `${designTitle || 'boxt-design'}.png`, { type: 'image/png' });
+      const analysis = await analyzeDesign(designTitle || 'Boxt design', imageFile);
       setGrraphicAnalysis(analysis);
     } catch (error) {
       console.error('Analysis error:', error);

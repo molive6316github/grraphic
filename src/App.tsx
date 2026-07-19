@@ -145,7 +145,7 @@ function App() {
     try {
       const analysis = await getPublicAnalysis(analysisId);
       if (analysis) {
-        setPublicAnalysis(analysis);
+        setPublicAnalysis(analysis as any);
         setAnalysis(analysis.analysis_data);
         setState('public');
       } else {
@@ -830,7 +830,7 @@ function App() {
             userId={user?.id}
             initialSection={mockupSection}
             onNavigate={(section) => {
-              setMockupSection(section);
+              setMockupSection(section as MockupSection);
               const newPath = section === 'home' ? '/mockup' : `/mockup/${section}`;
               window.history.pushState({}, '', newPath);
             }}

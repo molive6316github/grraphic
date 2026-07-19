@@ -49,7 +49,7 @@ export function AdminErrorLogs() {
         user_email: userEmailMap.get(log.user_id) || 'Unknown'
       })) || [];
 
-      setErrorLogs(formattedLogs);
+      setErrorLogs(formattedLogs as unknown as ErrorLog[]);
     } catch (error) {
       console.error('Error fetching error logs:', error);
     } finally {

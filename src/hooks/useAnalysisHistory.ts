@@ -77,12 +77,12 @@ export function useAnalysisHistory(userId: string | undefined) {
         return {
           ...item,
           analysis_data: decryptedAnalysis,
-          is_public: item.is_public === true || item.is_public === 'yes',
+          is_public: item.is_public,
           user: { username: 'User' }
         };
       });
-      
-      setAnalyses(transformedData);
+
+      setAnalyses(transformedData as AnalysisRecord[]);
     } catch (error) {
       console.error('Error fetching analyses:', error);
       setAnalyses([]);
@@ -205,7 +205,7 @@ export function useAnalysisHistory(userId: string | undefined) {
         return null;
       }
       
-      const isPublic = checkData.is_public === 'yes' || checkData.is_public === true;
+      const isPublic = checkData.is_public === true;
       if (!isPublic) {
         return null;
       }

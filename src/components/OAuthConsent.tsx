@@ -122,9 +122,9 @@ export function OAuthConsent() {
 
         if (profile) {
           setUser({
-            id: profile.id,
+            id: profile.id ?? authUser.id,
             email: profile.email || authUser.email || '',
-            username: profile.username,
+            username: profile.username ?? '',
             avatar_url: null
           });
           
@@ -139,7 +139,7 @@ export function OAuthConsent() {
           
           if (consent) {
             setExistingConsent({
-              granted_at: consent.granted_at,
+              granted_at: consent.granted_at ?? '',
               scopes: consent.scopes
             });
           }
@@ -283,7 +283,7 @@ export function OAuthConsent() {
       }
 
       // Redirect back to client with authorization code
-      const redirectUrl = new URL(redirectUri);
+      const redirectUrl = new URL(redirectUri!);
       redirectUrl.searchParams.set('code', result.code);
       if (state) {
         redirectUrl.searchParams.set('state', state);

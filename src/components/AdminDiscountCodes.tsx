@@ -46,7 +46,7 @@ export function AdminDiscountCodes() {
         setCodes([]);
         return;
       }
-      setCodes(data || []);
+      setCodes((data || []) as unknown as DiscountCode[]);
     } catch (error) {
       console.error('Error fetching discount codes:', error);
     } finally {

@@ -227,8 +227,8 @@ export const apiUsageService = {
         historyMap.set(item.usage_date, { total: 0, byEndpoint: {} });
       }
       const entry = historyMap.get(item.usage_date)!;
-      entry.total += item.request_count;
-      entry.byEndpoint[item.endpoint] = item.request_count;
+      entry.total += item.request_count ?? 0;
+      entry.byEndpoint[item.endpoint] = item.request_count ?? 0;
     });
 
     const history = Array.from(historyMap.entries()).map(([date, data]) => ({
