@@ -4,6 +4,7 @@ import logoImage from '../assets/ae52010de59e187ce864ed24eee6209a.png';
 import { gradiChat } from '../services/groqService';
 import { supabase } from '../lib/supabase';
 import { useSubscription } from '../hooks/useSubscription';
+import { GradiAgents } from './GradiAgents';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -131,13 +132,23 @@ export function GradiChat({ userId }: GradiChatProps) {
   const [showSidebar, setShowSidebar] = useState(true);
   const [messageCount, setMessageCount] = useState(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  
+  const [activeView, setActiveView] = useState<'chat' | 'agents'>('chat');
+  const [isProUser, setIsProUser] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const { subscription } = useSubscription(userId);
 
-  const isPro = subscription?.subscription_status === 'active';
+  // Pro = active Stripe subscription, manual pro grant, or admin
+  useEffect(() => {
+    if (!userId) return;
+    supabase.rpc('is_pro_user', { p_user_id: userId }).then(({ data }) => {
+      setIsProUser(data === true);
+    });
+  }, [userId]);
+
+  const isPro = subscription?.subscription_status === 'active' || isProUser;
   const canSendMessage = isPro || messageCount < FREE_MESSAGE_LIMIT;
 
   useEffect(() => {
@@ -403,6 +414,24 @@ export function GradiChat({ userId }: GradiChatProps) {
               <img src={logoImage} alt="Gradi" className="w-6 h-6 rounded-full" />
               <span className="font-medium">Gradi AI</span>
             </div>
+            <div className="ml-2 flex items-center gap-1 p-1 rounded-lg bg-white/[0.05] border border-white/[0.08]">
+              <button
+                onClick={() => setActiveView('chat')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  activeView === 'chat' ? 'bg-violet-500/25 text-violet-200' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Chat
+              </button>
+              <button
+                onClick={() => setActiveView('agents')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  activeView === 'agents' ? 'bg-violet-500/25 text-violet-200' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Agents{!isPro && ' ✦'}
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => {
@@ -419,7 +448,13 @@ export function GradiChat({ userId }: GradiChatProps) {
           </div>
         </div>
 
+        {/* Agents console */}
+        {activeView === 'agents' && userId && (
+          <GradiAgents userId={userId} isPro={isPro} onUpgrade={() => setActiveView('chat')} />
+        )}
+
         {/* Messages */}
+        {activeView === 'chat' && (
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center px-4">
@@ -496,8 +531,10 @@ export function GradiChat({ userId }: GradiChatProps) {
             </div>
           )}
         </div>
+        )}
 
         {/* Input */}
+        {activeView === 'chat' && (
         <div className="p-4">
           <div className="max-w-3xl mx-auto">
             <div className="relative bg-[#2f2f2f] rounded-2xl border border-white/10">
@@ -529,6 +566,7 @@ export function GradiChat({ userId }: GradiChatProps) {
             </p>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

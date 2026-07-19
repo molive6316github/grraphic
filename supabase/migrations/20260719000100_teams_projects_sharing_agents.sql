@@ -460,3 +460,15 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.get_storage_usage() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_storage_usage() TO authenticated;
+
+-- Lock down helper/trigger functions (applied as follow-up)
+REVOKE EXECUTE ON FUNCTION public.is_team_member(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_team_member(uuid, uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.is_team_admin(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_team_admin(uuid, uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.is_pro_user(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_pro_user(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.profiles_view_insert() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.profiles_view_update() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.profiles_view_delete() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.oauth_clients_guard_verification() FROM PUBLIC, anon;
