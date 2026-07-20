@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { hashSensitiveData } from '../utils/encryption';
+import { persistProviderConnection, rememberOAuthOrigin } from '../lib/oauthConnections';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -28,6 +29,11 @@ export function useAuth() {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // Fresh OAuth sign-ins carry a provider_token; save it so integrations
+      // like GitHub stay linked permanently
+      if (session?.provider_token) {
+        persistProviderConnection(session);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -92,8 +98,10 @@ export function useAuth() {
       return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to sign in with Google.' } };
     }
 
-    // Use the origin only (no pathname) to avoid callback issues
+    // Use the origin only (no pathname) to avoid callback issues; the
+    // current path is restored after auth via sessionStorage
     const redirectUrl = window.location.origin;
+    rememberOAuthOrigin(window.location.pathname, 'google');
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

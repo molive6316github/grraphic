@@ -9,10 +9,24 @@ import {
   ExternalLink, Save, FolderPlus, MoreHorizontal, Rocket, GitBranch, Github, 
   Clock, CheckCircle2, AlertCircle, Info, Command, Braces, Hash,
   ArrowRight, Undo2, Redo2, Split, Columns, LayoutGrid, Boxes,
-  Cpu, Database, Cloud, Link, PanelBottomClose, PanelBottom, Menu
+  Cpu, Database, Cloud, Link, PanelBottomClose, PanelBottom, Menu, Users
 } from 'lucide-react';
+import Editor from '@monaco-editor/react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useSubscription } from '../hooks/useSubscription';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { getOAuthConnection, removeOAuthConnection, rememberOAuthOrigin } from '../lib/oauthConnections';
+
+// Map file extensions to Monaco language ids
+function monacoLanguage(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  const map: Record<string, string> = {
+    html: 'html', htm: 'html', css: 'css', js: 'javascript', jsx: 'javascript',
+    ts: 'typescript', tsx: 'typescript', json: 'json', md: 'markdown',
+    svg: 'xml', xml: 'xml', yml: 'yaml', yaml: 'yaml',
+  };
+  return map[ext] || 'plaintext';
+}
 
 // Types
 interface ProjectFile {
@@ -1127,15 +1141,145 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
   const [githubConnected, setGithubConnected] = useState(false);
   const [githubUser, setGithubUser] = useState<any>(null);
   const [showGithubConnect, setShowGithubConnect] = useState(false);
+  const [collabRoom, setCollabRoom] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('room')
+  );
+  const [collabPeers, setCollabPeers] = useState(1);
+  const [collabCopied, setCollabCopied] = useState(false);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const collabChannel = useRef<RealtimeChannel | null>(null);
+  const collabClientId = useRef(crypto.randomUUID());
+  const collabSynced = useRef(false);
+  const applyingRemote = useRef(false);
+  const broadcastTimers = useRef<Map<string, number>>(new Map());
+  const filesRef = useRef<ProjectFile[]>([]);
+  filesRef.current = files;
   
   const { subscription } = useSubscription(userId);
   const activeFile = files.find(f => f.id === activeFileId);
+
+  // Restore a previously linked GitHub account (saved after OAuth in useAuth)
+  useEffect(() => {
+    if (!userId || !isSupabaseConfigured()) return;
+    let cancelled = false;
+    (async () => {
+      const conn = await getOAuthConnection(userId, 'github');
+      if (cancelled || !conn) return;
+      if (conn.provider_token) {
+        try {
+          const res = await fetch('https://api.github.com/user', {
+            headers: { Authorization: `Bearer ${conn.provider_token}` },
+          });
+          if (res.ok) {
+            const ghUser = await res.json();
+            if (!cancelled) {
+              setGithubConnected(true);
+              setGithubUser(ghUser);
+            }
+            return;
+          }
+          // Token revoked/expired - drop the stale connection
+          if (res.status === 401) await removeOAuthConnection(userId, 'github');
+        } catch { /* network hiccup: fall through to username-only display */ }
+      }
+      if (conn.provider_username && !cancelled) {
+        setGithubConnected(true);
+        setGithubUser({ login: conn.provider_username });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Real-time collaboration over Supabase Realtime broadcast.
+  // Last write per file wins; joiners request full state from peers.
+  useEffect(() => {
+    if (!collabRoom || !isSupabaseConfigured()) return;
+    collabSynced.current = false;
+
+    const channel = supabase.channel(`site-designer:${collabRoom}`, {
+      config: { broadcast: { self: false }, presence: { key: collabClientId.current } },
+    });
+
+    channel.on('broadcast', { event: 'file' }, ({ payload }) => {
+      applyingRemote.current = true;
+      setFiles(prev => {
+        const exists = prev.some(f => f.id === payload.id);
+        return exists
+          ? prev.map(f => f.id === payload.id ? { ...f, ...payload } : f)
+          : [...prev, payload as ProjectFile];
+      });
+      applyingRemote.current = false;
+    });
+
+    channel.on('broadcast', { event: 'sync_request' }, ({ payload }) => {
+      if (payload?.from === collabClientId.current) return;
+      if (filesRef.current.length > 0) {
+        channel.send({ type: 'broadcast', event: 'sync_state', payload: { files: filesRef.current } });
+      }
+    });
+
+    channel.on('broadcast', { event: 'sync_state' }, ({ payload }) => {
+      if (collabSynced.current || !payload?.files?.length) return;
+      collabSynced.current = true;
+      applyingRemote.current = true;
+      setFiles(payload.files as ProjectFile[]);
+      setActiveFileId((payload.files[0] as ProjectFile).id);
+      setOpenTabs([(payload.files[0] as ProjectFile).id]);
+      applyingRemote.current = false;
+    });
+
+    channel.on('presence', { event: 'sync' }, () => {
+      setCollabPeers(Math.max(1, Object.keys(channel.presenceState()).length));
+    });
+
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ joined_at: Date.now() });
+        channel.send({ type: 'broadcast', event: 'sync_request', payload: { from: collabClientId.current } });
+      }
+    });
+
+    collabChannel.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      collabChannel.current = null;
+      setCollabPeers(1);
+    };
+  }, [collabRoom]);
+
+  const broadcastFileChange = (id: string) => {
+    if (!collabChannel.current || applyingRemote.current) return;
+    const existing = broadcastTimers.current.get(id);
+    if (existing) clearTimeout(existing);
+    broadcastTimers.current.set(id, window.setTimeout(() => {
+      const file = filesRef.current.find(f => f.id === id);
+      if (file) {
+        collabChannel.current?.send({ type: 'broadcast', event: 'file', payload: file });
+      }
+    }, 250));
+  };
+
+  const startOrShareCollab = async () => {
+    let room = collabRoom;
+    if (!room) {
+      room = Math.random().toString(36).slice(2, 10);
+      setCollabRoom(room);
+      const url = new URL(window.location.href);
+      url.searchParams.set('room', room);
+      window.history.replaceState({}, '', url.toString());
+    }
+    const link = `${window.location.origin}/site-designer?room=${room}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCollabCopied(true);
+      setTimeout(() => setCollabCopied(false), 1500);
+    } catch { /* clipboard denied */ }
+  };
 
   // Effects
   useEffect(() => {
@@ -1276,6 +1420,7 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
 
   const updateFile = (id: string, content: string) => {
     setFiles(prev => prev.map(f => f.id === id ? { ...f, content } : f));
+    broadcastFileChange(id);
   };
 
   const openFile = (id: string) => {
@@ -1620,12 +1765,20 @@ RULES:
           
           <div className="w-px h-4 bg-white/[0.06] mx-1" />
           
-          <button 
+          <button
             onClick={() => setShowGithubConnect(true)}
             className={`p-1.5 rounded-md transition-colors ${githubConnected ? 'bg-orange-500/20 text-orange-400' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'}`}
             title={githubConnected ? `Connected to ${githubUser?.login}` : 'Connect GitHub'}
           >
             <Github size={14} />
+          </button>
+          <button
+            onClick={startOrShareCollab}
+            className={`flex items-center gap-1 p-1.5 rounded-md transition-colors ${collabRoom ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'}`}
+            title={collabCopied ? 'Invite link copied!' : collabRoom ? `Live session — ${collabPeers} online. Click to copy invite link` : 'Start live collaboration'}
+          >
+            <Users size={14} />
+            {collabRoom && <span className="text-[10px] font-mono">{collabCopied ? '✓' : collabPeers}</span>}
           </button>
           <button 
             onClick={handleSaveProject}
@@ -1888,22 +2041,30 @@ RULES:
                   })}
                 </div>
 
-                {/* Editor */}
-                <div className="flex-1 overflow-hidden flex bg-[#09090b]">
-                  <div className="py-4 px-2 text-right font-mono select-none bg-[#0a0a0c] border-r border-white/[0.04] overflow-hidden" style={{ fontSize: editorFontSize - 1 }}>
-                    <pre className="text-gray-600 leading-5">
-                      {activeFile.content.split('\n').map((_, i) => (
-                        <div key={i} className="pr-2">{i + 1}</div>
-                      ))}
-                    </pre>
-                  </div>
-                  <textarea
-                    ref={editorRef}
+                {/* Editor (Monaco - the same editor VS Code uses) */}
+                <div className="flex-1 overflow-hidden bg-[#09090b]">
+                  <Editor
+                    key={activeFile.id}
+                    path={activeFile.name}
+                    language={monacoLanguage(activeFile.name)}
                     value={activeFile.content}
-                    onChange={(e) => updateFile(activeFile.id, e.target.value)}
-                    className="flex-1 bg-transparent py-4 px-4 font-mono text-gray-200 resize-none focus:outline-none leading-5 min-w-0"
-                    spellCheck={false}
-                    style={{ fontSize: editorFontSize, tabSize: 2 }}
+                    onChange={(value) => updateFile(activeFile.id, value ?? '')}
+                    theme="vs-dark"
+                    options={{
+                      fontSize: editorFontSize,
+                      minimap: { enabled: false },
+                      tabSize: 2,
+                      wordWrap: 'on',
+                      automaticLayout: true,
+                      scrollBeyondLastLine: false,
+                      padding: { top: 12 },
+                      smoothScrolling: true,
+                    }}
+                    loading={
+                      <div className="h-full flex items-center justify-center text-gray-600 text-sm">
+                        <Loader2 size={16} className="animate-spin mr-2" /> Loading editor…
+                      </div>
+                    }
                   />
                 </div>
               </div>
@@ -2016,12 +2177,15 @@ RULES:
                 </p>
                 <button
                   onClick={() => {
-                    // Trigger Supabase OAuth for GitHub
+                    // Trigger Supabase OAuth for GitHub. Redirect must be the
+                    // origin (only allow-listed URL); we come back here via
+                    // the saved path, and the token is persisted by useAuth.
                     if (isSupabaseConfigured()) {
+                      rememberOAuthOrigin('/site-designer', 'github');
                       supabase.auth.signInWithOAuth({
                         provider: 'github',
                         options: {
-                          redirectTo: window.location.origin + '/site-designer',
+                          redirectTo: window.location.origin,
                           scopes: 'repo,user'
                         }
                       });
@@ -2044,6 +2208,7 @@ RULES:
                 </div>
                 <button
                   onClick={() => {
+                    if (userId) removeOAuthConnection(userId, 'github');
                     setGithubConnected(false);
                     setGithubUser(null);
                     setShowGithubConnect(false);

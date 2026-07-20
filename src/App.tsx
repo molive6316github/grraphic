@@ -30,6 +30,7 @@ import { SharedView } from './components/SharedView';
 import { ProjectsHub } from './components/ProjectsHub';
 import { ToolShowcase } from './components/ToolShowcase';
 import { supabase } from './lib/supabase';
+import { consumePostAuthRedirect } from './lib/oauthConnections';
 import { ApiDashboard } from './components/ApiDashboard';
 import { ApiDocs } from './components/ApiDocs';
 import { OAuthConsent } from './components/OAuthConsent';
@@ -53,6 +54,50 @@ type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'suc
 
 type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
 
+// Floating app switcher for fullscreen tools (Boxt, Gradi, Site Designer)
+// that hide the main header - the rest of the studio stays one click away.
+function QuickNav({ onNavigate }: { onNavigate: (state: AppState, path: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const items: Array<[string, AppState, string]> = [
+    ['Home', 'upload', '/'],
+    ['Boxt', 'boxt', '/boxt'],
+    ['Gradi AI', 'gradi', '/gradi'],
+    ['Site Designer', 'site-designer', '/site-designer'],
+    ['Projects', 'projects', '/projects'],
+    ['PaletteX', 'palettex', '/palettex'],
+    ['Mockups', 'mockup', '/mockup'],
+    ['Assets', 'assets', '/assets'],
+    ['API', 'api', '/api'],
+  ];
+  return (
+    <div className="fixed bottom-4 left-4 z-[1100]">
+      {open && (
+        <>
+          <div className="fixed inset-0" onClick={() => setOpen(false)} />
+          <div className="absolute bottom-14 left-0 w-48 py-2 rounded-xl bg-[#0d0d14]/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 animate-fade-in">
+            {items.map(([label, target, path]) => (
+              <button
+                key={path}
+                onClick={() => { setOpen(false); onNavigate(target, path); }}
+                className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <button
+        onClick={() => setOpen(!open)}
+        title="Grraphic menu"
+        className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/40 ring-1 ring-white/20 hover:scale-105 transition-transform"
+      >
+        <Sparkles size={20} className="text-white" />
+      </button>
+    </div>
+  );
+}
+
 function App() {
   const [mode, setMode] = useState<AnalysisMode>('design');
   const [state, setState] = useState<AppState>('upload');
@@ -62,6 +107,7 @@ function App() {
   const [uiAnalysis, setUIAnalysis] = useState<UIAnalysis | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [viewingAnalysis, setViewingAnalysis] = useState<AnalysisRecord | null>(null);
   const [publicAnalysis, setPublicAnalysis] = useState<AnalysisRecord | null>(null);
   const [sharedToken, setSharedToken] = useState<string | null>(null);
@@ -75,13 +121,51 @@ function App() {
   const { subscription, loading: subscriptionLoading, refreshSubscription } = useSubscription(user?.id);
   const { username, loading: usernameLoading, error: usernameError, updateUsername, clearError } = useUsername(user?.id);
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
-  
+  // Path-based routing must only run for the initial URL. Re-runs of the
+  // effect below (user loads in, etc.) would otherwise re-route from the
+  // stale pathname and undo in-app navigation that didn't push a new URL.
+  const initialRouteDone = React.useRef(false);
 
 
   // Check for shared analysis and custom pages in URL on component mount
   useEffect(() => {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
+
+    // Surface auth errors that Supabase appends to the callback URL
+    // (query for PKCE flow, hash for implicit flow) instead of failing silently
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const authError = urlParams.get('error_description') || hashParams.get('error_description')
+      || urlParams.get('error') || hashParams.get('error');
+    if (authError) {
+      const friendly = decodeURIComponent(authError.replace(/\+/g, ' '));
+      setErrorMessage(
+        friendly.includes('exchange external code')
+          ? 'Google sign-in is misconfigured (the provider rejected the sign-in). Please try email sign-in, or contact support.'
+          : `Sign-in failed: ${friendly}`
+      );
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Return the user to where they started an OAuth sign-in (Supabase only
+    // redirects to the origin, so the original path is kept in sessionStorage)
+    if (user) {
+      const savedPath = consumePostAuthRedirect();
+      if (savedPath && savedPath !== '/' && savedPath !== path) {
+        const stateFor: Record<string, AppState> = {
+          '/boxt': 'boxt', '/gradi': 'gradi', '/palettex': 'palettex',
+          '/mockup': 'mockup', '/assets': 'assets', '/projects': 'projects',
+          '/site-designer': 'site-designer', '/api': 'api', '/developer': 'developer',
+        };
+        const next = stateFor[savedPath] || (savedPath.startsWith('/mockup') ? 'mockup' : undefined);
+        if (next) {
+          window.history.replaceState({}, '', savedPath);
+          setState(next);
+          return;
+        }
+      }
+    }
+
     const analysisId = urlParams.get('analysis');
     const shareToken = urlParams.get('share');
     if (shareToken) {
@@ -109,7 +193,10 @@ function App() {
     }
     const success = urlParams.get('success');
 
-    // Check for custom landing pages and legal pages
+    // Check for custom landing pages and legal pages (initial URL only)
+    if (initialRouteDone.current) return;
+    initialRouteDone.current = true;
+
     if (path === '/design-help') {
       setState('design-help');
       return;
@@ -157,6 +244,15 @@ function App() {
       return;
     } else if (path === '/projects' || path === '/teams') {
       setState('projects');
+      return;
+    } else if (path === '/palettex') {
+      setState('palettex');
+      return;
+    } else if (path === '/assets') {
+      setState('assets');
+      return;
+    } else if (path === '/history') {
+      setState('history');
       return;
     }
 
@@ -361,6 +457,13 @@ function App() {
     handleRemoveFile();
   };
 
+  const quickNavigate = (next: AppState, path: string) => {
+    setState(next);
+    if (next === 'mockup') setMockupSection('home');
+    window.history.pushState({}, '', path);
+    window.scrollTo({ top: 0 });
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 dark:from-blue-900 dark:via-blue-800 dark:to-slate-900 flex items-center justify-center">
@@ -470,6 +573,7 @@ function App() {
     return (
       <div className="min-h-screen">
         <GradiChat userId={user.id} />
+        <QuickNav onNavigate={quickNavigate} />
         <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
       </div>
     );
@@ -502,13 +606,16 @@ function App() {
     }
 
     return (
-      <SiteDesigner 
-        userId={user.id} 
-        onBack={() => {
-          setState('upload');
-          window.history.pushState({}, '', '/');
-        }}
-      />
+      <>
+        <SiteDesigner
+          userId={user.id}
+          onBack={() => {
+            setState('upload');
+            window.history.pushState({}, '', '/');
+          }}
+        />
+        <QuickNav onNavigate={quickNavigate} />
+      </>
     );
   }
 
@@ -538,7 +645,12 @@ function App() {
       );
     }
 
-    return <Boxt userId={user.id} />;
+    return (
+      <>
+        <Boxt userId={user.id} />
+        <QuickNav onNavigate={quickNavigate} />
+      </>
+    );
   }
 
   return (
@@ -598,25 +710,25 @@ function App() {
                       Site Designer
                     </button>
                     <button
-                      onClick={() => setState('history')}
+                      onClick={() => { setState('history'); window.history.pushState({}, '', '/history'); window.scrollTo({ top: 0 }); }}
                       className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
                       History
                     </button>
                     <button
-                      onClick={() => setState('palettex')}
+                      onClick={() => { setState('palettex'); window.history.pushState({}, '', '/palettex'); window.scrollTo({ top: 0 }); }}
                       className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
                       PaletteX
                     </button>
                     <button
-                      onClick={() => { setState('mockup'); setMockupSection('home'); window.history.pushState({}, '', '/mockup'); }}
+                      onClick={() => { setState('mockup'); setMockupSection('home'); window.history.pushState({}, '', '/mockup'); window.scrollTo({ top: 0 }); }}
                       className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
                       Mockups
                     </button>
                     <button
-                      onClick={() => setState('assets')}
+                      onClick={() => { setState('assets'); window.history.pushState({}, '', '/assets'); window.scrollTo({ top: 0 }); }}
                       className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
                       Assets
@@ -643,6 +755,17 @@ function App() {
                     <User size={16} className="text-gray-400" />
                     <span className="text-sm text-gray-300 hidden sm:inline">@{username || 'user'}</span>
                   </button>
+                  <button
+                    onClick={() => setShowMobileMenu(!showMobileMenu)}
+                    className="md:hidden p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                    aria-label="Menu"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-300">
+                      {showMobileMenu
+                        ? <><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></>
+                        : <><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></>}
+                    </svg>
+                  </button>
                 </>
               ) : (
                 <button
@@ -656,6 +779,50 @@ function App() {
             </div>
           </div>
         </div>
+
+        {/* Mobile navigation */}
+        {user && showMobileMenu && (
+          <nav className="md:hidden border-t border-white/10 bg-[#0b0b12]/95 backdrop-blur-xl animate-slide-up">
+            <div className="px-4 py-3 grid grid-cols-2 gap-1.5">
+              {([
+                ['Analyze', 'upload', '/'],
+                ['Boxt', 'boxt', '/boxt'],
+                ['Gradi AI', 'gradi', '/gradi'],
+                ['Projects', 'projects', '/projects'],
+                ['Site Designer', 'site-designer', '/site-designer'],
+                ['History', 'history', '/history'],
+                ['PaletteX', 'palettex', '/palettex'],
+                ['Mockups', 'mockup', '/mockup'],
+                ['Assets', 'assets', '/assets'],
+                ['API', 'api', '/api'],
+              ] as const).map(([label, target, path]) => (
+                <button
+                  key={target}
+                  onClick={() => {
+                    setState(target as AppState);
+                    if (target === 'mockup') setMockupSection('home');
+                    if (path) window.history.pushState({}, '', path);
+                    setShowMobileMenu(false);
+                    window.scrollTo({ top: 0 });
+                  }}
+                  className={`px-3 py-2.5 rounded-lg text-sm text-left transition-colors ${
+                    state === target ? 'bg-violet-500/20 text-violet-200' : 'text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              {isAdmin && (
+                <button
+                  onClick={() => { setState('admin'); setShowMobileMenu(false); window.scrollTo({ top: 0 }); }}
+                  className="px-3 py-2.5 rounded-lg text-sm text-left text-purple-300 hover:bg-purple-500/10 transition-colors"
+                >
+                  Admin
+                </button>
+              )}
+            </div>
+          </nav>
+        )}
       </header>
 
       {/* Hero */}

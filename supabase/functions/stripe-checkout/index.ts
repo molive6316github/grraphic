@@ -11,6 +11,37 @@ const stripe = new Stripe(stripeSecret, {
   },
 });
 
+// If the price the app sends doesn't exist in this Stripe account (test vs
+// live mode, or a rebuilt account), fall back to a price identified by a
+// stable lookup key - creating the product + price on first use.
+const PRO_LOOKUP_KEY = 'grraphic_pro_monthly';
+
+async function resolveSubscriptionPrice(requestedPriceId: string): Promise<string> {
+  try {
+    const price = await stripe.prices.retrieve(requestedPriceId);
+    if (price.active) return price.id;
+  } catch {
+    console.warn(`Price ${requestedPriceId} not found in this Stripe account; falling back to lookup key`);
+  }
+
+  const existing = await stripe.prices.list({ lookup_keys: [PRO_LOOKUP_KEY], active: true, limit: 1 });
+  if (existing.data.length > 0) return existing.data[0].id;
+
+  const product = await stripe.products.create({
+    name: 'Grraphic Pro',
+    description: 'Unlimited large file uploads, AI improvement ideas, and priority support',
+  });
+  const price = await stripe.prices.create({
+    product: product.id,
+    unit_amount: 1500,
+    currency: 'usd',
+    recurring: { interval: 'month' },
+    lookup_key: PRO_LOOKUP_KEY,
+  });
+  console.log(`Created fallback subscription price ${price.id} (${PRO_LOOKUP_KEY})`);
+  return price.id;
+}
+
 function corsResponse(body: string | object | null, status = 200) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -201,13 +232,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    const resolvedPriceId = mode === 'subscription'
+      ? await resolveSubscriptionPrice(price_id)
+      : price_id;
+
     // Build session parameters
     const sessionParams: any = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [
         {
-          price: price_id,
+          price: resolvedPriceId,
           quantity: 1,
         },
       ],

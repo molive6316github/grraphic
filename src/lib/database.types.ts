@@ -843,6 +843,45 @@ export type Database = {
         }
         Relationships: []
       }
+      gradi_agent_schedules: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          id: string
+          instructions: string
+          interval_minutes: number
+          is_active: boolean | null
+          last_run_at: string | null
+          next_run_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          id?: string
+          instructions: string
+          interval_minutes: number
+          is_active?: boolean | null
+          last_run_at?: string | null
+          next_run_at?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          id?: string
+          instructions?: string
+          interval_minutes?: number
+          is_active?: boolean | null
+          last_run_at?: string | null
+          next_run_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gradi_agent_tasks: {
         Row: {
           agent_id: string
@@ -854,6 +893,8 @@ export type Database = {
           result: string | null
           started_at: string | null
           status: string
+          steps: Json | null
+          team_id: string | null
           title: string
           user_id: string
         }
@@ -867,6 +908,8 @@ export type Database = {
           result?: string | null
           started_at?: string | null
           status?: string
+          steps?: Json | null
+          team_id?: string | null
           title: string
           user_id: string
         }
@@ -880,6 +923,8 @@ export type Database = {
           result?: string | null
           started_at?: string | null
           status?: string
+          steps?: Json | null
+          team_id?: string | null
           title?: string
           user_id?: string
         }
@@ -907,18 +952,34 @@ export type Database = {
           },
         ]
       }
-      gradi_agents: {
+      gradi_agent_team_members: {
+        Row: {
+          agent_id: string
+          position: number
+          role_hint: string | null
+          team_id: string
+        }
+        Insert: {
+          agent_id: string
+          position?: number
+          role_hint?: string | null
+          team_id: string
+        }
+        Update: {
+          agent_id?: string
+          position?: number
+          role_hint?: string | null
+          team_id?: string
+        }
+        Relationships: []
+      }
+      gradi_agent_teams: {
         Row: {
           created_at: string | null
           description: string | null
           emoji: string | null
           id: string
-          is_active: boolean | null
-          model: string
           name: string
-          system_prompt: string
-          temperature: number
-          updated_at: string | null
           user_id: string
         }
         Insert: {
@@ -926,12 +987,7 @@ export type Database = {
           description?: string | null
           emoji?: string | null
           id?: string
-          is_active?: boolean | null
-          model?: string
           name: string
-          system_prompt: string
-          temperature?: number
-          updated_at?: string | null
           user_id: string
         }
         Update: {
@@ -939,9 +995,61 @@ export type Database = {
           description?: string | null
           emoji?: string | null
           id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gradi_agents: {
+        Row: {
+          can_email: boolean | null
+          can_search: boolean | null
+          can_slack: boolean | null
+          can_use_project: boolean | null
+          created_at: string | null
+          description: string | null
+          emoji: string | null
+          id: string
+          is_active: boolean | null
+          model: string
+          name: string
+          project_id: string | null
+          system_prompt: string
+          temperature: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          can_email?: boolean | null
+          can_search?: boolean | null
+          can_slack?: boolean | null
+          can_use_project?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean | null
+          model?: string
+          name: string
+          project_id?: string | null
+          system_prompt: string
+          temperature?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          can_email?: boolean | null
+          can_search?: boolean | null
+          can_slack?: boolean | null
+          can_use_project?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          id?: string
           is_active?: boolean | null
           model?: string
           name?: string
+          project_id?: string | null
           system_prompt?: string
           temperature?: number
           updated_at?: string | null
@@ -2125,6 +2233,30 @@ export type Database = {
           notifications_enabled?: boolean | null
           theme_preference?: string | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_oauth_connections: {
+        Row: {
+          connected_at: string | null
+          provider: string
+          provider_token: string | null
+          provider_username: string | null
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          provider: string
+          provider_token?: string | null
+          provider_username?: string | null
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          provider?: string
+          provider_token?: string | null
+          provider_username?: string | null
           user_id?: string
         }
         Relationships: []

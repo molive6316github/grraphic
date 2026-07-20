@@ -19,6 +19,19 @@ interface BoxtProps {
 }
 
 const FREE_DESIGN_LIMIT = 5;
+
+// Canva-style canvas presets
+const CANVAS_PRESETS = [
+  { label: 'Landscape 1920×1080', w: 1920, h: 1080 },
+  { label: 'Instagram Post 1080×1080', w: 1080, h: 1080 },
+  { label: 'Instagram Story 1080×1920', w: 1080, h: 1920 },
+  { label: 'YouTube Thumbnail 1280×720', w: 1280, h: 720 },
+  { label: 'X / Twitter Post 1600×900', w: 1600, h: 900 },
+  { label: 'Facebook Cover 1640×924', w: 1640, h: 924 },
+  { label: 'Pinterest Pin 1000×1500', w: 1000, h: 1500 },
+  { label: 'A4 Poster 2480×3508', w: 2480, h: 3508 },
+  { label: 'Business Card 1050×600', w: 1050, h: 600 },
+];
 const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY as string;
 const FLATICON_API_KEY = import.meta.env.VITE_FLATICON_API_KEY as string;
 const FLATICON_WEBHOOK_SECRET = import.meta.env.VITE_FLATICON_WEBHOOK_SECRET as string;
@@ -65,6 +78,7 @@ export function Boxt({ userId }: BoxtProps) {
 
   const [grraphicAnalysis, setGrraphicAnalysis] = useState<any>(null);
   const [grraphicLoading, setGrraphicLoading] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const [history, setHistory] = useState<DesignElement[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -151,6 +165,12 @@ export function Boxt({ userId }: BoxtProps) {
           e.preventDefault();
           deleteSelected();
         }
+      } else if (e.key.startsWith('Arrow') && selectedId) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+        setElements(prev => prev.map(el => el.id === selectedId ? { ...el, x: el.x + dx, y: el.y + dy } : el));
       } else if (e.key === 'Escape') {
         setSelectedId(null);
       } else if (e.key === 'v') {
@@ -310,37 +330,36 @@ export function Boxt({ userId }: BoxtProps) {
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 
     try {
-      const initialPrompt = `You are creating a ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
+      const cw = canvasWidth;
+      const ch = canvasHeight;
+      const cx = Math.round(cw / 2);
+      const initialPrompt = `Design brief: "${userRequest}"
+Canvas: ${cw}x${ch}px. Center x is ${cx}. Keep everything inside a ${Math.round(cw * 0.06)}px margin.
 
-OUTPUT ONLY THESE COMMANDS (one per line, no explanations):
+OUTPUT ONLY COMMANDS, one per line, no explanations. Available commands:
+SET_BACKGROUND(#hex)
+ADD_RECT(x, y, width, height, #fill, none)          // x,y = top-left corner
+ADD_CIRCLE(cx, cy, radius, #fill, none)             // cx,cy = center
+ADD_TEXT(x, y, "text", fontSize, "font", #color, bold, italic)
+SET_OPACITY(index, 0.0-1.0)                          // index = creation order, 0-based, background does NOT count
+ROTATE(index, degrees)
+SEARCH_ICON(keyword, x, y, size)                     // simple noun keywords: rocket, leaf, camera...
 
-SET_BACKGROUND(#hexcolor)
-ADD_RECT(x, y, width, height, #fillColor, none)
-ADD_CIRCLE(x, y, radius, #fillColor, none)
-ADD_TEXT(x, y, "text", fontSize, "fontFamily", #color, true, false)
-SET_OPACITY(elementIndex, 0.0-1.0)
-SEARCH_ICON(keyword, x, y, size)
+ART DIRECTION - follow all of these:
+1. PALETTE: exactly one background tone, ONE dominant accent + ONE secondary accent that fit the brief's mood, plus a near-white or near-black for text. Never more than 4 hues total. No pure #ff0000/#00ff00 primaries.
+2. COMPOSITION: pick ONE - (a) centered hero: headline at x=${cx} around y=${Math.round(ch * 0.42)}, or (b) left-aligned editorial block starting x=${Math.round(cw * 0.09)}. Do not scatter text randomly.
+3. DEPTH: build back-to-front. First 2-4 huge soft shapes (radius ${Math.round(ch * 0.25)}-${Math.round(ch * 0.5)}) bleeding off the edges at opacity 0.08-0.2, then 2-3 mid shapes at 0.2-0.4, then crisp foreground details at full opacity.
+4. TYPE HIERARCHY (sizes scale with canvas height ${ch}):
+   - small caps kicker: ${Math.round(ch * 0.022)}px, letter-spaced feel, accent color
+   - headline: ${Math.round(ch * 0.11)}-${Math.round(ch * 0.16)}px bold, 2-4 words max, text color
+   - subtitle: ${Math.round(ch * 0.032)}px, muted color
+   - keep ${Math.round(ch * 0.02)}px+ vertical gaps between them
+   Fonts: "Impact" or "Arial" bold for headlines, "Georgia" for elegant/serif moods, "Verdana"/"Trebuchet MS" for body.
+5. FINE DETAILS: add 2-3 of - a thin accent divider (ADD_RECT height 4-8), small dots/squares as accents, a rotated shape (ROTATE index 10-20 degrees), a subtle frame line.
+6. ICONS: 1-3 SEARCH_ICON max, sized ${Math.round(ch * 0.08)}-${Math.round(ch * 0.14)}, placed with purpose (above headline or beside subtitle), never overlapping text.
+7. CONTRAST: headline color must strongly contrast the background. Decorative shapes under text stay below 0.25 opacity.
 
-DESIGN GUIDE:
-1. SET_BACKGROUND first (dark: #0f172a, #1a1a2e, #0a0a0a | light: #ffffff, #f8fafc)
-2. Add 3-6 large decorative shapes (circles/rects) with SET_OPACITY after each
-3. Add 2-4 icons using SEARCH_ICON (gamepad, star, rocket, briefcase, heart, etc.)
-4. Add headline text: 120-200px bold, centered around y:400-500
-5. Add subtitle: 40-60px, below headline
-
-EXAMPLE OUTPUT:
-SET_BACKGROUND(#0f172a)
-ADD_CIRCLE(300, 400, 200, #3b82f6, none)
-SET_OPACITY(0, 0.3)
-ADD_CIRCLE(1600, 300, 180, #ec4899, none)
-SET_OPACITY(1, 0.25)
-ADD_RECT(100, 700, 400, 8, #22d3ee, none)
-SET_OPACITY(2, 0.5)
-SEARCH_ICON(star, 960, 200, 120)
-ADD_TEXT(960, 450, "AMAZING DESIGN", 180, "Impact", #ffffff, true, false)
-ADD_TEXT(960, 580, "Professional Quality", 48, "Arial", #94a3b8, false, false)
-
-NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
+Output 18-30 commands now for: "${userRequest}"`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Generating design elements...' }]);
 
@@ -361,15 +380,9 @@ NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '⏳ Rendering design for analysis...' }]);
 
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
+      // Brief pause so async icon fetches land before we inspect the result
+      await new Promise(resolve => setTimeout(resolve, 1200));
       drawCanvas();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const designSnapshot = canvas.toDataURL('image/png');
 
       let currentElements: any[] = [];
       let currentBg = '';
@@ -403,20 +416,24 @@ NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔍 Analyzing design quality...' }]);
 
-      const analysisPrompt = `Rate this design 1-10 and suggest improvements.
-
-Request: "${userRequest}"
-Canvas: ${canvasWidth}x${canvasHeight}, Background: ${currentBg}
-Elements: ${currentElements.length} total
-
+      const analysisPrompt = `You are an art director reviewing a ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
+Background: ${currentBg}
+Elements (index in brackets):
 ${elementDescriptions}
+
+Check hard for these flaws:
+- text outside the canvas or overlapping other text (compare coordinates + font sizes)
+- headline/subtitle too small or too close together
+- more than 4 hues, or accents that clash with the background
+- decorative shapes at full opacity behind text
+- elements clearly off-balance (everything crowded on one side)
 
 Reply with:
 OVERALL_SCORE: X/10
 IMPROVEMENTS:
-- Suggestion 1
-- Suggestion 2
-- Suggestion 3`;
+- concrete fix referencing element indices
+- concrete fix referencing element indices
+- concrete fix referencing element indices`;
 
       const analysis = await callAI(apiKey, analysisPrompt);
 
@@ -426,22 +443,27 @@ IMPROVEMENTS:
       setGradiMessages(prev => [...prev, { role: 'assistant', content: `📊 Design Score: ${score}/10` }]);
       setGradiMessages(prev => [...prev, { role: 'assistant', content: analysis.substring(0, 300) }]);
 
-      if (score < 7) {
+      if (score < 8) {
         setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Enhancing design...' }]);
 
-        const improvementPrompt = `Improve this design. Current score: ${score}/10. Target: 8+
+        const improvementPrompt = `Fix this ${canvasWidth}x${canvasHeight} design. Current score: ${score}/10. Target: 9.
 
-Feedback: ${analysis}
+Art director feedback:
+${analysis}
 
-Current elements:
+Current elements (index in brackets):
 ${elementDescriptions}
 
-Add 5-10 commands to improve:
-- ADD more decorative shapes with SET_OPACITY
-- ADD more SEARCH_ICON for visual interest
-- Enhance text with MODIFY_TEXT for bigger/bolder
+Use these commands to FIX the flaws above - prefer adjusting what exists over piling on more:
+MOVE(index, newX, newY)
+RESIZE(index, newWidth, newHeight)
+MODIFY_TEXT(index, "newText", newSize, #color)
+MODIFY_COLOR(index, #fill, #stroke)
+SET_OPACITY(index, 0.0-1.0)
+DELETE(index)                        // indices shift down after a delete - delete highest index first
+ADD_RECT(x, y, w, h, #fill, none) / ADD_CIRCLE(cx, cy, r, #fill, none) / ADD_TEXT(x, y, "text", size, "font", #color, bold, false)
 
-COMMANDS ONLY, one per line:`;
+Output 4-10 commands, one per line, nothing else:`;
 
         const improvements = await callAI(apiKey, improvementPrompt);
         const improvementActions = parseAgentActions(improvements);
@@ -463,118 +485,38 @@ COMMANDS ONLY, one per line:`;
   };
 
   const callAI = async (groqKey: string, prompt: string): Promise<string> => {
-    const systemPrompt = 'You are a world-class graphic designer who creates stunning, professional designs in ANY style. You analyze each request and choose the perfect aesthetic - whether neon gaming, elegant luxury, corporate professional, or playful colorful. You create complex, multi-layered, beautiful compositions. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
+    const systemPrompt = 'You are a world-class graphic designer with impeccable taste in composition, color, and typography. You follow the design brief precisely and respect every art-direction constraint. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
 
-    // Try Llama 3.3 70B Versatile (best reasoning)
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.95,
-          max_tokens: 4000,
-          top_p: 0.98,
-        }),
-      });
+    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
 
-      if (response.ok) {
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
+    for (const model of models) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.75,
+            max_tokens: 4000,
+            top_p: 0.95,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices[0]?.message?.content;
+          if (content) return content;
+        }
+      } catch {
+        // fall through to next model
       }
-    } catch {
-      // fall through to next model
-    }
-
-    // Try Llama 3.1 70B Versatile
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-70b-versatile',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.95,
-          max_tokens: 4000,
-          top_p: 0.98,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
-      }
-    } catch {
-      // fall through to next model
-    }
-
-    // Try Mixtral 8x7B
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'mixtral-8x7b-32768',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.95,
-          max_tokens: 4000,
-          top_p: 0.98,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
-      }
-    } catch {
-      // fall through to next model
-    }
-
-    // Final fallback: Try Gemma2 9B
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gemma2-9b-it',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.95,
-          max_tokens: 4000,
-          top_p: 0.98,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
-      }
-    } catch {
-      // fall through
     }
 
     throw new Error('All Groq models failed. Please check your API key and try again.');
@@ -584,7 +526,7 @@ COMMANDS ONLY, one per line:`;
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
       await executeAction(action);
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, 120));
       setGradiMessages(prev => {
         const newMessages = [...prev];
         newMessages[newMessages.length - 1] = {
@@ -1304,21 +1246,43 @@ COMMANDS ONLY, one per line:`;
     addToHistory(newElements);
   };
 
-  const exportDesign = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const exportDesign = async (scale: number = 1, format: 'png' | 'jpeg' = 'png') => {
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvasWidth;
-    tempCanvas.height = canvasHeight;
+    tempCanvas.width = canvasWidth * scale;
+    tempCanvas.height = canvasHeight * scale;
     const ctx = tempCanvas.getContext('2d');
     if (!ctx) return;
+    ctx.scale(scale, scale);
 
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
+    // Preload every image (the cache usually has them already)
+    const loadImage = (url: string): Promise<HTMLImageElement | null> => {
+      const cached = imageCache.current.get(url);
+      if (cached && cached.complete) return Promise.resolve(cached);
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => { imageCache.current.set(url, img); resolve(img); };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    };
+    const imageUrls = elements.filter(el => el.type === 'image' && el.imageUrl).map(el => el.imageUrl!);
+    const loaded = new Map<string, HTMLImageElement | null>();
+    await Promise.all(imageUrls.map(async url => loaded.set(url, await loadImage(url))));
+
     elements.forEach(element => {
       ctx.save();
       ctx.globalAlpha = element.opacity || 1;
+      if (element.rotation) {
+        const cx = element.x + element.width / 2;
+        const cy = element.y + element.height / 2;
+        ctx.translate(cx, cy);
+        ctx.rotate((element.rotation * Math.PI) / 180);
+        ctx.translate(-cx, -cy);
+      }
 
       if (element.type === 'rect') {
         ctx.fillStyle = element.fill || fillColor;
@@ -1346,22 +1310,30 @@ COMMANDS ONLY, one per line:`;
         ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
         ctx.fillText(element.text || 'Text', element.x, element.y + (element.fontSize || 24));
       } else if (element.type === 'image' && element.imageUrl) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = element.imageUrl;
-        try {
-          ctx.drawImage(img, element.x, element.y, element.width, element.height);
-        } catch (e) {}
+        const img = loaded.get(element.imageUrl);
+        if (img) {
+          try { ctx.drawImage(img, element.x, element.y, element.width, element.height); } catch { /* tainted */ }
+        }
       }
 
       ctx.restore();
     });
 
-    const url = tempCanvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${designTitle}.png`;
-    a.click();
+    if (format === 'jpeg') {
+      // JPEG has no alpha - the background fill above covers the canvas
+      const url = tempCanvas.toDataURL('image/jpeg', 0.92);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${designTitle}.jpg`;
+      a.click();
+    } else {
+      const url = tempCanvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${designTitle}${scale > 1 ? `@${scale}x` : ''}.png`;
+      a.click();
+    }
+    setShowExportMenu(false);
   };
 
   const selectedElement = elements.find(el => el.id === selectedId);
@@ -1381,6 +1353,22 @@ COMMANDS ONLY, one per line:`;
             className="px-4 py-2.5 border border-purple-200 dark:border-purple-800 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-inner"
             placeholder="Untitled Masterpiece"
           />
+          <select
+            value={`${canvasWidth}x${canvasHeight}`}
+            onChange={(e) => {
+              const preset = CANVAS_PRESETS.find(p => `${p.w}x${p.h}` === e.target.value);
+              if (preset) { setCanvasWidth(preset.w); setCanvasHeight(preset.h); }
+            }}
+            className="px-3 py-2.5 border border-purple-200 dark:border-purple-800 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-sm text-gray-700 dark:text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
+            title="Canvas size"
+          >
+            {!CANVAS_PRESETS.some(p => p.w === canvasWidth && p.h === canvasHeight) && (
+              <option value={`${canvasWidth}x${canvasHeight}`}>Custom {canvasWidth}×{canvasHeight}</option>
+            )}
+            {CANVAS_PRESETS.map(p => (
+              <option key={p.label} value={`${p.w}x${p.h}`}>{p.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center space-x-3">
@@ -1412,14 +1400,26 @@ COMMANDS ONLY, one per line:`;
             <Save size={18} className="group-hover:rotate-12 transition-transform" />
             <span>Save</span>
           </button>
-          <button onClick={exportDesign} className="group flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl shadow-lg shadow-emerald-600/40 hover:shadow-emerald-600/60 transition-all duration-300 hover:scale-105 font-semibold">
-            <Download size={18} className="group-hover:translate-y-1 transition-transform" />
-            <span>Export</span>
-          </button>
+          <div className="relative">
+            <button onClick={() => setShowExportMenu(!showExportMenu)} className="group flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl shadow-lg shadow-emerald-600/40 hover:shadow-emerald-600/60 transition-all duration-300 hover:scale-105 font-semibold">
+              <Download size={18} className="group-hover:translate-y-1 transition-transform" />
+              <span>Export</span>
+            </button>
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 top-full mt-2 w-44 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-2xl z-50">
+                  <button onClick={() => exportDesign(1, 'png')} className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/30">PNG</button>
+                  <button onClick={() => exportDesign(2, 'png')} className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/30">PNG @2x (hi-res)</button>
+                  <button onClick={() => exportDesign(1, 'jpeg')} className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/30">JPEG</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
         <div className="w-24 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-r border-white/20 dark:border-slate-700/50 flex flex-col items-center py-6 space-y-3 shadow-2xl">
           <button onClick={() => setTool('select')} className={`group relative p-4 rounded-2xl transition-all duration-300 hover:scale-110 ${tool === 'select' ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' : 'bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-md'}`} title="Select">
             <Move size={24} className={tool === 'select' ? 'text-white' : 'text-gray-700 dark:text-gray-300'} />
@@ -1566,7 +1566,7 @@ COMMANDS ONLY, one per line:`;
           )}
         </div>
 
-        <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
+        <div className="w-full lg:w-80 max-h-64 lg:max-h-none bg-white dark:bg-gray-800 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto flex-shrink-0">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Properties</h3>
           <div className="space-y-4">
             <div>
