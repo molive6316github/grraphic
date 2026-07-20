@@ -843,6 +843,45 @@ export type Database = {
         }
         Relationships: []
       }
+      gradi_agent_schedules: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          id: string
+          instructions: string
+          interval_minutes: number
+          is_active: boolean | null
+          last_run_at: string | null
+          next_run_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          id?: string
+          instructions: string
+          interval_minutes: number
+          is_active?: boolean | null
+          last_run_at?: string | null
+          next_run_at?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          id?: string
+          instructions?: string
+          interval_minutes?: number
+          is_active?: boolean | null
+          last_run_at?: string | null
+          next_run_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gradi_agent_tasks: {
         Row: {
           agent_id: string
@@ -854,6 +893,7 @@ export type Database = {
           result: string | null
           started_at: string | null
           status: string
+          steps: Json | null
           title: string
           user_id: string
         }
@@ -867,6 +907,7 @@ export type Database = {
           result?: string | null
           started_at?: string | null
           status?: string
+          steps?: Json | null
           title: string
           user_id: string
         }
@@ -880,6 +921,7 @@ export type Database = {
           result?: string | null
           started_at?: string | null
           status?: string
+          steps?: Json | null
           title?: string
           user_id?: string
         }
@@ -909,6 +951,9 @@ export type Database = {
       }
       gradi_agents: {
         Row: {
+          can_email: boolean | null
+          can_search: boolean | null
+          can_use_project: boolean | null
           created_at: string | null
           description: string | null
           emoji: string | null
@@ -916,12 +961,16 @@ export type Database = {
           is_active: boolean | null
           model: string
           name: string
+          project_id: string | null
           system_prompt: string
           temperature: number
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          can_email?: boolean | null
+          can_search?: boolean | null
+          can_use_project?: boolean | null
           created_at?: string | null
           description?: string | null
           emoji?: string | null
@@ -929,12 +978,16 @@ export type Database = {
           is_active?: boolean | null
           model?: string
           name: string
+          project_id?: string | null
           system_prompt: string
           temperature?: number
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          can_email?: boolean | null
+          can_search?: boolean | null
+          can_use_project?: boolean | null
           created_at?: string | null
           description?: string | null
           emoji?: string | null
@@ -942,6 +995,7 @@ export type Database = {
           is_active?: boolean | null
           model?: string
           name?: string
+          project_id?: string | null
           system_prompt?: string
           temperature?: number
           updated_at?: string | null

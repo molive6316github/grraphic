@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Bot, Plus, Play, Trash2, X, Loader2, CheckCircle2, XCircle,
-  Clock, ChevronRight, Crown, Sparkles, Copy, Check, StopCircle, Pencil
+  Clock, ChevronRight, Crown, Sparkles, Copy, Check, StopCircle, Pencil,
+  Mail, Globe, Folder, CalendarClock, Pause, Search, Wrench
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { runCustomAgent } from '../services/groqService';
 
 interface GradiAgent {
   id: string;
@@ -16,6 +16,17 @@ interface GradiAgent {
   temperature: number;
   is_active: boolean;
   created_at: string;
+  project_id: string | null;
+  can_email: boolean;
+  can_search: boolean;
+  can_use_project: boolean;
+}
+
+interface AgentStep {
+  at: string;
+  tool: string;
+  input: unknown;
+  output: string;
 }
 
 interface AgentTask {
@@ -26,10 +37,24 @@ interface AgentTask {
   status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
   result: string | null;
   error: string | null;
+  steps: AgentStep[] | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
 }
+
+interface AgentSchedule {
+  id: string;
+  agent_id: string;
+  title: string;
+  instructions: string;
+  interval_minutes: number;
+  is_active: boolean;
+  next_run_at: string;
+  last_run_at: string | null;
+}
+
+interface ProjectOption { id: string; name: string }
 
 interface GradiAgentsProps {
   userId: string;
@@ -43,6 +68,14 @@ const MODELS = [
   { id: 'gemma2-9b-it', label: 'Gemma2 9B' },
 ];
 
+const INTERVALS = [
+  { minutes: 60, label: 'Every hour' },
+  { minutes: 360, label: 'Every 6 hours' },
+  { minutes: 720, label: 'Every 12 hours' },
+  { minutes: 1440, label: 'Every day' },
+  { minutes: 10080, label: 'Every week' },
+];
+
 const AGENT_PRESETS = [
   {
     emoji: '🎨',
@@ -51,10 +84,10 @@ const AGENT_PRESETS = [
     system_prompt: 'You are a senior brand director with 20 years of experience. You review brand and design decisions with strong, specific, actionable opinions. Always structure your responses: verdict first, then reasoning, then concrete next steps.',
   },
   {
-    emoji: '📝',
-    name: 'Copy Doctor',
-    description: 'Rewrites and sharpens marketing copy',
-    system_prompt: 'You are an expert copywriter. When given copy, produce three rewrites: one punchy, one professional, one playful. Then explain which you would choose and why. Keep everything tight - no filler words.',
+    emoji: '📰',
+    name: 'Design Scout',
+    description: 'Searches the web for trends and reports back',
+    system_prompt: 'You are a design trend researcher. Use web search to find current, real information before answering. Cite the sources you used with their URLs. Summarize findings as a short, punchy briefing.',
   },
   {
     emoji: '💻',
@@ -64,6 +97,14 @@ const AGENT_PRESETS = [
   },
 ];
 
+const TOOL_ICONS: Record<string, React.ReactNode> = {
+  web_search: <Search size={11} />,
+  fetch_url: <Globe size={11} />,
+  send_email: <Mail size={11} />,
+  list_project_items: <Folder size={11} />,
+  add_project_note: <Folder size={11} />,
+};
+
 const statusStyles: Record<AgentTask['status'], { color: string; bg: string; icon: React.ReactNode }> = {
   queued: { color: 'text-gray-300', bg: 'bg-gray-500/15 border-gray-500/30', icon: <Clock size={12} /> },
   running: { color: 'text-blue-300', bg: 'bg-blue-500/15 border-blue-500/30', icon: <Loader2 size={12} className="animate-spin" /> },
@@ -72,29 +113,47 @@ const statusStyles: Record<AgentTask['status'], { color: string; bg: string; ico
   cancelled: { color: 'text-gray-400', bg: 'bg-gray-500/15 border-gray-500/30', icon: <StopCircle size={12} /> },
 };
 
+// Kick the server-side worker (fire and forget). Even if this fails, the
+// pg_cron tick picks the task up within a minute.
+async function pokeWorker() {
+  try {
+    await supabase.functions.invoke('agent-worker', { body: { source: 'app' } });
+  } catch {
+    /* cron will get it */
+  }
+}
+
 export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
   const [agents, setAgents] = useState<GradiAgent[]>([]);
   const [tasks, setTasks] = useState<AgentTask[]>([]);
+  const [schedules, setSchedules] = useState<AgentSchedule[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAgentModal, setShowAgentModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<GradiAgent | null>(null);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskInstructions, setNewTaskInstructions] = useState('');
-  const runningRef = useRef(false);
 
   const selectedAgent = agents.find(a => a.id === selectedAgentId) || null;
   const agentTasks = tasks.filter(t => !selectedAgentId || t.agent_id === selectedAgentId);
+  const agentSchedules = schedules.filter(s => !selectedAgentId || s.agent_id === selectedAgentId);
+  const hasActiveWork = tasks.some(t => t.status === 'queued' || t.status === 'running');
 
   const loadAll = useCallback(async () => {
-    const [{ data: agentData }, { data: taskData }] = await Promise.all([
+    const [{ data: agentData }, { data: taskData }, { data: scheduleData }, { data: projectData }] = await Promise.all([
       supabase.from('gradi_agents').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
       supabase.from('gradi_agent_tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('gradi_agent_schedules').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
+      supabase.from('projects').select('id, name').order('created_at', { ascending: false }),
     ]);
     setAgents((agentData || []) as unknown as GradiAgent[]);
     setTasks((taskData || []) as unknown as AgentTask[]);
+    setSchedules((scheduleData || []) as unknown as AgentSchedule[]);
+    setProjects((projectData || []) as ProjectOption[]);
     setLoading(false);
     if (agentData && agentData.length > 0 && !selectedAgentId) {
       setSelectedAgentId(agentData[0].id);
@@ -103,62 +162,20 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Client-side task runner: picks up queued tasks one at a time
-  const runQueue = useCallback(async () => {
-    if (runningRef.current) return;
-    runningRef.current = true;
-
-    try {
-      // Re-read queue state each pass
-      for (;;) {
-        const { data: queued } = await supabase
-          .from('gradi_agent_tasks')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('status', 'queued')
-          .order('created_at', { ascending: true })
-          .limit(1);
-
-        const task = (queued || [])[0] as unknown as AgentTask | undefined;
-        if (!task) break;
-
-        const { data: agentRow } = await supabase
-          .from('gradi_agents')
-          .select('*')
-          .eq('id', task.agent_id)
-          .maybeSingle();
-        const agent = agentRow as unknown as GradiAgent | null;
-
-        await supabase.from('gradi_agent_tasks')
-          .update({ status: 'running', started_at: new Date().toISOString() })
-          .eq('id', task.id);
-        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'running' } : t));
-
-        try {
-          if (!agent) throw new Error('Agent no longer exists');
-          const result = await runCustomAgent(
-            agent.system_prompt,
-            `Task: ${task.title}\n\n${task.instructions}`,
-            { model: agent.model, temperature: Number(agent.temperature) }
-          );
-          await supabase.from('gradi_agent_tasks')
-            .update({ status: 'completed', result, completed_at: new Date().toISOString() })
-            .eq('id', task.id);
-          setTasks(prev => prev.map(t => t.id === task.id
-            ? { ...t, status: 'completed', result, completed_at: new Date().toISOString() } : t));
-        } catch (err) {
-          const message = err instanceof Error ? err.message : 'Unknown error';
-          await supabase.from('gradi_agent_tasks')
-            .update({ status: 'failed', error: message, completed_at: new Date().toISOString() })
-            .eq('id', task.id);
-          setTasks(prev => prev.map(t => t.id === task.id
-            ? { ...t, status: 'failed', error: message } : t));
-        }
-      }
-    } finally {
-      runningRef.current = false;
-    }
-  }, [userId]);
+  // Live-poll task state while the server works the queue
+  useEffect(() => {
+    if (!hasActiveWork) return;
+    const timer = setInterval(async () => {
+      const { data } = await supabase
+        .from('gradi_agent_tasks')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (data) setTasks(data as unknown as AgentTask[]);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [hasActiveWork, userId]);
 
   const queueTask = async () => {
     if (!selectedAgent || !newTaskTitle.trim() || !newTaskInstructions.trim()) return;
@@ -177,7 +194,7 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
       setTasks(prev => [data as unknown as AgentTask, ...prev]);
       setNewTaskTitle('');
       setNewTaskInstructions('');
-      runQueue();
+      pokeWorker();
     }
   };
 
@@ -195,11 +212,23 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
   };
 
   const deleteAgent = async (agentId: string) => {
-    if (!confirm('Delete this agent and all its tasks?')) return;
+    if (!confirm('Delete this agent, its tasks, and its schedules?')) return;
     await supabase.from('gradi_agents').delete().eq('id', agentId);
     setAgents(prev => prev.filter(a => a.id !== agentId));
     setTasks(prev => prev.filter(t => t.agent_id !== agentId));
+    setSchedules(prev => prev.filter(s => s.agent_id !== agentId));
     if (selectedAgentId === agentId) setSelectedAgentId(null);
+  };
+
+  const toggleSchedule = async (schedule: AgentSchedule) => {
+    const next = !schedule.is_active;
+    setSchedules(prev => prev.map(s => s.id === schedule.id ? { ...s, is_active: next } : s));
+    await supabase.from('gradi_agent_schedules').update({ is_active: next }).eq('id', schedule.id);
+  };
+
+  const deleteSchedule = async (scheduleId: string) => {
+    await supabase.from('gradi_agent_schedules').delete().eq('id', scheduleId);
+    setSchedules(prev => prev.filter(s => s.id !== scheduleId));
   };
 
   const copyResult = async (taskId: string, text: string) => {
@@ -217,8 +246,8 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
           </div>
           <h2 className="font-display text-2xl font-bold text-white mb-2">Custom Gradi Agents</h2>
           <p className="text-gray-400 mb-6 leading-relaxed">
-            Build your own agents with custom instructions and queue tasks for them to run —
-            a brand critic, a copy doctor, a code reviewer, anything you can describe.
+            Build agents that run 24/7 on our servers — they can search the web, email you
+            reports, work inside your projects, and run on a schedule while you sleep.
           </p>
           <button
             onClick={onUpgrade}
@@ -325,30 +354,67 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                 <span className="text-2xl">{selectedAgent.emoji}</span>
                 <div className="min-w-0">
                   <h2 className="font-display font-semibold text-white truncate">{selectedAgent.name}</h2>
-                  <p className="text-xs text-gray-500 font-mono truncate">{selectedAgent.model} · temp {Number(selectedAgent.temperature).toFixed(1)}</p>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-500 font-mono">
+                    <span className="truncate">{selectedAgent.model}</span>
+                    {selectedAgent.can_search !== false && <span className="inline-flex items-center gap-0.5 text-sky-300/80"><Search size={10} />web</span>}
+                    {selectedAgent.can_email && <span className="inline-flex items-center gap-0.5 text-emerald-300/80"><Mail size={10} />email</span>}
+                    {selectedAgent.project_id && <span className="inline-flex items-center gap-0.5 text-violet-300/80"><Folder size={10} />{projects.find(p => p.id === selectedAgent.project_id)?.name || 'project'}</span>}
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={() => deleteAgent(selectedAgent.id)}
-                className="p-2 text-gray-500 hover:text-red-400 transition-colors"
-                title="Delete agent"
-              >
-                <Trash2 size={16} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowScheduleModal(true)}
+                  className="p-2 text-gray-400 hover:text-violet-300 transition-colors"
+                  title="Add schedule"
+                >
+                  <CalendarClock size={16} />
+                </button>
+                <button
+                  onClick={() => deleteAgent(selectedAgent.id)}
+                  className="p-2 text-gray-500 hover:text-red-400 transition-colors"
+                  title="Delete agent"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
+
+            {/* Schedules strip */}
+            {agentSchedules.length > 0 && (
+              <div className="px-4 py-2.5 border-b border-white/[0.07] bg-white/[0.02] flex flex-wrap gap-2">
+                {agentSchedules.map(s => (
+                  <div key={s.id} className={`inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1 rounded-lg border text-xs ${
+                    s.is_active ? 'bg-violet-500/10 border-violet-500/30 text-violet-200' : 'bg-white/[0.04] border-white/[0.08] text-gray-500'
+                  }`}>
+                    <CalendarClock size={11} />
+                    <span className="truncate max-w-[160px]">{s.title}</span>
+                    <span className="font-mono text-[10px] opacity-70">
+                      {INTERVALS.find(i => i.minutes === s.interval_minutes)?.label.replace('Every ', '/') || `/${s.interval_minutes}m`}
+                    </span>
+                    <button onClick={() => toggleSchedule(s)} className="p-0.5 hover:text-white" title={s.is_active ? 'Pause' : 'Resume'}>
+                      {s.is_active ? <Pause size={11} /> : <Play size={11} />}
+                    </button>
+                    <button onClick={() => deleteSchedule(s.id)} className="p-0.5 hover:text-red-400" title="Delete schedule">
+                      <X size={11} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* New task composer */}
             <div className="p-4 border-b border-white/[0.07] bg-white/[0.02]">
               <input
                 value={newTaskTitle}
                 onChange={e => setNewTaskTitle(e.target.value)}
-                placeholder="Task title — e.g. Review my pricing page copy"
+                placeholder="Task title — e.g. Research pricing page trends"
                 className="w-full mb-2 px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-violet-500/50"
               />
               <textarea
                 value={newTaskInstructions}
                 onChange={e => setNewTaskInstructions(e.target.value)}
-                placeholder="Paste the content or describe exactly what the agent should do…"
+                placeholder="Describe exactly what the agent should do. It runs on our servers — you can close the tab."
                 rows={3}
                 className="w-full mb-2 px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-violet-500/50 resize-none"
               />
@@ -359,7 +425,7 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-violet-500/20 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:translate-y-0"
                 >
                   <Play size={14} />
-                  Queue task
+                  Run task
                 </button>
               </div>
             </div>
@@ -368,12 +434,14 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {agentTasks.length === 0 && (
                 <div className="text-center py-10 text-gray-500 text-sm">
-                  No tasks yet. Queue one above — the agent runs them in order.
+                  No tasks yet. Run one above, or add a schedule with the calendar button —
+                  scheduled tasks run 24/7 even when you're offline.
                 </div>
               )}
               {agentTasks.map(task => {
                 const style = statusStyles[task.status];
                 const expanded = expandedTaskId === task.id;
+                const steps = task.steps || [];
                 return (
                   <div key={task.id} className="rounded-xl bg-white/[0.03] border border-white/[0.07] overflow-hidden">
                     <button
@@ -385,6 +453,11 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                         {task.status}
                       </span>
                       <span className="flex-1 text-sm text-white truncate">{task.title}</span>
+                      {steps.length > 0 && (
+                        <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-gray-500">
+                          <Wrench size={10} />{steps.length}
+                        </span>
+                      )}
                       <span className="text-[11px] text-gray-500 font-mono hidden sm:block">
                         {new Date(task.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -396,6 +469,26 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                           <div className="font-mono text-[10px] tracking-widest text-violet-300/80 uppercase mb-1">Instructions</div>
                           <p className="text-sm text-gray-300 whitespace-pre-wrap">{task.instructions}</p>
                         </div>
+                        {steps.length > 0 && (
+                          <div>
+                            <div className="font-mono text-[10px] tracking-widest text-sky-300/80 uppercase mb-1.5">Steps</div>
+                            <div className="space-y-1.5">
+                              {steps.map((step, i) => (
+                                <div key={i} className="flex items-start gap-2 text-xs">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/25 text-sky-300 font-mono flex-shrink-0">
+                                    {TOOL_ICONS[step.tool] || <Wrench size={11} />}
+                                    {step.tool}
+                                  </span>
+                                  <span className="text-gray-500 truncate pt-0.5">
+                                    {typeof step.input === 'object' && step.input !== null
+                                      ? Object.values(step.input as Record<string, unknown>).map(String).join(' · ').slice(0, 120)
+                                      : String(step.input ?? '')}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         {task.result && (
                           <div>
                             <div className="flex items-center justify-between mb-1">
@@ -455,6 +548,7 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
         <AgentModal
           userId={userId}
           agent={editingAgent}
+          projects={projects}
           onClose={() => setShowAgentModal(false)}
           onSaved={(agent) => {
             setAgents(prev => {
@@ -466,13 +560,26 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
           }}
         />
       )}
+
+      {showScheduleModal && selectedAgent && (
+        <ScheduleModal
+          userId={userId}
+          agent={selectedAgent}
+          onClose={() => setShowScheduleModal(false)}
+          onSaved={(schedule) => {
+            setSchedules(prev => [...prev, schedule]);
+            setShowScheduleModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function AgentModal({ userId, agent, onClose, onSaved }: {
+function AgentModal({ userId, agent, projects, onClose, onSaved }: {
   userId: string;
   agent: GradiAgent | null;
+  projects: ProjectOption[];
   onClose: () => void;
   onSaved: (agent: GradiAgent) => void;
 }) {
@@ -482,6 +589,9 @@ function AgentModal({ userId, agent, onClose, onSaved }: {
   const [systemPrompt, setSystemPrompt] = useState(agent?.system_prompt || '');
   const [model, setModel] = useState(agent?.model || 'llama-3.3-70b-versatile');
   const [temperature, setTemperature] = useState(agent?.temperature ?? 0.7);
+  const [projectId, setProjectId] = useState<string>(agent?.project_id || '');
+  const [canEmail, setCanEmail] = useState(agent?.can_email ?? false);
+  const [canSearch, setCanSearch] = useState(agent?.can_search ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -497,6 +607,10 @@ function AgentModal({ userId, agent, onClose, onSaved }: {
       system_prompt: systemPrompt.trim(),
       model,
       temperature,
+      project_id: projectId || null,
+      can_email: canEmail,
+      can_search: canSearch,
+      can_use_project: true,
     };
 
     const query = agent
@@ -539,7 +653,7 @@ function AgentModal({ userId, agent, onClose, onSaved }: {
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. Brand Critic"
+                placeholder="e.g. Design Scout"
                 className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-violet-500/50"
               />
             </div>
@@ -559,10 +673,48 @@ function AgentModal({ userId, agent, onClose, onSaved }: {
               value={systemPrompt}
               onChange={e => setSystemPrompt(e.target.value)}
               placeholder="You are… Describe the agent's role, tone, and exactly how it should respond."
-              rows={6}
+              rows={5}
               className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none focus:border-violet-500/50 resize-none"
             />
           </div>
+
+          <div>
+            <label className="block text-xs text-gray-400 mb-2">Abilities</label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] cursor-pointer hover:border-white/[0.15] transition-colors">
+                <input type="checkbox" checked={canSearch} onChange={e => setCanSearch(e.target.checked)} className="accent-violet-500" />
+                <Search size={15} className="text-sky-300" />
+                <div className="flex-1">
+                  <div className="text-sm text-white">Web search & page reading</div>
+                  <div className="text-xs text-gray-500">Search the internet and read pages for current info</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] cursor-pointer hover:border-white/[0.15] transition-colors">
+                <input type="checkbox" checked={canEmail} onChange={e => setCanEmail(e.target.checked)} className="accent-violet-500" />
+                <Mail size={15} className="text-emerald-300" />
+                <div className="flex-1">
+                  <div className="text-sm text-white">Email you</div>
+                  <div className="text-xs text-gray-500">Send reports and alerts to your account email (only yours)</div>
+                </div>
+              </label>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                <Folder size={15} className="text-violet-300 ml-6" />
+                <div className="flex-1">
+                  <div className="text-sm text-white mb-1">Linked project</div>
+                  <select
+                    value={projectId}
+                    onChange={e => setProjectId(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none"
+                  >
+                    <option value="" className="bg-[#12121a]">None</option>
+                    {projects.map(p => <option key={p.id} value={p.id} className="bg-[#12121a]">{p.name}</option>)}
+                  </select>
+                  <div className="text-xs text-gray-500 mt-1">The agent can read this project and save notes into it</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="block text-xs text-gray-400 mb-1">Model</label>
@@ -606,6 +758,97 @@ function AgentModal({ userId, agent, onClose, onSaved }: {
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {agent ? 'Save changes' : 'Create agent'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleModal({ userId, agent, onClose, onSaved }: {
+  userId: string;
+  agent: GradiAgent;
+  onClose: () => void;
+  onSaved: (schedule: AgentSchedule) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [intervalMinutes, setIntervalMinutes] = useState(1440);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    if (!title.trim() || !instructions.trim()) return;
+    setSaving(true);
+    setError(null);
+    const { data, error: dbError } = await supabase
+      .from('gradi_agent_schedules')
+      .insert({
+        agent_id: agent.id,
+        user_id: userId,
+        title: title.trim(),
+        instructions: instructions.trim(),
+        interval_minutes: intervalMinutes,
+      })
+      .select()
+      .single();
+    setSaving(false);
+    if (dbError) {
+      setError(dbError.message.includes('row-level security')
+        ? 'Schedules require an active Pro subscription.'
+        : dbError.message);
+      return;
+    }
+    if (data) onSaved(data as unknown as AgentSchedule);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#12121a] border border-white/[0.08] rounded-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-5 border-b border-white/[0.08]">
+          <h3 className="font-display font-semibold text-white">Schedule for {agent.emoji} {agent.name}</h3>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white"><X size={18} /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-gray-500 -mt-1">
+            Runs on our servers around the clock — the first run happens within a minute of saving.
+          </p>
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="e.g. Morning design trends briefing"
+            className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none focus:border-violet-500/50"
+          />
+          <textarea
+            value={instructions}
+            onChange={e => setInstructions(e.target.value)}
+            placeholder="What should the agent do each time? e.g. Search for today's top design news and email me a 5-bullet digest."
+            rows={4}
+            className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none focus:border-violet-500/50 resize-none"
+          />
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Repeat</label>
+            <select
+              value={intervalMinutes}
+              onChange={e => setIntervalMinutes(parseInt(e.target.value))}
+              className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none"
+            >
+              {INTERVALS.map(i => <option key={i.minutes} value={i.minutes} className="bg-[#12121a]">{i.label}</option>)}
+            </select>
+          </div>
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-300">{error}</div>
+          )}
+          <div className="flex justify-end gap-3">
+            <button onClick={onClose} className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] rounded-lg text-white text-sm transition-colors">Cancel</button>
+            <button
+              onClick={save}
+              disabled={saving || !title.trim() || !instructions.trim()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-40"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <CalendarClock size={14} />}
+              Create schedule
             </button>
           </div>
         </div>
