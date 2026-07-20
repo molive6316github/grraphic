@@ -894,6 +894,7 @@ export type Database = {
           started_at: string | null
           status: string
           steps: Json | null
+          team_id: string | null
           title: string
           user_id: string
         }
@@ -908,6 +909,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           steps?: Json | null
+          team_id?: string | null
           title: string
           user_id: string
         }
@@ -922,6 +924,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           steps?: Json | null
+          team_id?: string | null
           title?: string
           user_id?: string
         }
@@ -949,10 +952,59 @@ export type Database = {
           },
         ]
       }
+      gradi_agent_team_members: {
+        Row: {
+          agent_id: string
+          position: number
+          role_hint: string | null
+          team_id: string
+        }
+        Insert: {
+          agent_id: string
+          position?: number
+          role_hint?: string | null
+          team_id: string
+        }
+        Update: {
+          agent_id?: string
+          position?: number
+          role_hint?: string | null
+          team_id?: string
+        }
+        Relationships: []
+      }
+      gradi_agent_teams: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          emoji: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gradi_agents: {
         Row: {
           can_email: boolean | null
           can_search: boolean | null
+          can_slack: boolean | null
           can_use_project: boolean | null
           created_at: string | null
           description: string | null
@@ -970,6 +1022,7 @@ export type Database = {
         Insert: {
           can_email?: boolean | null
           can_search?: boolean | null
+          can_slack?: boolean | null
           can_use_project?: boolean | null
           created_at?: string | null
           description?: string | null
@@ -987,6 +1040,7 @@ export type Database = {
         Update: {
           can_email?: boolean | null
           can_search?: boolean | null
+          can_slack?: boolean | null
           can_use_project?: boolean | null
           created_at?: string | null
           description?: string | null

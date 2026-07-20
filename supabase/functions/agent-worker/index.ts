@@ -6,10 +6,12 @@
 //   2. the app right after queueing a task, with the user's JWT (instant run)
 //
 // Required function secrets:
-//   WORKER_SECRET   - must match the value in the pg_cron job
-//   GROQ_API_KEY    - server-side Groq key for the agent LLM
-//   RESEND_API_KEY  - only needed for the email tool
-//   TAVILY_API_KEY  - optional, better web search (falls back to DuckDuckGo)
+//   WORKER_SECRET     - must match the value in the pg_cron job
+//   GROQ_API_KEY      - server-side Groq key for the agent LLM
+//   RESEND_API_KEY    - only needed for the email tool
+//   TAVILY_API_KEY    - optional, better web search (falls back to DuckDuckGo)
+//   SLACK_WEBHOOK_URL - optional global fallback for the Slack tool (users
+//                       can connect their own webhook in the app)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 
@@ -71,6 +73,25 @@ async function fetchUrl(url: string): Promise<string> {
   return text.slice(0, 8000);
 }
 
+async function sendSlack(userId: string, text: string): Promise<string> {
+  // Prefer the owner's connected webhook; fall back to the global secret
+  const db = service();
+  const { data: conn } = await db.from('user_oauth_connections')
+    .select('provider_token')
+    .eq('user_id', userId)
+    .eq('provider', 'slack')
+    .maybeSingle();
+  const webhook = conn?.provider_token || Deno.env.get('SLACK_WEBHOOK_URL');
+  if (!webhook) return 'Error: Slack is not connected. The owner can paste a Slack incoming-webhook URL in Gradi Agents settings.';
+
+  const res = await fetch(webhook, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text.slice(0, 3000) }),
+  });
+  return res.ok ? 'Posted to Slack.' : `Slack post failed: ${res.status}`;
+}
+
 async function sendOwnerEmail(ownerEmail: string, subject: string, bodyHtml: string): Promise<string> {
   const key = Deno.env.get('RESEND_API_KEY');
   if (!key) return 'Error: email is not configured on the server (RESEND_API_KEY missing).';
@@ -94,8 +115,9 @@ interface AgentRow {
   id: string; user_id: string; name: string; system_prompt: string; model: string;
   temperature: number; project_id: string | null;
   can_email: boolean | null; can_search: boolean | null; can_use_project: boolean | null;
+  can_slack: boolean | null;
 }
-interface TaskRow { id: string; agent_id: string; user_id: string; title: string; instructions: string; steps: Step[] | null }
+interface TaskRow { id: string; agent_id: string; user_id: string; title: string; instructions: string; steps: Step[] | null; team_id: string | null }
 
 function buildTools(agent: AgentRow) {
   const tools: Record<string, unknown>[] = [];
@@ -113,6 +135,20 @@ function buildTools(agent: AgentRow) {
         name: 'fetch_url',
         description: 'Fetch a web page and return its readable text content (truncated).',
         parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] },
+      },
+    });
+  }
+  if (agent.can_slack !== false) {
+    tools.push({
+      type: 'function',
+      function: {
+        name: 'send_slack',
+        description: "Post a short message to the owner's Slack channel. Use for alerts, updates, and reports.",
+        parameters: {
+          type: 'object',
+          properties: { text: { type: 'string', description: 'Plain text message (Slack mrkdwn allowed)' } },
+          required: ['text'],
+        },
       },
     });
   }
@@ -161,6 +197,10 @@ async function execTool(name: string, args: Record<string, unknown>, agent: Agen
       return await webSearch(String(args.query ?? ''));
     case 'fetch_url':
       return await fetchUrl(String(args.url ?? ''));
+    case 'send_slack': {
+      if (agent.can_slack === false) return 'Error: this agent is not allowed to post to Slack.';
+      return await sendSlack(agent.user_id, String(args.text ?? ''));
+    }
     case 'send_email': {
       if (!agent.can_email) return 'Error: this agent is not allowed to send email.';
       const { data: owner } = await db.from('users').select('email').eq('id', agent.user_id).maybeSingle();
@@ -198,26 +238,17 @@ async function execTool(name: string, args: Record<string, unknown>, agent: Agen
   }
 }
 
-async function runTask(task: TaskRow, deadline: number): Promise<void> {
-  const db = service();
-  const steps: Step[] = [];
-
-  const recordStep = async (tool: string, input: unknown, output: string) => {
-    steps.push({ at: new Date().toISOString(), tool, input, output: output.slice(0, 500) });
-    await db.from('gradi_agent_tasks').update({ steps }).eq('id', task.id);
-  };
-
-  const fail = (message: string) =>
-    db.from('gradi_agent_tasks')
-      .update({ status: 'failed', error: message, steps, completed_at: new Date().toISOString() })
-      .eq('id', task.id);
-
-  const { data: agentRow } = await db.from('gradi_agents').select('*').eq('id', task.agent_id).maybeSingle();
-  const agent = agentRow as unknown as AgentRow | null;
-  if (!agent) { await fail('Agent no longer exists'); return; }
-
+// Runs one agent's tool-calling loop and returns its final answer.
+// Throws on any failure so callers decide how to mark the task.
+async function runAgentLoop(
+  agent: AgentRow,
+  task: TaskRow,
+  userContent: string,
+  recordStep: (tool: string, input: unknown, output: string) => Promise<void>,
+  deadline: number,
+): Promise<string> {
   const groqKey = Deno.env.get('GROQ_API_KEY');
-  if (!groqKey) { await fail('GROQ_API_KEY is not configured on the agent-worker function'); return; }
+  if (!groqKey) throw new Error('GROQ_API_KEY is not configured on the agent-worker function');
 
   const tools = buildTools(agent);
   const messages: Record<string, unknown>[] = [
@@ -225,57 +256,108 @@ async function runTask(task: TaskRow, deadline: number): Promise<void> {
       role: 'system',
       content: `${agent.system_prompt}\n\nYou are running as an autonomous background agent. Use your tools when they help. When you are done, reply with your final result as plain text/markdown - it will be saved for the owner.`,
     },
-    { role: 'user', content: `Task: ${task.title}\n\n${task.instructions}` },
+    { role: 'user', content: userContent },
   ];
 
-  try {
-    for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-      if (Date.now() > deadline) { await fail('Ran out of time budget; task requeued work may be incomplete'); return; }
+  for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+    if (Date.now() > deadline) throw new Error('Ran out of time budget; work may be incomplete');
 
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: agent.model || 'llama-3.3-70b-versatile',
-          messages,
-          temperature: Number(agent.temperature ?? 0.7),
-          max_tokens: 4000,
-          ...(tools.length > 0 && round < MAX_TOOL_ROUNDS ? { tools, tool_choice: 'auto' } : {}),
-        }),
-      });
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: agent.model || 'llama-3.3-70b-versatile',
+        messages,
+        temperature: Number(agent.temperature ?? 0.7),
+        max_tokens: 4000,
+        ...(tools.length > 0 && round < MAX_TOOL_ROUNDS ? { tools, tool_choice: 'auto' } : {}),
+      }),
+    });
 
-      if (!res.ok) { await fail(`Groq API error ${res.status}: ${(await res.text()).slice(0, 300)}`); return; }
+    if (!res.ok) throw new Error(`Groq API error ${res.status}: ${(await res.text()).slice(0, 300)}`);
 
-      const data = await res.json();
-      const msg = data.choices?.[0]?.message;
-      if (!msg) { await fail('Empty model response'); return; }
+    const data = await res.json();
+    const msg = data.choices?.[0]?.message;
+    if (!msg) throw new Error('Empty model response');
 
-      const toolCalls = msg.tool_calls as { id: string; function: { name: string; arguments: string } }[] | undefined;
+    const toolCalls = msg.tool_calls as { id: string; function: { name: string; arguments: string } }[] | undefined;
 
-      if (toolCalls && toolCalls.length > 0) {
-        messages.push(msg);
-        for (const call of toolCalls) {
-          let args: Record<string, unknown> = {};
-          try { args = JSON.parse(call.function.arguments || '{}'); } catch { /* keep empty */ }
-          const output = await execTool(call.function.name, args, agent, task);
-          await recordStep(call.function.name, args, output);
-          messages.push({ role: 'tool', tool_call_id: call.id, content: output });
-        }
-        continue;
+    if (toolCalls && toolCalls.length > 0) {
+      messages.push(msg);
+      for (const call of toolCalls) {
+        let args: Record<string, unknown> = {};
+        try { args = JSON.parse(call.function.arguments || '{}'); } catch { /* keep empty */ }
+        const output = await execTool(call.function.name, args, agent, task);
+        await recordStep(call.function.name, args, output);
+        messages.push({ role: 'tool', tool_call_id: call.id, content: output });
       }
-
-      // Final answer
-      await db.from('gradi_agent_tasks')
-        .update({
-          status: 'completed',
-          result: String(msg.content ?? '').trim() || '(empty result)',
-          steps,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', task.id);
-      return;
+      continue;
     }
-    await fail('Exceeded maximum tool rounds without a final answer');
+
+    return String(msg.content ?? '').trim() || '(empty result)';
+  }
+  throw new Error('Exceeded maximum tool rounds without a final answer');
+}
+
+function makeTaskHelpers(taskId: string) {
+  const db = service();
+  const steps: Step[] = [];
+  const recordStep = async (tool: string, input: unknown, output: string) => {
+    steps.push({ at: new Date().toISOString(), tool, input, output: output.slice(0, 500) });
+    await db.from('gradi_agent_tasks').update({ steps }).eq('id', taskId);
+  };
+  const fail = (message: string) =>
+    db.from('gradi_agent_tasks')
+      .update({ status: 'failed', error: message, steps, completed_at: new Date().toISOString() })
+      .eq('id', taskId);
+  const complete = (result: string) =>
+    db.from('gradi_agent_tasks')
+      .update({ status: 'completed', result, steps, completed_at: new Date().toISOString() })
+      .eq('id', taskId);
+  return { db, steps, recordStep, fail, complete };
+}
+
+async function runTask(task: TaskRow, deadline: number): Promise<void> {
+  const { db, recordStep, fail, complete } = makeTaskHelpers(task.id);
+
+  const { data: agentRow } = await db.from('gradi_agents').select('*').eq('id', task.agent_id).maybeSingle();
+  const agent = agentRow as unknown as AgentRow | null;
+  if (!agent) { await fail('Agent no longer exists'); return; }
+
+  try {
+    const result = await runAgentLoop(agent, task, `Task: ${task.title}\n\n${task.instructions}`, recordStep, deadline);
+    await complete(result);
+  } catch (err) {
+    await fail(err instanceof Error ? err.message : 'Unknown worker error');
+  }
+}
+
+// Team tasks run as a relay: each member sees the task plus everything the
+// previous members produced, and contributes with its own persona + tools.
+async function runTeamTask(task: TaskRow, deadline: number): Promise<void> {
+  const { db, recordStep, fail, complete } = makeTaskHelpers(task.id);
+
+  const { data: memberRows } = await db.from('gradi_agent_team_members')
+    .select('position, role_hint, gradi_agents(*)')
+    .eq('team_id', task.team_id)
+    .order('position');
+
+  const members = (memberRows || []).filter(m => m.gradi_agents);
+  if (members.length === 0) { await fail('This team has no member agents'); return; }
+
+  try {
+    let relay = '';
+    for (const m of members) {
+      const agent = m.gradi_agents as unknown as AgentRow;
+      const content = `Team task: ${task.title}\n\n${task.instructions}` +
+        (m.role_hint ? `\n\nYour role in this team: ${m.role_hint}` : '') +
+        (relay ? `\n\nWork so far from your teammates:${relay}` : '\n\nYou are the first teammate to work on this.') +
+        `\n\nContribute your part now.`;
+      const out = await runAgentLoop(agent, task, content, recordStep, deadline);
+      await recordStep('agent_result', { agent: agent.name }, out);
+      relay += `\n\n### ${agent.name}\n${out}`;
+    }
+    await complete(relay.trim());
   } catch (err) {
     await fail(err instanceof Error ? err.message : 'Unknown worker error');
   }
@@ -333,7 +415,11 @@ Deno.serve(async (req: Request) => {
     const { data: claimed } = await db.rpc('claim_next_agent_task');
     const task = (Array.isArray(claimed) ? claimed[0] : claimed) as TaskRow | undefined;
     if (!task) break;
-    await runTask(task, deadline);
+    if (task.team_id) {
+      await runTeamTask(task, deadline);
+    } else {
+      await runTask(task, deadline);
+    }
     processed++;
   }
 

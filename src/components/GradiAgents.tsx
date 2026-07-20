@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Bot, Plus, Play, Trash2, X, Loader2, CheckCircle2, XCircle,
   Clock, ChevronRight, Crown, Sparkles, Copy, Check, StopCircle, Pencil,
-  Mail, Globe, Folder, CalendarClock, Pause, Search, Wrench
+  Mail, Globe, Folder, CalendarClock, Pause, Search, Wrench, Users, MessageSquare
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getOAuthConnection, removeOAuthConnection } from '../lib/oauthConnections';
 
 interface GradiAgent {
   id: string;
@@ -20,6 +21,21 @@ interface GradiAgent {
   can_email: boolean;
   can_search: boolean;
   can_use_project: boolean;
+  can_slack: boolean;
+}
+
+interface AgentTeam {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string | null;
+}
+
+interface TeamMemberRow {
+  team_id: string;
+  agent_id: string;
+  position: number;
+  role_hint: string | null;
 }
 
 interface AgentStep {
@@ -32,6 +48,7 @@ interface AgentStep {
 interface AgentTask {
   id: string;
   agent_id: string;
+  team_id: string | null;
   title: string;
   instructions: string;
   status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
@@ -101,8 +118,10 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
   web_search: <Search size={11} />,
   fetch_url: <Globe size={11} />,
   send_email: <Mail size={11} />,
+  send_slack: <MessageSquare size={11} />,
   list_project_items: <Folder size={11} />,
   add_project_note: <Folder size={11} />,
+  agent_result: <Bot size={11} />,
 };
 
 const statusStyles: Record<AgentTask['status'], { color: string; bg: string; icon: React.ReactNode }> = {
@@ -128,32 +147,53 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
   const [tasks, setTasks] = useState<AgentTask[]>([]);
   const [schedules, setSchedules] = useState<AgentSchedule[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [teams, setTeams] = useState<AgentTeam[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<GradiAgent | null>(null);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskInstructions, setNewTaskInstructions] = useState('');
+  const [slackWebhookInput, setSlackWebhookInput] = useState('');
+  const [slackConnected, setSlackConnected] = useState(false);
+  const [slackSaving, setSlackSaving] = useState(false);
 
   const selectedAgent = agents.find(a => a.id === selectedAgentId) || null;
-  const agentTasks = tasks.filter(t => !selectedAgentId || t.agent_id === selectedAgentId);
-  const agentSchedules = schedules.filter(s => !selectedAgentId || s.agent_id === selectedAgentId);
+  const selectedTeam = teams.find(t => t.id === selectedTeamId) || null;
+  const selectedTeamAgents = selectedTeamId
+    ? teamMembers
+        .filter(m => m.team_id === selectedTeamId)
+        .sort((a, b) => a.position - b.position)
+        .map(m => agents.find(a => a.id === m.agent_id))
+        .filter((a): a is GradiAgent => !!a)
+    : [];
+  const agentTasks = tasks.filter(t =>
+    selectedTeamId ? t.team_id === selectedTeamId : (!selectedAgentId || (t.agent_id === selectedAgentId && !t.team_id))
+  );
+  const agentSchedules = schedules.filter(s => !selectedTeamId && (!selectedAgentId || s.agent_id === selectedAgentId));
   const hasActiveWork = tasks.some(t => t.status === 'queued' || t.status === 'running');
 
   const loadAll = useCallback(async () => {
-    const [{ data: agentData }, { data: taskData }, { data: scheduleData }, { data: projectData }] = await Promise.all([
+    const [{ data: agentData }, { data: taskData }, { data: scheduleData }, { data: projectData }, { data: teamData }, { data: memberData }] = await Promise.all([
       supabase.from('gradi_agents').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
       supabase.from('gradi_agent_tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
       supabase.from('gradi_agent_schedules').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
       supabase.from('projects').select('id, name').order('created_at', { ascending: false }),
+      supabase.from('gradi_agent_teams').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
+      supabase.from('gradi_agent_team_members').select('*'),
     ]);
     setAgents((agentData || []) as unknown as GradiAgent[]);
     setTasks((taskData || []) as unknown as AgentTask[]);
     setSchedules((scheduleData || []) as unknown as AgentSchedule[]);
     setProjects((projectData || []) as ProjectOption[]);
+    setTeams((teamData || []) as unknown as AgentTeam[]);
+    setTeamMembers((memberData || []) as unknown as TeamMemberRow[]);
     setLoading(false);
     if (agentData && agentData.length > 0 && !selectedAgentId) {
       setSelectedAgentId(agentData[0].id);
@@ -161,6 +201,33 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
   }, [userId, selectedAgentId]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Slack connection status (stored like other provider connections)
+  useEffect(() => {
+    getOAuthConnection(userId, 'slack').then(conn => {
+      setSlackConnected(!!conn?.provider_token);
+    });
+  }, [userId]);
+
+  const saveSlackWebhook = async () => {
+    const url = slackWebhookInput.trim();
+    if (!/^https:\/\/hooks\.slack\.com\//.test(url)) return;
+    setSlackSaving(true);
+    await supabase.from('user_oauth_connections').upsert({
+      user_id: userId,
+      provider: 'slack',
+      provider_token: url,
+      connected_at: new Date().toISOString(),
+    });
+    setSlackSaving(false);
+    setSlackConnected(true);
+    setSlackWebhookInput('');
+  };
+
+  const disconnectSlack = async () => {
+    await removeOAuthConnection(userId, 'slack');
+    setSlackConnected(false);
+  };
 
   // Live-poll task state while the server works the queue
   useEffect(() => {
@@ -178,11 +245,15 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
   }, [hasActiveWork, userId]);
 
   const queueTask = async () => {
-    if (!selectedAgent || !newTaskTitle.trim() || !newTaskInstructions.trim()) return;
+    if (!newTaskTitle.trim() || !newTaskInstructions.trim()) return;
+    // Team tasks still need an agent_id (NOT NULL) - use the first member
+    const anchorAgent = selectedTeam ? selectedTeamAgents[0] : selectedAgent;
+    if (!anchorAgent) return;
     const { data, error } = await supabase
       .from('gradi_agent_tasks')
       .insert({
-        agent_id: selectedAgent.id,
+        agent_id: anchorAgent.id,
+        team_id: selectedTeam?.id || null,
         user_id: userId,
         title: newTaskTitle.trim(),
         instructions: newTaskInstructions.trim(),
@@ -217,7 +288,16 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
     setAgents(prev => prev.filter(a => a.id !== agentId));
     setTasks(prev => prev.filter(t => t.agent_id !== agentId));
     setSchedules(prev => prev.filter(s => s.agent_id !== agentId));
+    setTeamMembers(prev => prev.filter(m => m.agent_id !== agentId));
     if (selectedAgentId === agentId) setSelectedAgentId(null);
+  };
+
+  const deleteTeam = async (teamId: string) => {
+    if (!confirm('Delete this team? Its agents are kept; team task history is unlinked.')) return;
+    await supabase.from('gradi_agent_teams').delete().eq('id', teamId);
+    setTeams(prev => prev.filter(t => t.id !== teamId));
+    setTeamMembers(prev => prev.filter(m => m.team_id !== teamId));
+    if (selectedTeamId === teamId) setSelectedTeamId(null);
   };
 
   const toggleSchedule = async (schedule: AgentSchedule) => {
@@ -292,9 +372,9 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
           {agents.map(agent => (
             <button
               key={agent.id}
-              onClick={() => setSelectedAgentId(agent.id)}
+              onClick={() => { setSelectedAgentId(agent.id); setSelectedTeamId(null); }}
               className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors group ${
-                selectedAgentId === agent.id
+                selectedAgentId === agent.id && !selectedTeamId
                   ? 'bg-violet-500/15 border border-violet-500/30'
                   : 'hover:bg-white/[0.05] border border-transparent'
               }`}
@@ -342,13 +422,116 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
               <Plus size={14} className="text-gray-500" />
             </button>
           ))}
+
+          {/* Agent teams */}
+          <div className="pt-3 mt-2 border-t border-white/[0.07]">
+            <div className="flex items-center justify-between px-2 pb-1.5">
+              <span className="font-mono text-[10px] tracking-widest text-gray-500 uppercase">Teams</span>
+              <button
+                onClick={() => setShowTeamModal(true)}
+                disabled={agents.length < 2}
+                className="p-1 rounded-md text-gray-400 hover:text-violet-300 disabled:opacity-30 transition-colors"
+                title={agents.length < 2 ? 'Create at least 2 agents first' : 'New team'}
+              >
+                <Plus size={13} />
+              </button>
+            </div>
+            {teams.length === 0 && (
+              <div className="px-3 pb-2 text-xs text-gray-600">
+                Team up agents to work a task as a relay — each builds on the last.
+              </div>
+            )}
+            {teams.map(team => (
+              <button
+                key={team.id}
+                onClick={() => { setSelectedTeamId(team.id); setSelectedAgentId(null); }}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${
+                  selectedTeamId === team.id
+                    ? 'bg-fuchsia-500/15 border border-fuchsia-500/30'
+                    : 'hover:bg-white/[0.05] border border-transparent'
+                }`}
+              >
+                <span className="text-xl">{team.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white truncate">{team.name}</div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {teamMembers.filter(m => m.team_id === team.id).length} agents
+                  </div>
+                </div>
+                <Users size={13} className="text-gray-500" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Slack connection */}
+        <div className="p-3 border-t border-white/[0.07]">
+          {slackConnected ? (
+            <div className="flex items-center gap-2 text-xs">
+              <MessageSquare size={13} className="text-emerald-300" />
+              <span className="text-gray-300 flex-1">Slack connected</span>
+              <button onClick={disconnectSlack} className="text-gray-500 hover:text-red-400 transition-colors">
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1.5">
+                <MessageSquare size={13} />
+                <span>Slack — agents can post to your channel</span>
+              </div>
+              <div className="flex gap-1.5">
+                <input
+                  value={slackWebhookInput}
+                  onChange={e => setSlackWebhookInput(e.target.value)}
+                  placeholder="https://hooks.slack.com/services/…"
+                  className="flex-1 min-w-0 px-2 py-1.5 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-xs placeholder-gray-600 focus:outline-none focus:border-violet-500/50"
+                />
+                <button
+                  onClick={saveSlackWebhook}
+                  disabled={slackSaving || !/^https:\/\/hooks\.slack\.com\//.test(slackWebhookInput.trim())}
+                  className="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-white text-xs font-medium disabled:opacity-40 transition-colors"
+                >
+                  {slackSaving ? '…' : 'Save'}
+                </button>
+              </div>
+              <div className="text-[10px] text-gray-600 mt-1">
+                Slack → Apps → Incoming Webhooks → paste the URL here
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Task console */}
       <div className="flex-1 flex flex-col min-w-0">
-        {selectedAgent ? (
+        {(selectedAgent || selectedTeam) ? (
           <>
+            {selectedTeam ? (
+              <div className="p-4 border-b border-white/[0.07] flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-2xl">{selectedTeam.emoji}</span>
+                  <div className="min-w-0">
+                    <h2 className="font-display font-semibold text-white truncate">{selectedTeam.name}</h2>
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-mono flex-wrap">
+                      {selectedTeamAgents.map((a, i) => (
+                        <span key={a.id} className="inline-flex items-center gap-0.5 text-fuchsia-300/80">
+                          {i > 0 && <ChevronRight size={9} className="text-gray-600" />}
+                          {a.emoji} {a.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => deleteTeam(selectedTeam.id)}
+                  className="p-2 text-gray-500 hover:text-red-400 transition-colors"
+                  title="Delete team"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ) : selectedAgent && (
             <div className="p-4 border-b border-white/[0.07] flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <span className="text-2xl">{selectedAgent.emoji}</span>
@@ -357,6 +540,7 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                   <div className="flex items-center gap-2 text-[11px] text-gray-500 font-mono">
                     <span className="truncate">{selectedAgent.model}</span>
                     {selectedAgent.can_search !== false && <span className="inline-flex items-center gap-0.5 text-sky-300/80"><Search size={10} />web</span>}
+                    {selectedAgent.can_slack !== false && slackConnected && <span className="inline-flex items-center gap-0.5 text-emerald-300/80"><MessageSquare size={10} />slack</span>}
                     {selectedAgent.can_email && <span className="inline-flex items-center gap-0.5 text-emerald-300/80"><Mail size={10} />email</span>}
                     {selectedAgent.project_id && <span className="inline-flex items-center gap-0.5 text-violet-300/80"><Folder size={10} />{projects.find(p => p.id === selectedAgent.project_id)?.name || 'project'}</span>}
                   </div>
@@ -379,6 +563,7 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                 </button>
               </div>
             </div>
+            )}
 
             {/* Schedules strip */}
             {agentSchedules.length > 0 && (
@@ -414,7 +599,9 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
               <textarea
                 value={newTaskInstructions}
                 onChange={e => setNewTaskInstructions(e.target.value)}
-                placeholder="Describe exactly what the agent should do. It runs on our servers — you can close the tab."
+                placeholder={selectedTeam
+                  ? 'Describe the mission. Each agent works in order, building on the previous one — the full relay is saved as the result.'
+                  : 'Describe exactly what the agent should do. It runs on our servers — you can close the tab.'}
                 rows={3}
                 className="w-full mb-2 px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-violet-500/50 resize-none"
               />
@@ -572,6 +759,155 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
           }}
         />
       )}
+
+      {showTeamModal && (
+        <TeamModal
+          userId={userId}
+          agents={agents}
+          onClose={() => setShowTeamModal(false)}
+          onSaved={(team, members) => {
+            setTeams(prev => [...prev, team]);
+            setTeamMembers(prev => [...prev, ...members]);
+            setSelectedTeamId(team.id);
+            setSelectedAgentId(null);
+            setShowTeamModal(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function TeamModal({ userId, agents, onClose, onSaved }: {
+  userId: string;
+  agents: GradiAgent[];
+  onClose: () => void;
+  onSaved: (team: AgentTeam, members: TeamMemberRow[]) => void;
+}) {
+  const [name, setName] = useState('');
+  const [emoji, setEmoji] = useState('🤝');
+  const [description, setDescription] = useState('');
+  // Click order defines relay order
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggleMember = (agentId: string) => {
+    setMemberIds(prev => prev.includes(agentId) ? prev.filter(id => id !== agentId) : [...prev, agentId]);
+  };
+
+  const save = async () => {
+    if (!name.trim() || memberIds.length < 2) return;
+    setSaving(true);
+    setError(null);
+
+    const { data: team, error: teamError } = await supabase
+      .from('gradi_agent_teams')
+      .insert({ user_id: userId, name: name.trim(), emoji, description: description.trim() || null })
+      .select()
+      .single();
+
+    if (teamError || !team) {
+      setSaving(false);
+      setError(teamError?.message || 'Could not create the team.');
+      return;
+    }
+
+    const rows = memberIds.map((agentId, i) => ({ team_id: team.id, agent_id: agentId, position: i }));
+    const { error: memberError } = await supabase.from('gradi_agent_team_members').insert(rows);
+    setSaving(false);
+
+    if (memberError) {
+      setError(memberError.message);
+      return;
+    }
+    onSaved(team as unknown as AgentTeam, rows.map(r => ({ ...r, role_hint: null })));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#12121a] border border-white/[0.08] rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-white/[0.08]">
+          <h3 className="font-display font-semibold text-white">New agent team</h3>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white"><X size={18} /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Emoji</label>
+              <input
+                value={emoji}
+                onChange={e => setEmoji(e.target.value)}
+                className="w-16 px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-center focus:outline-none focus:border-violet-500/50"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">Team name</label>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Launch squad"
+                className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-violet-500/50"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Description</label>
+            <input
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="What does this team handle?"
+              className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-violet-500/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">
+              Members — click in the order they should work (min 2)
+            </label>
+            <div className="space-y-1.5">
+              {agents.map(agent => {
+                const order = memberIds.indexOf(agent.id);
+                return (
+                  <button
+                    key={agent.id}
+                    onClick={() => toggleMember(agent.id)}
+                    className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left border transition-colors ${
+                      order >= 0
+                        ? 'bg-fuchsia-500/10 border-fuchsia-500/30'
+                        : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.15]'
+                    }`}
+                  >
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono flex-shrink-0 ${
+                      order >= 0 ? 'bg-fuchsia-500/30 text-fuchsia-200' : 'bg-white/[0.06] text-gray-500'
+                    }`}>
+                      {order >= 0 ? order + 1 : '·'}
+                    </span>
+                    <span className="text-lg">{agent.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white truncate">{agent.name}</div>
+                      <div className="text-xs text-gray-500 truncate">{agent.description || agent.model}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-300">{error}</div>
+          )}
+          <div className="flex justify-end gap-3">
+            <button onClick={onClose} className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] rounded-lg text-white text-sm transition-colors">Cancel</button>
+            <button
+              onClick={save}
+              disabled={saving || !name.trim() || memberIds.length < 2}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-40"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
+              Create team
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -592,6 +928,7 @@ function AgentModal({ userId, agent, projects, onClose, onSaved }: {
   const [projectId, setProjectId] = useState<string>(agent?.project_id || '');
   const [canEmail, setCanEmail] = useState(agent?.can_email ?? false);
   const [canSearch, setCanSearch] = useState(agent?.can_search ?? true);
+  const [canSlack, setCanSlack] = useState(agent?.can_slack ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -610,6 +947,7 @@ function AgentModal({ userId, agent, projects, onClose, onSaved }: {
       project_id: projectId || null,
       can_email: canEmail,
       can_search: canSearch,
+      can_slack: canSlack,
       can_use_project: true,
     };
 
@@ -695,6 +1033,14 @@ function AgentModal({ userId, agent, projects, onClose, onSaved }: {
                 <div className="flex-1">
                   <div className="text-sm text-white">Email you</div>
                   <div className="text-xs text-gray-500">Send reports and alerts to your account email (only yours)</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] cursor-pointer hover:border-white/[0.15] transition-colors">
+                <input type="checkbox" checked={canSlack} onChange={e => setCanSlack(e.target.checked)} className="accent-violet-500" />
+                <MessageSquare size={15} className="text-emerald-300" />
+                <div className="flex-1">
+                  <div className="text-sm text-white">Post to Slack</div>
+                  <div className="text-xs text-gray-500">Post updates to your connected Slack channel</div>
                 </div>
               </label>
               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]">

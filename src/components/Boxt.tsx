@@ -19,6 +19,19 @@ interface BoxtProps {
 }
 
 const FREE_DESIGN_LIMIT = 5;
+
+// Canva-style canvas presets
+const CANVAS_PRESETS = [
+  { label: 'Landscape 1920×1080', w: 1920, h: 1080 },
+  { label: 'Instagram Post 1080×1080', w: 1080, h: 1080 },
+  { label: 'Instagram Story 1080×1920', w: 1080, h: 1920 },
+  { label: 'YouTube Thumbnail 1280×720', w: 1280, h: 720 },
+  { label: 'X / Twitter Post 1600×900', w: 1600, h: 900 },
+  { label: 'Facebook Cover 1640×924', w: 1640, h: 924 },
+  { label: 'Pinterest Pin 1000×1500', w: 1000, h: 1500 },
+  { label: 'A4 Poster 2480×3508', w: 2480, h: 3508 },
+  { label: 'Business Card 1050×600', w: 1050, h: 600 },
+];
 const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY as string;
 const FLATICON_API_KEY = import.meta.env.VITE_FLATICON_API_KEY as string;
 const FLATICON_WEBHOOK_SECRET = import.meta.env.VITE_FLATICON_WEBHOOK_SECRET as string;
@@ -65,6 +78,7 @@ export function Boxt({ userId }: BoxtProps) {
 
   const [grraphicAnalysis, setGrraphicAnalysis] = useState<any>(null);
   const [grraphicLoading, setGrraphicLoading] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const [history, setHistory] = useState<DesignElement[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -151,6 +165,12 @@ export function Boxt({ userId }: BoxtProps) {
           e.preventDefault();
           deleteSelected();
         }
+      } else if (e.key.startsWith('Arrow') && selectedId) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+        setElements(prev => prev.map(el => el.id === selectedId ? { ...el, x: el.x + dx, y: el.y + dy } : el));
       } else if (e.key === 'Escape') {
         setSelectedId(null);
       } else if (e.key === 'v') {
@@ -1226,21 +1246,43 @@ Output 4-10 commands, one per line, nothing else:`;
     addToHistory(newElements);
   };
 
-  const exportDesign = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const exportDesign = async (scale: number = 1, format: 'png' | 'jpeg' = 'png') => {
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvasWidth;
-    tempCanvas.height = canvasHeight;
+    tempCanvas.width = canvasWidth * scale;
+    tempCanvas.height = canvasHeight * scale;
     const ctx = tempCanvas.getContext('2d');
     if (!ctx) return;
+    ctx.scale(scale, scale);
 
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
+    // Preload every image (the cache usually has them already)
+    const loadImage = (url: string): Promise<HTMLImageElement | null> => {
+      const cached = imageCache.current.get(url);
+      if (cached && cached.complete) return Promise.resolve(cached);
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => { imageCache.current.set(url, img); resolve(img); };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    };
+    const imageUrls = elements.filter(el => el.type === 'image' && el.imageUrl).map(el => el.imageUrl!);
+    const loaded = new Map<string, HTMLImageElement | null>();
+    await Promise.all(imageUrls.map(async url => loaded.set(url, await loadImage(url))));
+
     elements.forEach(element => {
       ctx.save();
       ctx.globalAlpha = element.opacity || 1;
+      if (element.rotation) {
+        const cx = element.x + element.width / 2;
+        const cy = element.y + element.height / 2;
+        ctx.translate(cx, cy);
+        ctx.rotate((element.rotation * Math.PI) / 180);
+        ctx.translate(-cx, -cy);
+      }
 
       if (element.type === 'rect') {
         ctx.fillStyle = element.fill || fillColor;
@@ -1268,22 +1310,30 @@ Output 4-10 commands, one per line, nothing else:`;
         ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
         ctx.fillText(element.text || 'Text', element.x, element.y + (element.fontSize || 24));
       } else if (element.type === 'image' && element.imageUrl) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = element.imageUrl;
-        try {
-          ctx.drawImage(img, element.x, element.y, element.width, element.height);
-        } catch (e) {}
+        const img = loaded.get(element.imageUrl);
+        if (img) {
+          try { ctx.drawImage(img, element.x, element.y, element.width, element.height); } catch { /* tainted */ }
+        }
       }
 
       ctx.restore();
     });
 
-    const url = tempCanvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${designTitle}.png`;
-    a.click();
+    if (format === 'jpeg') {
+      // JPEG has no alpha - the background fill above covers the canvas
+      const url = tempCanvas.toDataURL('image/jpeg', 0.92);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${designTitle}.jpg`;
+      a.click();
+    } else {
+      const url = tempCanvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${designTitle}${scale > 1 ? `@${scale}x` : ''}.png`;
+      a.click();
+    }
+    setShowExportMenu(false);
   };
 
   const selectedElement = elements.find(el => el.id === selectedId);
@@ -1303,6 +1353,22 @@ Output 4-10 commands, one per line, nothing else:`;
             className="px-4 py-2.5 border border-purple-200 dark:border-purple-800 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-inner"
             placeholder="Untitled Masterpiece"
           />
+          <select
+            value={`${canvasWidth}x${canvasHeight}`}
+            onChange={(e) => {
+              const preset = CANVAS_PRESETS.find(p => `${p.w}x${p.h}` === e.target.value);
+              if (preset) { setCanvasWidth(preset.w); setCanvasHeight(preset.h); }
+            }}
+            className="px-3 py-2.5 border border-purple-200 dark:border-purple-800 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-sm text-gray-700 dark:text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
+            title="Canvas size"
+          >
+            {!CANVAS_PRESETS.some(p => p.w === canvasWidth && p.h === canvasHeight) && (
+              <option value={`${canvasWidth}x${canvasHeight}`}>Custom {canvasWidth}×{canvasHeight}</option>
+            )}
+            {CANVAS_PRESETS.map(p => (
+              <option key={p.label} value={`${p.w}x${p.h}`}>{p.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center space-x-3">
@@ -1334,10 +1400,22 @@ Output 4-10 commands, one per line, nothing else:`;
             <Save size={18} className="group-hover:rotate-12 transition-transform" />
             <span>Save</span>
           </button>
-          <button onClick={exportDesign} className="group flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl shadow-lg shadow-emerald-600/40 hover:shadow-emerald-600/60 transition-all duration-300 hover:scale-105 font-semibold">
-            <Download size={18} className="group-hover:translate-y-1 transition-transform" />
-            <span>Export</span>
-          </button>
+          <div className="relative">
+            <button onClick={() => setShowExportMenu(!showExportMenu)} className="group flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl shadow-lg shadow-emerald-600/40 hover:shadow-emerald-600/60 transition-all duration-300 hover:scale-105 font-semibold">
+              <Download size={18} className="group-hover:translate-y-1 transition-transform" />
+              <span>Export</span>
+            </button>
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 top-full mt-2 w-44 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-2xl z-50">
+                  <button onClick={() => exportDesign(1, 'png')} className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/30">PNG</button>
+                  <button onClick={() => exportDesign(2, 'png')} className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/30">PNG @2x (hi-res)</button>
+                  <button onClick={() => exportDesign(1, 'jpeg')} className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/30">JPEG</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
