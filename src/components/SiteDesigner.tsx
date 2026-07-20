@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { getOAuthConnection, removeOAuthConnection, rememberOAuthOrigin } from '../lib/oauthConnections';
 
 // Types
 interface ProjectFile {
@@ -1137,6 +1138,38 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
   const { subscription } = useSubscription(userId);
   const activeFile = files.find(f => f.id === activeFileId);
 
+  // Restore a previously linked GitHub account (saved after OAuth in useAuth)
+  useEffect(() => {
+    if (!userId || !isSupabaseConfigured()) return;
+    let cancelled = false;
+    (async () => {
+      const conn = await getOAuthConnection(userId, 'github');
+      if (cancelled || !conn) return;
+      if (conn.provider_token) {
+        try {
+          const res = await fetch('https://api.github.com/user', {
+            headers: { Authorization: `Bearer ${conn.provider_token}` },
+          });
+          if (res.ok) {
+            const ghUser = await res.json();
+            if (!cancelled) {
+              setGithubConnected(true);
+              setGithubUser(ghUser);
+            }
+            return;
+          }
+          // Token revoked/expired - drop the stale connection
+          if (res.status === 401) await removeOAuthConnection(userId, 'github');
+        } catch { /* network hiccup: fall through to username-only display */ }
+      }
+      if (conn.provider_username && !cancelled) {
+        setGithubConnected(true);
+        setGithubUser({ login: conn.provider_username });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
   // Effects
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -2016,12 +2049,15 @@ RULES:
                 </p>
                 <button
                   onClick={() => {
-                    // Trigger Supabase OAuth for GitHub
+                    // Trigger Supabase OAuth for GitHub. Redirect must be the
+                    // origin (only allow-listed URL); we come back here via
+                    // the saved path, and the token is persisted by useAuth.
                     if (isSupabaseConfigured()) {
+                      rememberOAuthOrigin('/site-designer', 'github');
                       supabase.auth.signInWithOAuth({
                         provider: 'github',
                         options: {
-                          redirectTo: window.location.origin + '/site-designer',
+                          redirectTo: window.location.origin,
                           scopes: 'repo,user'
                         }
                       });
@@ -2044,6 +2080,7 @@ RULES:
                 </div>
                 <button
                   onClick={() => {
+                    if (userId) removeOAuthConnection(userId, 'github');
                     setGithubConnected(false);
                     setGithubUser(null);
                     setShowGithubConnect(false);

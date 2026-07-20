@@ -2183,6 +2183,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_oauth_connections: {
+        Row: {
+          connected_at: string | null
+          provider: string
+          provider_token: string | null
+          provider_username: string | null
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          provider: string
+          provider_token?: string | null
+          provider_username?: string | null
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          provider?: string
+          provider_token?: string | null
+          provider_username?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string | null

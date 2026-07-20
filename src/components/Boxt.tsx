@@ -310,37 +310,36 @@ export function Boxt({ userId }: BoxtProps) {
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 
     try {
-      const initialPrompt = `You are creating a ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
+      const cw = canvasWidth;
+      const ch = canvasHeight;
+      const cx = Math.round(cw / 2);
+      const initialPrompt = `Design brief: "${userRequest}"
+Canvas: ${cw}x${ch}px. Center x is ${cx}. Keep everything inside a ${Math.round(cw * 0.06)}px margin.
 
-OUTPUT ONLY THESE COMMANDS (one per line, no explanations):
+OUTPUT ONLY COMMANDS, one per line, no explanations. Available commands:
+SET_BACKGROUND(#hex)
+ADD_RECT(x, y, width, height, #fill, none)          // x,y = top-left corner
+ADD_CIRCLE(cx, cy, radius, #fill, none)             // cx,cy = center
+ADD_TEXT(x, y, "text", fontSize, "font", #color, bold, italic)
+SET_OPACITY(index, 0.0-1.0)                          // index = creation order, 0-based, background does NOT count
+ROTATE(index, degrees)
+SEARCH_ICON(keyword, x, y, size)                     // simple noun keywords: rocket, leaf, camera...
 
-SET_BACKGROUND(#hexcolor)
-ADD_RECT(x, y, width, height, #fillColor, none)
-ADD_CIRCLE(x, y, radius, #fillColor, none)
-ADD_TEXT(x, y, "text", fontSize, "fontFamily", #color, true, false)
-SET_OPACITY(elementIndex, 0.0-1.0)
-SEARCH_ICON(keyword, x, y, size)
+ART DIRECTION - follow all of these:
+1. PALETTE: exactly one background tone, ONE dominant accent + ONE secondary accent that fit the brief's mood, plus a near-white or near-black for text. Never more than 4 hues total. No pure #ff0000/#00ff00 primaries.
+2. COMPOSITION: pick ONE - (a) centered hero: headline at x=${cx} around y=${Math.round(ch * 0.42)}, or (b) left-aligned editorial block starting x=${Math.round(cw * 0.09)}. Do not scatter text randomly.
+3. DEPTH: build back-to-front. First 2-4 huge soft shapes (radius ${Math.round(ch * 0.25)}-${Math.round(ch * 0.5)}) bleeding off the edges at opacity 0.08-0.2, then 2-3 mid shapes at 0.2-0.4, then crisp foreground details at full opacity.
+4. TYPE HIERARCHY (sizes scale with canvas height ${ch}):
+   - small caps kicker: ${Math.round(ch * 0.022)}px, letter-spaced feel, accent color
+   - headline: ${Math.round(ch * 0.11)}-${Math.round(ch * 0.16)}px bold, 2-4 words max, text color
+   - subtitle: ${Math.round(ch * 0.032)}px, muted color
+   - keep ${Math.round(ch * 0.02)}px+ vertical gaps between them
+   Fonts: "Impact" or "Arial" bold for headlines, "Georgia" for elegant/serif moods, "Verdana"/"Trebuchet MS" for body.
+5. FINE DETAILS: add 2-3 of - a thin accent divider (ADD_RECT height 4-8), small dots/squares as accents, a rotated shape (ROTATE index 10-20 degrees), a subtle frame line.
+6. ICONS: 1-3 SEARCH_ICON max, sized ${Math.round(ch * 0.08)}-${Math.round(ch * 0.14)}, placed with purpose (above headline or beside subtitle), never overlapping text.
+7. CONTRAST: headline color must strongly contrast the background. Decorative shapes under text stay below 0.25 opacity.
 
-DESIGN GUIDE:
-1. SET_BACKGROUND first (dark: #0f172a, #1a1a2e, #0a0a0a | light: #ffffff, #f8fafc)
-2. Add 3-6 large decorative shapes (circles/rects) with SET_OPACITY after each
-3. Add 2-4 icons using SEARCH_ICON (gamepad, star, rocket, briefcase, heart, etc.)
-4. Add headline text: 120-200px bold, centered around y:400-500
-5. Add subtitle: 40-60px, below headline
-
-EXAMPLE OUTPUT:
-SET_BACKGROUND(#0f172a)
-ADD_CIRCLE(300, 400, 200, #3b82f6, none)
-SET_OPACITY(0, 0.3)
-ADD_CIRCLE(1600, 300, 180, #ec4899, none)
-SET_OPACITY(1, 0.25)
-ADD_RECT(100, 700, 400, 8, #22d3ee, none)
-SET_OPACITY(2, 0.5)
-SEARCH_ICON(star, 960, 200, 120)
-ADD_TEXT(960, 450, "AMAZING DESIGN", 180, "Impact", #ffffff, true, false)
-ADD_TEXT(960, 580, "Professional Quality", 48, "Arial", #94a3b8, false, false)
-
-NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
+Output 18-30 commands now for: "${userRequest}"`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '✨ Generating design elements...' }]);
 
@@ -361,15 +360,9 @@ NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '⏳ Rendering design for analysis...' }]);
 
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
+      // Brief pause so async icon fetches land before we inspect the result
+      await new Promise(resolve => setTimeout(resolve, 1200));
       drawCanvas();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const designSnapshot = canvas.toDataURL('image/png');
 
       let currentElements: any[] = [];
       let currentBg = '';
@@ -403,20 +396,24 @@ NOW CREATE 10-20 COMMANDS FOR: "${userRequest}"`;
 
       setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔍 Analyzing design quality...' }]);
 
-      const analysisPrompt = `Rate this design 1-10 and suggest improvements.
-
-Request: "${userRequest}"
-Canvas: ${canvasWidth}x${canvasHeight}, Background: ${currentBg}
-Elements: ${currentElements.length} total
-
+      const analysisPrompt = `You are an art director reviewing a ${canvasWidth}x${canvasHeight} design for: "${userRequest}"
+Background: ${currentBg}
+Elements (index in brackets):
 ${elementDescriptions}
+
+Check hard for these flaws:
+- text outside the canvas or overlapping other text (compare coordinates + font sizes)
+- headline/subtitle too small or too close together
+- more than 4 hues, or accents that clash with the background
+- decorative shapes at full opacity behind text
+- elements clearly off-balance (everything crowded on one side)
 
 Reply with:
 OVERALL_SCORE: X/10
 IMPROVEMENTS:
-- Suggestion 1
-- Suggestion 2
-- Suggestion 3`;
+- concrete fix referencing element indices
+- concrete fix referencing element indices
+- concrete fix referencing element indices`;
 
       const analysis = await callAI(apiKey, analysisPrompt);
 
@@ -426,22 +423,27 @@ IMPROVEMENTS:
       setGradiMessages(prev => [...prev, { role: 'assistant', content: `📊 Design Score: ${score}/10` }]);
       setGradiMessages(prev => [...prev, { role: 'assistant', content: analysis.substring(0, 300) }]);
 
-      if (score < 7) {
+      if (score < 8) {
         setGradiMessages(prev => [...prev, { role: 'assistant', content: '🔧 Enhancing design...' }]);
 
-        const improvementPrompt = `Improve this design. Current score: ${score}/10. Target: 8+
+        const improvementPrompt = `Fix this ${canvasWidth}x${canvasHeight} design. Current score: ${score}/10. Target: 9.
 
-Feedback: ${analysis}
+Art director feedback:
+${analysis}
 
-Current elements:
+Current elements (index in brackets):
 ${elementDescriptions}
 
-Add 5-10 commands to improve:
-- ADD more decorative shapes with SET_OPACITY
-- ADD more SEARCH_ICON for visual interest
-- Enhance text with MODIFY_TEXT for bigger/bolder
+Use these commands to FIX the flaws above - prefer adjusting what exists over piling on more:
+MOVE(index, newX, newY)
+RESIZE(index, newWidth, newHeight)
+MODIFY_TEXT(index, "newText", newSize, #color)
+MODIFY_COLOR(index, #fill, #stroke)
+SET_OPACITY(index, 0.0-1.0)
+DELETE(index)                        // indices shift down after a delete - delete highest index first
+ADD_RECT(x, y, w, h, #fill, none) / ADD_CIRCLE(cx, cy, r, #fill, none) / ADD_TEXT(x, y, "text", size, "font", #color, bold, false)
 
-COMMANDS ONLY, one per line:`;
+Output 4-10 commands, one per line, nothing else:`;
 
         const improvements = await callAI(apiKey, improvementPrompt);
         const improvementActions = parseAgentActions(improvements);
@@ -463,118 +465,38 @@ COMMANDS ONLY, one per line:`;
   };
 
   const callAI = async (groqKey: string, prompt: string): Promise<string> => {
-    const systemPrompt = 'You are a world-class graphic designer who creates stunning, professional designs in ANY style. You analyze each request and choose the perfect aesthetic - whether neon gaming, elegant luxury, corporate professional, or playful colorful. You create complex, multi-layered, beautiful compositions. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
+    const systemPrompt = 'You are a world-class graphic designer with impeccable taste in composition, color, and typography. You follow the design brief precisely and respect every art-direction constraint. Output ONLY valid commands in the exact format specified. NO explanations, NO markdown, NO code blocks. Just commands one per line.';
 
-    // Try Llama 3.3 70B Versatile (best reasoning)
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.95,
-          max_tokens: 4000,
-          top_p: 0.98,
-        }),
-      });
+    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
 
-      if (response.ok) {
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
+    for (const model of models) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.75,
+            max_tokens: 4000,
+            top_p: 0.95,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices[0]?.message?.content;
+          if (content) return content;
+        }
+      } catch {
+        // fall through to next model
       }
-    } catch {
-      // fall through to next model
-    }
-
-    // Try Llama 3.1 70B Versatile
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-70b-versatile',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.95,
-          max_tokens: 4000,
-          top_p: 0.98,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
-      }
-    } catch {
-      // fall through to next model
-    }
-
-    // Try Mixtral 8x7B
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'mixtral-8x7b-32768',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.95,
-          max_tokens: 4000,
-          top_p: 0.98,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
-      }
-    } catch {
-      // fall through to next model
-    }
-
-    // Final fallback: Try Gemma2 9B
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gemma2-9b-it',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.95,
-          max_tokens: 4000,
-          top_p: 0.98,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
-      }
-    } catch {
-      // fall through
     }
 
     throw new Error('All Groq models failed. Please check your API key and try again.');
@@ -584,7 +506,7 @@ COMMANDS ONLY, one per line:`;
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
       await executeAction(action);
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, 120));
       setGradiMessages(prev => {
         const newMessages = [...prev];
         newMessages[newMessages.length - 1] = {

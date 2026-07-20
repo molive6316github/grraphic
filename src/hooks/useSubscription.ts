@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export interface UserSubscription {
@@ -13,15 +13,12 @@ export function useSubscription(userId: string | undefined) {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (userId) {
-      fetchSubscription();
-    }
-  }, [userId]);
-
-  const fetchSubscription = async () => {
+  // Memoized so consumers can safely list it in effect deps - a new
+  // function identity every render caused App's routing effect to re-run
+  // constantly and revert in-app navigation
+  const fetchSubscription = useCallback(async () => {
     if (!userId || !isSupabaseConfigured()) return;
-    
+
     setLoading(true);
     try {
       // The stripe_user_subscriptions view is already scoped to the
@@ -43,7 +40,13 @@ export function useSubscription(userId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchSubscription();
+    }
+  }, [userId, fetchSubscription]);
 
   return {
     subscription,
