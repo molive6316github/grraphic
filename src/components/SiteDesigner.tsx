@@ -17,6 +17,21 @@ import { useSubscription } from '../hooks/useSubscription';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getOAuthConnection, removeOAuthConnection, rememberOAuthOrigin } from '../lib/oauthConnections';
 
+// Keep raw code out of the chat bubble: strip [FILE:] markers, complete
+// fenced blocks, and any still-streaming (unterminated) fence.
+function stripCodeFromChat(text: string): string {
+  return text
+    .replace(/\[FILE:[^\]]*\]/gi, '')
+    .replace(/```[\s\S]*?```/g, '')   // complete blocks
+    .replace(/```[\s\S]*$/g, '')      // an open, still-streaming block
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function slugify(name: string): string {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'site';
+}
+
 // Map file extensions to Monaco language ids
 function monacoLanguage(fileName: string): string {
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
@@ -1135,7 +1150,7 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
   const [projectName, setProjectName] = useState('Untitled Project');
   const [isSaving, setIsSaving] = useState(false);
   const [editorFontSize, setEditorFontSize] = useState(13);
-  const [chatWidth, setChatWidth] = useState(420);
+  const [chatWidth, setChatWidth] = useState(340);
   const [isResizingChat, setIsResizingChat] = useState(false);
   const [previewSplit, setPreviewSplit] = useState(50);
   const [githubConnected, setGithubConnected] = useState(false);
@@ -1146,6 +1161,15 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
   );
   const [collabPeers, setCollabPeers] = useState(1);
   const [collabCopied, setCollabCopied] = useState(false);
+  // Main-area layout: equal split, or one big pane (code / preview)
+  const [mainView, setMainView] = useState<'split' | 'code' | 'preview'>('split');
+  // Deploy
+  const [showDeploy, setShowDeploy] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+  const [deployError, setDeployError] = useState<string | null>(null);
+  const [customDomain, setCustomDomain] = useState('');
+  const [deployCopied, setDeployCopied] = useState(false);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1364,7 +1388,7 @@ export function SiteDesigner({ userId, onBack }: SiteDesignerProps) {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isResizingChat) {
-        const newWidth = Math.max(320, Math.min(600, e.clientX));
+        const newWidth = Math.max(280, Math.min(560, e.clientX));
         setChatWidth(newWidth);
       }
     };
@@ -1632,10 +1656,8 @@ RULES:
         addTerminalOutput(`Updated ${parsedFiles.length} file(s)`);
       }
 
-      const cleanContent = fullContent
-        .replace(/\[FILE:[^\]]+\]\s*```[\s\S]*?```/g, '')
-        .replace(/```[\s\S]*?```/g, '')
-        .trim() || `Updated ${parsedFiles.length} file(s)`;
+      const cleanContent = stripCodeFromChat(fullContent) ||
+        (parsedFiles.length > 0 ? `Updated ${parsedFiles.length} file${parsedFiles.length > 1 ? 's' : ''}.` : 'Done.');
 
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -1678,15 +1700,64 @@ RULES:
     setIsSaving(false);
   };
 
-  const downloadProject = () => {
+  // Inline all CSS/JS into a single self-contained HTML document (used for
+  // both download and deploy)
+  const buildStandaloneHtml = useCallback(() => {
     const htmlFile = files.find(f => f.name.endsWith('.html'));
-    const cssFile = files.find(f => f.name.endsWith('.css'));
-    const jsFile = files.find(f => f.name.endsWith('.js'));
+    const cssFiles = files.filter(f => f.name.endsWith('.css'));
+    const jsFiles = files.filter(f => f.name.endsWith('.js') && !f.name.endsWith('.json'));
 
-    let content = htmlFile?.content || '';
-    if (cssFile) content = content.replace('</head>', `<style>\n${cssFile.content}\n</style>\n</head>`);
-    if (jsFile) content = content.replace('</body>', `<script>\n${jsFile.content}\n</script>\n</body>`);
+    let content = htmlFile?.content || '<!doctype html><html><body></body></html>';
+    if (cssFiles.length) {
+      const style = `<style>\n${cssFiles.map(f => f.content).join('\n')}\n</style>`;
+      content = content.includes('</head>') ? content.replace('</head>', `${style}\n</head>`) : `${style}\n${content}`;
+    }
+    if (jsFiles.length) {
+      const script = `<script>\n${jsFiles.map(f => f.content).join('\n')}\n</script>`;
+      content = content.includes('</body>') ? content.replace('</body>', `${script}\n</body>`) : `${content}\n${script}`;
+    }
+    return content;
+  }, [files]);
 
+  const publishSite = async () => {
+    if (!userId || !isSupabaseConfigured()) { setDeployError('Sign in to deploy.'); return; }
+    setDeploying(true);
+    setDeployError(null);
+    try {
+      const slug = slugify(projectName);
+      const html = buildStandaloneHtml();
+      const domain = customDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || null;
+
+      const { data, error } = await supabase
+        .from('published_sites')
+        .upsert({
+          user_id: userId,
+          slug,
+          title: projectName,
+          html,
+          custom_domain: domain,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,slug' })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      const url = `https://api.grraphic.xyz/sites/${userId}/${data.id}`;
+      setDeployedUrl(url);
+      addTerminalOutput(`✓ Deployed to ${url}`);
+      if (domain) addTerminalOutput(`Custom domain set: ${domain} (point its DNS to Grraphic to go live)`);
+    } catch (e: any) {
+      setDeployError(e?.message?.includes('unique') && customDomain
+        ? 'That custom domain is already claimed by another site.'
+        : (e?.message || 'Deploy failed.'));
+      addTerminalOutput('✗ Deploy failed');
+    } finally {
+      setDeploying(false);
+    }
+  };
+
+  const downloadProject = () => {
+    const content = buildStandaloneHtml();
     const blob = new Blob([content], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1732,20 +1803,40 @@ RULES:
         </div>
 
         <div className="flex items-center gap-0.5">
-          {/* View modes */}
+          {/* Layout: equal split, code-only, or preview-only */}
           <div className="flex bg-white/[0.03] rounded-md p-0.5 mr-1">
-            {(['desktop', 'tablet', 'mobile'] as const).map(mode => (
+            {([
+              ['split', Columns, 'Split code & preview'],
+              ['code', Code, 'Code only'],
+              ['preview', Eye, 'Preview only'],
+            ] as const).map(([m, Icon, label]) => (
               <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`p-1.5 rounded-sm transition-colors ${viewMode === mode ? 'bg-white/[0.08] text-white' : 'text-gray-500 hover:text-gray-300'}`}
-                title={mode}
+                key={m}
+                onClick={() => setMainView(m)}
+                className={`p-1.5 rounded-sm transition-colors ${mainView === m ? 'bg-white/[0.08] text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                title={label}
               >
-                {mode === 'desktop' ? <Monitor size={13} /> : mode === 'tablet' ? <Tablet size={13} /> : <Smartphone size={13} />}
+                <Icon size={13} />
               </button>
             ))}
           </div>
-          
+
+          {/* Preview device widths (only meaningful when preview is visible) */}
+          {mainView !== 'code' && (
+            <div className="flex bg-white/[0.03] rounded-md p-0.5 mr-1">
+              {(['desktop', 'tablet', 'mobile'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`p-1.5 rounded-sm transition-colors ${viewMode === mode ? 'bg-white/[0.08] text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                  title={mode}
+                >
+                  {mode === 'desktop' ? <Monitor size={13} /> : mode === 'tablet' ? <Tablet size={13} /> : <Smartphone size={13} />}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="w-px h-4 bg-white/[0.06] mx-1" />
           
           <button 
@@ -1795,7 +1886,8 @@ RULES:
           >
             <Download size={14} />
           </button>
-          <button 
+          <button
+            onClick={() => { setShowDeploy(true); setDeployError(null); }}
             className="ml-1 px-3 py-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-md text-xs font-medium transition-all flex items-center gap-1.5"
             title="Deploy"
           >
@@ -1891,7 +1983,11 @@ RULES:
                     {isGenerating && streamingContent && (
                       <div className="flex justify-start">
                         <div className="max-w-[90%] bg-white/[0.03] text-gray-300 rounded-2xl rounded-bl-sm border border-white/[0.04] px-3.5 py-2.5 text-sm">
-                          <p className="whitespace-pre-wrap">{streamingContent.replace(/\[FILE:[^\]]+\]\s*```[\s\S]*?```/g, '').replace(/```[\s\S]*?```/g, '').trim() || 'Writing code...'}</p>
+                          <p className="whitespace-pre-wrap">{stripCodeFromChat(streamingContent) || (
+                            <span className="inline-flex items-center gap-1.5 text-violet-300/80">
+                              <Code size={12} /> Writing code…
+                            </span>
+                          )}</p>
                         </div>
                       </div>
                     )}
@@ -2010,8 +2106,8 @@ RULES:
           {/* Editor & Preview */}
           <div className="flex-1 flex overflow-hidden">
             {/* Code Editor */}
-            {activeFile && (
-              <div className="flex-1 flex flex-col min-w-0 border-r border-white/[0.06]" style={{ width: `${previewSplit}%` }}>
+            {activeFile && mainView !== 'preview' && (
+              <div className="flex-1 flex flex-col min-w-0 border-r border-white/[0.06]">
                 {/* Tabs */}
                 <div className="h-9 bg-[#0a0a0c] border-b border-white/[0.06] flex items-center overflow-x-auto flex-shrink-0">
                   {openTabs.map(tabId => {
@@ -2071,6 +2167,7 @@ RULES:
             )}
 
             {/* Preview */}
+            {mainView !== 'code' && (
             <div className="flex-1 bg-[#0c0c0e] flex flex-col min-w-0">
               {/* Browser Chrome */}
               <div className="h-9 bg-[#111113] border-b border-white/[0.06] flex items-center px-3 gap-3 flex-shrink-0">
@@ -2115,6 +2212,7 @@ RULES:
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           {/* Terminal */}
@@ -2157,6 +2255,79 @@ RULES:
       </div>
 
       {/* GitHub Connection Modal */}
+      {/* Deploy Modal */}
+      {showDeploy && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+          <div className="bg-[#0a0a0f] border border-white/[0.06] rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Rocket size={18} className="text-violet-400" />
+                Deploy site
+              </h3>
+              <button onClick={() => setShowDeploy(false)} className="text-gray-500 hover:text-gray-300">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-gray-400">
+                Publish this project as a live page. Re-deploying the same project updates the same URL.
+              </p>
+
+              {deployedUrl && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="text-[11px] uppercase tracking-wide text-emerald-300/80 font-mono mb-1">Live at</div>
+                  <div className="flex items-center gap-2">
+                    <a href={deployedUrl} target="_blank" rel="noreferrer" className="flex-1 text-sm text-emerald-300 truncate hover:underline">
+                      {deployedUrl}
+                    </a>
+                    <button
+                      onClick={async () => { await navigator.clipboard.writeText(deployedUrl); setDeployCopied(true); setTimeout(() => setDeployCopied(false), 1500); }}
+                      className="p-1.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-gray-300 transition-colors"
+                      title="Copy"
+                    >
+                      {deployCopied ? <Check size={13} /> : <Copy size={13} />}
+                    </button>
+                    <a href={deployedUrl} target="_blank" rel="noreferrer" className="p-1.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-gray-300 transition-colors" title="Open">
+                      <ExternalLink size={13} />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs text-gray-400 mb-1.5">Custom domain (optional)</label>
+                <input
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  placeholder="www.mysite.com"
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.1] rounded-lg text-white text-sm placeholder-gray-600 focus:outline-none focus:border-violet-500/50"
+                />
+                <p className="text-[11px] text-gray-600 mt-1.5 leading-relaxed">
+                  After deploying, point your domain's DNS (CNAME) to <span className="font-mono text-gray-500">cname.vercel-dns.com</span> and add it in the Vercel project. Grraphic then serves this site on that domain.
+                </p>
+              </div>
+
+              {deployError && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-300">{deployError}</div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-1">
+                <button onClick={() => setShowDeploy(false)} className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] rounded-lg text-white text-sm transition-colors">Close</button>
+                <button
+                  onClick={publishSite}
+                  disabled={deploying || !userId}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-lg text-white text-sm font-medium transition-all disabled:opacity-40"
+                >
+                  {deploying ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
+                  {deployedUrl ? 'Re-deploy' : 'Deploy'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showGithubConnect && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000]">
           <div className="bg-[#0a0a0f] border border-white/[0.06] rounded-xl p-6 w-full max-w-md shadow-2xl">

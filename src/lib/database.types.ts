@@ -1857,6 +1857,39 @@ export type Database = {
           },
         ]
       }
+      published_sites: {
+        Row: {
+          custom_domain: string | null
+          html: string
+          id: string
+          published_at: string | null
+          slug: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          custom_domain?: string | null
+          html: string
+          id?: string
+          published_at?: string | null
+          slug: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          custom_domain?: string | null
+          html?: string
+          id?: string
+          published_at?: string | null
+          slug?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       share_links: {
         Row: {
           created_at: string | null

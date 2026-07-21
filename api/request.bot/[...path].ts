@@ -30,7 +30,53 @@ export default async function handler(request: Request) {
     pathname = pathname.slice(1);
   }
   const pathParts = pathname.split('/').filter(Boolean);
-  
+
+  // --- Published sites (Site Designer deploy) ---
+  // api.grraphic.xyz/sites/{userId}/{siteId}  ->  serve stored HTML
+  // Also serves by custom domain when the request Host matches.
+  const host = request.headers.get('host') || '';
+  const isKnownHost = host.includes('grraphic.xyz') || host.includes('vercel.app') || host.includes('localhost');
+  if (pathParts[0] === 'sites' || !isKnownHost) {
+    try {
+      let query: string;
+      if (pathParts[0] === 'sites' && pathParts[1] && pathParts[2]) {
+        query = `user_id=eq.${encodeURIComponent(pathParts[1])}&id=eq.${encodeURIComponent(pathParts[2])}`;
+      } else if (!isKnownHost) {
+        query = `custom_domain=eq.${encodeURIComponent(host)}`;
+      } else {
+        return new Response('Not found', { status: 404, headers: corsHeaders });
+      }
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/published_sites?${query}&select=html&limit=1`, {
+        headers: {
+          apikey: SUPABASE_SERVICE_KEY || '',
+          Authorization: `Bearer ${SUPABASE_SERVICE_KEY || ''}`,
+        },
+      });
+      const rows = await res.json();
+      const html = Array.isArray(rows) && rows[0]?.html;
+      if (!html) {
+        return new Response('<h1>404 — site not found</h1>', {
+          status: 404,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        });
+      }
+      return new Response(html, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'public, max-age=60',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    } catch (err: any) {
+      return new Response(`<h1>500 — ${err?.message || 'error'}</h1>`, {
+        status: 500,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
+  }
+
   // Route mapping
   const routeMap: Record<string, string> = {
     'oauth/client-info': 'oauth-client-info',
