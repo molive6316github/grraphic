@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Bot, Plus, Play, Trash2, X, Loader2, CheckCircle2, XCircle,
   Clock, ChevronRight, Crown, Sparkles, Copy, Check, StopCircle, Pencil,
-  Mail, Globe, Folder, CalendarClock, Pause, Search, Wrench, Users, MessageSquare
+  Mail, Globe, Folder, CalendarClock, Pause, Search, Wrench, Users, MessageSquare,
+  Infinity as InfinityIcon, Image as ImageIcon, Zap
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getOAuthConnection, removeOAuthConnection } from '../lib/oauthConnections';
@@ -22,6 +23,13 @@ interface GradiAgent {
   can_search: boolean;
   can_use_project: boolean;
   can_slack: boolean;
+  can_design: boolean;
+  is_autonomous: boolean;
+  mission: string | null;
+  autonomy_interval_minutes: number;
+  next_run_at: string | null;
+  run_count: number;
+  max_runs: number | null;
 }
 
 interface AgentTeam {
@@ -112,6 +120,13 @@ const AGENT_PRESETS = [
     description: 'Reviews code snippets like a staff engineer',
     system_prompt: 'You are a staff software engineer doing a code review. Identify correctness bugs first, then design issues, then style nits - clearly separated. Suggest concrete fixes with code. Be direct but constructive.',
   },
+  {
+    emoji: '🖼️',
+    name: 'Poster Machine',
+    description: 'Runs 24/7 making brand posters in Boxt',
+    system_prompt: 'You are a world-class poster designer. You compose bold, on-brand posters using the create_design tool: pick a striking background, layer 2-4 large low-opacity shapes for depth, then a clear headline (large bold text, centered) plus a short supporting line. Respect the brand colors and voice in your mission. Every poster must be visually distinct from the last. After saving, briefly describe the poster you made.',
+    autonomous: true,
+  },
 ];
 
 const TOOL_ICONS: Record<string, React.ReactNode> = {
@@ -119,6 +134,7 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
   fetch_url: <Globe size={11} />,
   send_email: <Mail size={11} />,
   send_slack: <MessageSquare size={11} />,
+  create_design: <ImageIcon size={11} />,
   list_project_items: <Folder size={11} />,
   add_project_note: <Folder size={11} />,
   agent_result: <Bot size={11} />,
@@ -300,6 +316,12 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
     if (selectedTeamId === teamId) setSelectedTeamId(null);
   };
 
+  const toggleAgentActive = async (agent: GradiAgent) => {
+    const next = !agent.is_active;
+    setAgents(prev => prev.map(a => a.id === agent.id ? { ...a, is_active: next } : a));
+    await supabase.from('gradi_agents').update({ is_active: next }).eq('id', agent.id);
+  };
+
   const toggleSchedule = async (schedule: AgentSchedule) => {
     const next = !schedule.is_active;
     setSchedules(prev => prev.map(s => s.id === schedule.id ? { ...s, is_active: next } : s));
@@ -381,8 +403,15 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
             >
               <span className="text-xl">{agent.emoji}</span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white truncate">{agent.name}</div>
-                <div className="text-xs text-gray-500 truncate">{agent.description || agent.model}</div>
+                <div className="text-sm font-medium text-white truncate flex items-center gap-1.5">
+                  {agent.name}
+                  {agent.is_autonomous && <InfinityIcon size={12} className={agent.is_active ? 'text-emerald-400' : 'text-gray-600'} />}
+                </div>
+                <div className="text-xs text-gray-500 truncate">
+                  {agent.is_autonomous
+                    ? `${agent.run_count || 0} made${agent.max_runs ? ` / ${agent.max_runs}` : ''} · 24/7`
+                    : (agent.description || agent.model)}
+                </div>
               </div>
               <span
                 role="button"
@@ -400,12 +429,20 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
             <button
               key={preset.name}
               onClick={async () => {
+                const autonomous = 'autonomous' in preset && preset.autonomous;
                 const { data } = await supabase.from('gradi_agents').insert({
                   user_id: userId,
                   name: preset.name,
                   emoji: preset.emoji,
                   description: preset.description,
                   system_prompt: preset.system_prompt,
+                  ...(autonomous ? {
+                    is_autonomous: true,
+                    can_design: true,
+                    mission: 'Make bold, on-brand posters. Brand colors: deep indigo (#4f46e5) and near-white. Voice: confident, modern. Vary the theme each time — product launches, quotes, event promos, seasonal.',
+                    autonomy_interval_minutes: 360,
+                    next_run_at: new Date().toISOString(),
+                  } : {}),
                 }).select().single();
                 if (data) {
                   setAgents(prev => [...prev, data as unknown as GradiAgent]);
@@ -540,6 +577,7 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                   <div className="flex items-center gap-2 text-[11px] text-gray-500 font-mono">
                     <span className="truncate">{selectedAgent.model}</span>
                     {selectedAgent.can_search !== false && <span className="inline-flex items-center gap-0.5 text-sky-300/80"><Search size={10} />web</span>}
+                    {selectedAgent.can_design !== false && <span className="inline-flex items-center gap-0.5 text-fuchsia-300/80"><ImageIcon size={10} />design</span>}
                     {selectedAgent.can_slack !== false && slackConnected && <span className="inline-flex items-center gap-0.5 text-emerald-300/80"><MessageSquare size={10} />slack</span>}
                     {selectedAgent.can_email && <span className="inline-flex items-center gap-0.5 text-emerald-300/80"><Mail size={10} />email</span>}
                     {selectedAgent.project_id && <span className="inline-flex items-center gap-0.5 text-violet-300/80"><Folder size={10} />{projects.find(p => p.id === selectedAgent.project_id)?.name || 'project'}</span>}
@@ -547,6 +585,15 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                {selectedAgent.is_autonomous && (
+                  <button
+                    onClick={() => toggleAgentActive(selectedAgent)}
+                    className={`p-2 transition-colors ${selectedAgent.is_active ? 'text-emerald-400 hover:text-emerald-300' : 'text-gray-500 hover:text-emerald-300'}`}
+                    title={selectedAgent.is_active ? 'Pause autonomous runs' : 'Resume autonomous runs'}
+                  >
+                    {selectedAgent.is_active ? <Pause size={16} /> : <Play size={16} />}
+                  </button>
+                )}
                 <button
                   onClick={() => setShowScheduleModal(true)}
                   className="p-2 text-gray-400 hover:text-violet-300 transition-colors"
@@ -563,6 +610,29 @@ export function GradiAgents({ userId, isPro, onUpgrade }: GradiAgentsProps) {
                 </button>
               </div>
             </div>
+            )}
+
+            {/* Autonomous status banner */}
+            {selectedAgent && selectedAgent.is_autonomous && (
+              <div className={`px-4 py-2.5 border-b border-white/[0.07] flex items-center gap-3 text-xs ${
+                selectedAgent.is_active ? 'bg-emerald-500/[0.06]' : 'bg-white/[0.02]'
+              }`}>
+                <InfinityIcon size={14} className={selectedAgent.is_active ? 'text-emerald-400' : 'text-gray-500'} />
+                <div className="flex-1 min-w-0">
+                  <span className={selectedAgent.is_active ? 'text-emerald-200' : 'text-gray-400'}>
+                    {selectedAgent.is_active ? 'Working 24/7' : 'Paused'}
+                  </span>
+                  <span className="text-gray-500">
+                    {' · '}{selectedAgent.run_count || 0} made{selectedAgent.max_runs ? ` / ${selectedAgent.max_runs}` : ''}
+                    {' · one every '}{
+                      selectedAgent.autonomy_interval_minutes >= 1440
+                        ? `${Math.round(selectedAgent.autonomy_interval_minutes / 1440)}d`
+                        : `${Math.round(selectedAgent.autonomy_interval_minutes / 60)}h`
+                    }
+                  </span>
+                  {selectedAgent.mission && <div className="text-gray-500 truncate mt-0.5">“{selectedAgent.mission}”</div>}
+                </div>
+              </div>
             )}
 
             {/* Schedules strip */}
@@ -929,14 +999,21 @@ function AgentModal({ userId, agent, projects, onClose, onSaved }: {
   const [canEmail, setCanEmail] = useState(agent?.can_email ?? false);
   const [canSearch, setCanSearch] = useState(agent?.can_search ?? true);
   const [canSlack, setCanSlack] = useState(agent?.can_slack ?? true);
+  const [canDesign, setCanDesign] = useState(agent?.can_design ?? true);
+  const [isAutonomous, setIsAutonomous] = useState(agent?.is_autonomous ?? false);
+  const [mission, setMission] = useState(agent?.mission ?? '');
+  const [autonomyInterval, setAutonomyInterval] = useState(agent?.autonomy_interval_minutes ?? 360);
+  const [maxRuns, setMaxRuns] = useState<string>(agent?.max_runs != null ? String(agent.max_runs) : '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
     if (!name.trim() || !systemPrompt.trim()) return;
+    if (isAutonomous && !mission.trim()) { setError('An autonomous agent needs a mission.'); return; }
     setSaving(true);
     setError(null);
 
+    const parsedMax = maxRuns.trim() ? Math.max(1, parseInt(maxRuns, 10)) : null;
     const payload = {
       name: name.trim(),
       emoji,
@@ -948,7 +1025,14 @@ function AgentModal({ userId, agent, projects, onClose, onSaved }: {
       can_email: canEmail,
       can_search: canSearch,
       can_slack: canSlack,
+      can_design: canDesign,
       can_use_project: true,
+      is_autonomous: isAutonomous,
+      mission: isAutonomous ? mission.trim() : null,
+      autonomy_interval_minutes: autonomyInterval,
+      max_runs: isAutonomous ? parsedMax : null,
+      // Start the loop right away for a new/newly-autonomous agent
+      ...(isAutonomous && !agent?.is_autonomous ? { next_run_at: new Date().toISOString() } : {}),
     };
 
     const query = agent
@@ -1043,6 +1127,14 @@ function AgentModal({ userId, agent, projects, onClose, onSaved }: {
                   <div className="text-xs text-gray-500">Post updates to your connected Slack channel</div>
                 </div>
               </label>
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] cursor-pointer hover:border-white/[0.15] transition-colors">
+                <input type="checkbox" checked={canDesign} onChange={e => setCanDesign(e.target.checked)} className="accent-violet-500" />
+                <ImageIcon size={15} className="text-fuchsia-300" />
+                <div className="flex-1">
+                  <div className="text-sm text-white">Create designs in Boxt</div>
+                  <div className="text-xs text-gray-500">Compose posters &amp; graphics that land in your Boxt library</div>
+                </div>
+              </label>
               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]">
                 <Folder size={15} className="text-violet-300 ml-6" />
                 <div className="flex-1">
@@ -1059,6 +1151,60 @@ function AgentModal({ userId, agent, projects, onClose, onSaved }: {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Autonomous 24/7 mode */}
+          <div className="rounded-xl border border-white/[0.08] overflow-hidden">
+            <label className="flex items-center gap-3 p-3 bg-white/[0.03] cursor-pointer">
+              <input type="checkbox" checked={isAutonomous} onChange={e => setIsAutonomous(e.target.checked)} className="accent-emerald-500" />
+              <InfinityIcon size={15} className="text-emerald-300" />
+              <div className="flex-1">
+                <div className="text-sm text-white">Run autonomously, 24/7</div>
+                <div className="text-xs text-gray-500">No prompts needed — it produces a new deliverable on a schedule, on our servers</div>
+              </div>
+            </label>
+            {isAutonomous && (
+              <div className="p-3 border-t border-white/[0.06] space-y-3 bg-black/20">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Mission (its standing directive)</label>
+                  <textarea
+                    value={mission}
+                    onChange={e => setMission(e.target.value)}
+                    placeholder="e.g. Make bold posters for our brand. Colors: #4f46e5 + near-white. Voice: confident, modern. Vary the theme each time — launches, quotes, events, seasonal."
+                    rows={3}
+                    className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500/50 resize-none"
+                  />
+                  <div className="text-[11px] text-gray-600 mt-1">Tip: turn on “Create designs in Boxt” above so it actually builds posters.</div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-400 mb-1">Make one every</label>
+                    <select
+                      value={autonomyInterval}
+                      onChange={e => setAutonomyInterval(parseInt(e.target.value))}
+                      className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none"
+                    >
+                      <option value={60} className="bg-[#12121a]">Hour</option>
+                      <option value={360} className="bg-[#12121a]">6 hours</option>
+                      <option value={720} className="bg-[#12121a]">12 hours</option>
+                      <option value={1440} className="bg-[#12121a]">Day</option>
+                    </select>
+                  </div>
+                  <div className="w-32">
+                    <label className="block text-xs text-gray-400 mb-1">Stop after</label>
+                    <input
+                      value={maxRuns}
+                      onChange={e => setMaxRuns(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="∞"
+                      className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500/50"
+                    />
+                  </div>
+                </div>
+                <div className="text-[11px] text-gray-600">
+                  Leave “Stop after” blank to run forever. Pause anytime from the agent header.
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">

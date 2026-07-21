@@ -307,6 +307,7 @@ export type Database = {
       boxt_designs: {
         Row: {
           created_at: string | null
+          created_by_agent: string | null
           data: Json | null
           height: number
           id: string
@@ -321,6 +322,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          created_by_agent?: string | null
           data?: Json | null
           height?: number
           id?: string
@@ -335,6 +337,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          created_by_agent?: string | null
           data?: Json | null
           height?: number
           id?: string
@@ -1002,11 +1005,18 @@ export type Database = {
       }
       gradi_agents: {
         Row: {
+          autonomy_interval_minutes: number | null
+          can_design: boolean | null
           can_email: boolean | null
           can_search: boolean | null
           can_slack: boolean | null
           can_use_project: boolean | null
           created_at: string | null
+          is_autonomous: boolean | null
+          max_runs: number | null
+          mission: string | null
+          next_run_at: string | null
+          run_count: number | null
           description: string | null
           emoji: string | null
           id: string
@@ -1020,11 +1030,18 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          autonomy_interval_minutes?: number | null
+          can_design?: boolean | null
           can_email?: boolean | null
           can_search?: boolean | null
           can_slack?: boolean | null
           can_use_project?: boolean | null
           created_at?: string | null
+          is_autonomous?: boolean | null
+          max_runs?: number | null
+          mission?: string | null
+          next_run_at?: string | null
+          run_count?: number | null
           description?: string | null
           emoji?: string | null
           id?: string
@@ -1038,11 +1055,18 @@ export type Database = {
           user_id: string
         }
         Update: {
+          autonomy_interval_minutes?: number | null
+          can_design?: boolean | null
           can_email?: boolean | null
           can_search?: boolean | null
           can_slack?: boolean | null
           can_use_project?: boolean | null
           created_at?: string | null
+          is_autonomous?: boolean | null
+          max_runs?: number | null
+          mission?: string | null
+          next_run_at?: string | null
+          run_count?: number | null
           description?: string | null
           emoji?: string | null
           id?: string

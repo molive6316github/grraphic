@@ -115,9 +115,63 @@ interface AgentRow {
   id: string; user_id: string; name: string; system_prompt: string; model: string;
   temperature: number; project_id: string | null;
   can_email: boolean | null; can_search: boolean | null; can_use_project: boolean | null;
-  can_slack: boolean | null;
+  can_slack: boolean | null; can_design: boolean | null;
 }
 interface TaskRow { id: string; agent_id: string; user_id: string; title: string; instructions: string; steps: Step[] | null; team_id: string | null }
+
+// Normalize a loose element from the model into a Boxt canvas element
+function normalizeElement(raw: Record<string, unknown>) {
+  const type = String(raw.type ?? 'rect');
+  const num = (v: unknown, d: number) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
+  const base = {
+    id: crypto.randomUUID(),
+    type: type === 'circle' ? 'circle' : type === 'text' ? 'text' : type === 'image' ? 'image' : 'rect',
+    x: num(raw.x, 100), y: num(raw.y, 100),
+    width: num(raw.width, 200), height: num(raw.height, 200),
+    fill: String(raw.fill ?? '#3B82F6'),
+    stroke: raw.stroke ? String(raw.stroke) : '',
+    strokeWidth: num(raw.strokeWidth, 0),
+    opacity: raw.opacity != null ? num(raw.opacity, 1) : 1,
+    rotation: num(raw.rotation, 0),
+  } as Record<string, unknown>;
+  if (base.type === 'text') {
+    base.text = String(raw.text ?? 'Text');
+    base.fontSize = num(raw.fontSize, 48);
+    base.fontFamily = String(raw.fontFamily ?? 'Arial');
+    base.fontWeight = raw.bold || raw.fontWeight === 'bold' ? 'bold' : 'normal';
+    base.textAlign = ['center', 'right', 'left'].includes(String(raw.align)) ? String(raw.align) : 'left';
+    base.fill = String(raw.fill ?? '#111111');
+  }
+  if (base.type === 'image') base.imageUrl = String(raw.imageUrl ?? raw.url ?? '');
+  return base;
+}
+
+// Persist a design the agent composed into Boxt ("My Designs")
+async function createDesign(agent: AgentRow, args: Record<string, unknown>): Promise<string> {
+  const db = service();
+  const width = Number(args.width) || 1080;
+  const height = Number(args.height) || 1350;
+  const background = String(args.background ?? '#0f172a');
+  const rawEls = Array.isArray(args.elements) ? args.elements as Record<string, unknown>[] : [];
+  if (rawEls.length === 0) return 'Error: provide at least a few elements for the design.';
+  const elements = rawEls.slice(0, 60).map(normalizeElement);
+  const title = String(args.title ?? `${agent.name} design`);
+
+  const { error } = await db.from('boxt_designs').insert({
+    user_id: agent.user_id,
+    title,
+    data: { elements, backgroundColor: background, width, height } as unknown as Record<string, unknown>,
+    width,
+    height,
+    created_by_agent: agent.id,
+  });
+  if (error) return `Failed to save design: ${error.message}`;
+
+  const { count } = await db.from('boxt_designs')
+    .select('id', { count: 'exact', head: true })
+    .eq('created_by_agent', agent.id);
+  return `Saved "${title}" to Boxt. This agent has now made ${count ?? '?'} design(s).`;
+}
 
 function buildTools(agent: AgentRow) {
   const tools: Record<string, unknown>[] = [];
@@ -166,6 +220,46 @@ function buildTools(agent: AgentRow) {
       },
     });
   }
+  if (agent.can_design !== false) {
+    tools.push({
+      type: 'function',
+      function: {
+        name: 'create_design',
+        description: 'Create a finished graphic design (poster, social post, flyer) and save it to the owner\'s Boxt library. Compose it from positioned shapes and text on a colored background. Call once per distinct deliverable.',
+        parameters: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            width: { type: 'number', description: 'canvas width in px, e.g. 1080' },
+            height: { type: 'number', description: 'canvas height in px, e.g. 1350' },
+            background: { type: 'string', description: 'background hex color' },
+            elements: {
+              type: 'array',
+              description: 'Back-to-front. Big soft shapes first (low opacity), text and details last.',
+              items: {
+                type: 'object',
+                properties: {
+                  type: { type: 'string', enum: ['rect', 'circle', 'text'] },
+                  x: { type: 'number' }, y: { type: 'number' },
+                  width: { type: 'number' }, height: { type: 'number' },
+                  fill: { type: 'string', description: 'hex color' },
+                  opacity: { type: 'number' },
+                  rotation: { type: 'number' },
+                  text: { type: 'string' },
+                  fontSize: { type: 'number' },
+                  fontFamily: { type: 'string' },
+                  bold: { type: 'boolean' },
+                  align: { type: 'string', enum: ['left', 'center', 'right'] },
+                },
+                required: ['type', 'x', 'y'],
+              },
+            },
+          },
+          required: ['title', 'elements'],
+        },
+      },
+    });
+  }
   if (agent.project_id && agent.can_use_project !== false) {
     tools.push({
       type: 'function',
@@ -206,6 +300,10 @@ async function execTool(name: string, args: Record<string, unknown>, agent: Agen
       const { data: owner } = await db.from('users').select('email').eq('id', agent.user_id).maybeSingle();
       if (!owner?.email) return 'Error: owner has no email on file.';
       return await sendOwnerEmail(owner.email, String(args.subject ?? 'Agent report'), String(args.body_html ?? ''));
+    }
+    case 'create_design': {
+      if (agent.can_design === false) return 'Error: this agent is not allowed to create designs.';
+      return await createDesign(agent, args);
     }
     case 'list_project_items': {
       if (!agent.project_id) return 'Error: no project linked.';
@@ -409,6 +507,47 @@ Deno.serve(async (req: Request) => {
     }).eq('id', s.id);
   }
 
+  // 2b) Wake autonomous agents whose next run is due. Each produces a NEW
+  // deliverable from its standing mission, until an optional cap.
+  const { data: autoAgents } = await db.from('gradi_agents')
+    .select('id, user_id, name, mission, run_count, max_runs, autonomy_interval_minutes, is_active')
+    .eq('is_autonomous', true)
+    .eq('is_active', true)
+    .or('next_run_at.is.null,next_run_at.lte.' + new Date().toISOString())
+    .limit(20);
+
+  let autonomousEnqueued = 0;
+  for (const a of autoAgents || []) {
+    if (a.max_runs != null && (a.run_count ?? 0) >= a.max_runs) continue;
+
+    // Show the agent what it already made so each run varies
+    const { data: recent } = await db.from('boxt_designs')
+      .select('title')
+      .eq('created_by_agent', a.id)
+      .order('created_at', { ascending: false })
+      .limit(15);
+    const madeList = (recent || []).map(r => `- ${r.title}`).join('\n');
+    const n = (a.run_count ?? 0) + 1;
+
+    await db.from('gradi_agent_tasks').insert({
+      agent_id: a.id,
+      user_id: a.user_id,
+      title: `Autonomous deliverable #${n}`,
+      instructions:
+        `${a.mission || 'Produce a useful deliverable.'}\n\n` +
+        `This is deliverable #${n}. Produce ONE new, distinct deliverable now and save it with your tools ` +
+        `(use create_design for graphics). Make it meaningfully different from what you've already made.` +
+        (madeList ? `\n\nAlready produced:\n${madeList}` : ''),
+    });
+
+    const interval = a.autonomy_interval_minutes || 360;
+    await db.from('gradi_agents').update({
+      run_count: n,
+      next_run_at: new Date(Date.now() + interval * 60_000).toISOString(),
+    }).eq('id', a.id);
+    autonomousEnqueued++;
+  }
+
   // 3) Work the queue
   let processed = 0;
   while (processed < MAX_TASKS_PER_INVOCATION && Date.now() < deadline - 15_000) {
@@ -424,7 +563,7 @@ Deno.serve(async (req: Request) => {
   }
 
   return new Response(
-    JSON.stringify({ processed, schedules_enqueued: (due || []).length, ms: Date.now() - started }),
+    JSON.stringify({ processed, schedules_enqueued: (due || []).length, autonomous_enqueued: autonomousEnqueued, ms: Date.now() - started }),
     { headers: { 'Content-Type': 'application/json' } }
   );
 });
