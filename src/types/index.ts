@@ -1,36 +1,3 @@
-export type AnalysisMode = 'design' | 'ui';
-
-// Canvas element in the Boxt design editor
-export interface DesignElement {
-  id: string;
-  type: 'rect' | 'circle' | 'text' | 'image' | 'line';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation?: number;
-  opacity?: number;
-  fill?: string;
-  stroke?: string;
-  strokeWidth?: number;
-  // text elements
-  text?: string;
-  fontSize?: number;
-  fontFamily?: string;
-  fontWeight?: string;
-  fontStyle?: string;
-  bold?: boolean;
-  italic?: boolean;
-  textAlign?: string;
-  textDecoration?: string;
-  textTransform?: string;
-  lineHeight?: number;
-  letterSpacing?: number;
-  borderRadius?: number;
-  // image elements
-  imageUrl?: string;
-}
-
 export interface DesignAnalysis {
   overall: number;
   designContext?: {
@@ -105,45 +72,11 @@ export interface DesignAnalysis {
   designPrinciples: string[];
 }
 
-export interface UICategoryDetail {
-  score: number;
-  feedback: string;
-  improvementIdeas: string[];
-  references?: string[];
-  visualReferences?: Array<{
-    description: string;
-    boundingBox: { x: number; y: number; width: number; height: number };
-  }>;
-}
-
-export interface UIAnalysis {
-  overall: number;
-  summary?: string;
-  categories: {
-    usability: UICategoryDetail;
-    accessibility: UICategoryDetail;
-    responsiveness: UICategoryDetail;
-    performance: UICategoryDetail;
-    semantics: UICategoryDetail;
-    uxPatterns: UICategoryDetail;
-  };
-  strengths: string[];
-  improvements: string[];
-  bestPractices: string[];
-}
-
 export interface UploadedFile {
   file: File;
   preview: string;
   name: string;
   size: number;
-}
-
-export interface UIUpload {
-  type: 'html' | 'url';
-  content: string;
-  name: string;
-  url?: string;
 }
 
 export interface AnalysisRecord {

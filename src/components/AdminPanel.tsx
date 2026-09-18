@@ -9,10 +9,9 @@ import { AdminReviews } from './AdminReviews';
 import { AdminAnalyses } from './AdminAnalyses';
 import { AdminSettings } from './AdminSettings';
 import { AdminStripeSettings } from './AdminStripeSettings';
-import { AdminOAuthApps } from './AdminOAuthApps';
 import { AdminEmailClient } from './AdminEmailClient';
 
-type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'chats' | 'analyses' | 'settings' | 'stripe' | 'oauth' | 'email';
+type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'analyses' | 'settings' | 'stripe' | 'email';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -156,16 +155,6 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
             Email
           </button>
           <button
-            onClick={() => setActiveView('oauth')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeView === 'oauth'
-                ? 'bg-violet-600 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            OAuth Apps
-          </button>
-          <button
             onClick={() => setActiveView('stripe')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeView === 'stripe'
@@ -284,7 +273,6 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         {activeView === 'reviews' && <AdminReviews />}
         {activeView === 'analyses' && <AdminAnalyses />}
         {activeView === 'email' && <AdminEmailClient />}
-        {activeView === 'oauth' && <AdminOAuthApps />}
         {activeView === 'stripe' && <AdminStripeSettings />}
         {activeView === 'settings' && <AdminSettings />}
       </div>
