@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Users, FileImage, CreditCard, TrendingUp, RefreshCw, AlertCircle, MessageSquare, Ticket, Image, Settings, Code, Mail } from 'lucide-react';
+import { Shield, Users, FileImage, CreditCard, TrendingUp, RefreshCw, Settings } from 'lucide-react';
 import { useAdminStats } from '../hooks/useAdminStats';
 import { AdminUsers } from './AdminUsers';
 import { AdminSubscriptions } from './AdminSubscriptions';
@@ -9,9 +9,8 @@ import { AdminReviews } from './AdminReviews';
 import { AdminAnalyses } from './AdminAnalyses';
 import { AdminSettings } from './AdminSettings';
 import { AdminStripeSettings } from './AdminStripeSettings';
-import { AdminEmailClient } from './AdminEmailClient';
 
-type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'analyses' | 'settings' | 'stripe' | 'email';
+type AdminView = 'overview' | 'users' | 'subscriptions' | 'discounts' | 'errors' | 'reviews' | 'analyses' | 'settings' | 'stripe';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -144,17 +143,6 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
             Error Logs
           </button>
           <button
-            onClick={() => setActiveView('email')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeView === 'email'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <Mail size={16} className="inline mr-2" />
-            Email
-          </button>
-          <button
             onClick={() => setActiveView('stripe')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeView === 'stripe'
@@ -272,7 +260,6 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         {activeView === 'errors' && <AdminErrorLogs />}
         {activeView === 'reviews' && <AdminReviews />}
         {activeView === 'analyses' && <AdminAnalyses />}
-        {activeView === 'email' && <AdminEmailClient />}
         {activeView === 'stripe' && <AdminStripeSettings />}
         {activeView === 'settings' && <AdminSettings />}
       </div>

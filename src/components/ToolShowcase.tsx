@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Shapes, Bot, Palette, Monitor, Package, Folder, Globe, Code2, ArrowUpRight
+  Palette, Package, ArrowUpRight
 } from 'lucide-react';
 
 interface Tool {
@@ -13,14 +13,8 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
-  { id: 'boxt', name: 'Boxt', tagline: 'Design editor with your palettes one click away', icon: <Shapes size={22} />, accent: '#818cf8', path: '/boxt' },
-  { id: 'gradi', name: 'Gradi AI', tagline: 'Chat assistant + custom agents that run tasks for you', icon: <Bot size={22} />, accent: '#2dd4bf', path: '/gradi' },
   { id: 'palettex', name: 'PaletteX', tagline: 'Generate and save color palettes from any image', icon: <Palette size={22} />, accent: '#f472b6', path: '/palettex' },
-  { id: 'mockup', name: 'Mockup Studio', tagline: 'Devices, apparel, scenes, and animated logo intros', icon: <Monitor size={22} />, accent: '#fbbf24', path: '/mockup' },
   { id: 'assets', name: 'AssetVault', tagline: 'Cloud file storage with folders, favorites, and sharing', icon: <Package size={22} />, accent: '#34d399', path: '/assets' },
-  { id: 'projects', name: 'Projects & Teams', tagline: 'Collect everything into shared projects with your team', icon: <Folder size={22} />, accent: '#a78bfa', path: '/projects' },
-  { id: 'site-designer', name: 'Site Designer', tagline: 'AI-built websites from a single prompt', icon: <Globe size={22} />, accent: '#38bdf8', path: '/site-designer' },
-  { id: 'api', name: 'Developer API', tagline: 'API keys, OAuth apps, and usage dashboards', icon: <Code2 size={22} />, accent: '#fb7185', path: '/api' },
 ];
 
 interface ToolShowcaseProps {
@@ -56,10 +50,10 @@ export function ToolShowcase({ onNavigate }: ToolShowcaseProps) {
       <div className={`text-center mb-10 ${visible ? 'reveal reveal-1' : 'opacity-0'}`}>
         <div className="font-mono text-[11px] tracking-widest text-violet-300/80 uppercase mb-3">The whole studio</div>
         <h2 className="font-display text-3xl md:text-4xl font-bold text-white text-balance">
-          One place for everything you make
+          More in your design studio
         </h2>
         <p className="text-gray-400 mt-3 max-w-xl mx-auto text-balance">
-          Grade a design, fix it in Boxt, pull a palette, mock it up, store it, and ship it with your team — without leaving Grraphic.
+          Grade a design, pull a palette, and keep your work close — without leaving Grraphic.
         </p>
       </div>
 

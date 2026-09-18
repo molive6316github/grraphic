@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Download, Sparkles, FileImage, Palette as PaletteIcon, Folder, Link as LinkIcon, AlertTriangle } from 'lucide-react';
+import { Loader2, Download, Sparkles, FileImage, Palette as PaletteIcon, Link as LinkIcon, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface SharedViewProps {
@@ -10,7 +10,7 @@ interface SharedViewProps {
 type SharedPayload = {
   success: boolean;
   error?: string;
-  resource_type?: 'analysis' | 'boxt_design' | 'palette' | 'asset' | 'mockup' | 'project';
+  resource_type?: 'analysis' | 'palette' | 'asset';
   resource?: any;
 };
 
@@ -109,38 +109,6 @@ export function SharedView({ token, onGoHome }: SharedViewProps) {
         </div>
       )}
 
-      {resource_type === 'boxt_design' && (
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] overflow-hidden">
-          {resource.thumbnail && (
-            <div className="bg-black/40 flex items-center justify-center p-6">
-              <img src={resource.thumbnail} alt={resource.title} className="max-h-[60vh] rounded-lg" />
-            </div>
-          )}
-          <div className="p-6">
-            <h1 className="font-display text-lg font-semibold text-white">{resource.title}</h1>
-            <p className="text-xs text-gray-500 font-mono mt-1">{resource.width} × {resource.height}px · made in Boxt</p>
-          </div>
-        </div>
-      )}
-
-      {resource_type === 'mockup' && (
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] overflow-hidden">
-          {(resource.rendered_url || resource.preview_url || resource.design_url) && (
-            <div className="bg-black/40 flex items-center justify-center p-6">
-              <img
-                src={resource.rendered_url || resource.preview_url || resource.design_url}
-                alt={resource.title || 'Mockup'}
-                className="max-h-[60vh] rounded-lg"
-              />
-            </div>
-          )}
-          <div className="p-6">
-            <h1 className="font-display text-lg font-semibold text-white">{resource.title || 'Mockup'}</h1>
-            <p className="text-xs text-gray-500 font-mono mt-1">{resource.mockup_type}</p>
-          </div>
-        </div>
-      )}
-
       {resource_type === 'analysis' && (
         <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] overflow-hidden">
           {resource.image_url && (
@@ -159,27 +127,6 @@ export function SharedView({ token, onGoHome }: SharedViewProps) {
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {resource_type === 'project' && (
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Folder size={20} style={{ color: resource.color || '#8b5cf6' }} />
-            <h1 className="font-display text-lg font-semibold text-white">{resource.name}</h1>
-          </div>
-          {resource.description && <p className="text-gray-400 mb-5">{resource.description}</p>}
-          <div className="space-y-2">
-            {(resource.items || []).map((item: any) => (
-              <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.07]">
-                <span className="font-mono text-[10px] tracking-wide uppercase text-violet-300/80 w-20 flex-shrink-0">{item.item_type.replace('_', ' ')}</span>
-                <span className="text-sm text-gray-200 truncate">{item.title || 'Untitled'}</span>
-              </div>
-            ))}
-            {(!resource.items || resource.items.length === 0) && (
-              <p className="text-sm text-gray-500">This project has no items yet.</p>
             )}
           </div>
         </div>
