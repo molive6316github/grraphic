@@ -6,7 +6,6 @@ import { AdminSubscriptions } from './AdminSubscriptions';
 import { AdminDiscountCodes } from './AdminDiscountCodes';
 import { AdminErrorLogs } from './AdminErrorLogs';
 import { AdminReviews } from './AdminReviews';
-import { AdminGradiChats } from './AdminGradiChats';
 import { AdminAnalyses } from './AdminAnalyses';
 import { AdminSettings } from './AdminSettings';
 import { AdminStripeSettings } from './AdminStripeSettings';
@@ -124,16 +123,6 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
             }`}
           >
             All Reviews
-          </button>
-          <button
-            onClick={() => setActiveView('chats')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeView === 'chats'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            Gradi Chats
           </button>
           <button
             onClick={() => setActiveView('analyses')}
@@ -293,7 +282,6 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         {activeView === 'discounts' && <AdminDiscountCodes />}
         {activeView === 'errors' && <AdminErrorLogs />}
         {activeView === 'reviews' && <AdminReviews />}
-        {activeView === 'chats' && <AdminGradiChats />}
         {activeView === 'analyses' && <AdminAnalyses />}
         {activeView === 'email' && <AdminEmailClient />}
         {activeView === 'oauth' && <AdminOAuthApps />}
