@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
-import { Sparkles, User, History, Shield, Package, Monitor, Globe } from 'lucide-react';
+import { Sparkles, User, History } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { LoadingAnalysis } from './components/LoadingAnalysis';
 import { AnalysisResults } from './components/AnalysisResults';
-import { ModeToggle } from './components/ModeToggle';
-import { UIUploadComponent } from './components/UIUpload';
-import { UIAnalysisResults } from './components/UIAnalysisResults';
 import { DarkModeToggle } from './components/DarkModeToggle';
 import { AuthModal } from './components/AuthModal';
 import AnalysisHistory from './components/AnalysisHistory';
@@ -19,26 +16,14 @@ import { DesignHelpLanding } from './components/DesignHelpLanding';
 import { DesignInfoLanding } from './components/DesignInfoLanding';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
-import { AIAssistant } from './components/AIAssistant';
-import { GradiChat } from './components/GradiChat';
-import { SiteDesigner } from './components/SiteDesigner';
-import { Boxt } from './components/Boxt';
 import { PaletteX } from './components/PaletteX';
-import { MockupStudio } from './components/MockupStudio';
 import { AssetVault } from './components/AssetVault';
 import { SharedView } from './components/SharedView';
-import { ProjectsHub } from './components/ProjectsHub';
 import { ToolShowcase } from './components/ToolShowcase';
 import { supabase } from './lib/supabase';
 import { consumePostAuthRedirect } from './lib/oauthConnections';
-import { ApiDashboard } from './components/ApiDashboard';
-import { ApiDocs } from './components/ApiDocs';
-import { OAuthConsent } from './components/OAuthConsent';
-import { OAuthCallback } from './components/OAuthCallback';
-import { DeveloperPortal } from './components/DeveloperPortal';
 import { analyzeDesign } from './utils/designAnalyzer';
-import { analyzeUI } from './utils/uiAnalyzer';
-import { UploadedFile, DesignAnalysis, UIUpload as UIUploadType, UIAnalysis, AnalysisMode, AnalysisRecord } from './types';
+import { UploadedFile, DesignAnalysis, AnalysisRecord } from './types';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useAuth } from './hooks/useAuth';
 import { useAnalysisHistory } from './hooks/useAnalysisHistory';
@@ -50,61 +35,12 @@ import { CreditsDisplay } from './components/CreditsDisplay';
 import { ProSubscriptionCard } from './components/ProSubscriptionCard';
 import { STRIPE_PRODUCTS } from './stripe-config';
 
-type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'gradi' | 'site-designer' | 'boxt' | 'palettex' | 'mockup' | 'assets' | 'api' | 'api-docs' | 'oauth-consent' | 'oauth-callback' | 'developer' | 'shared' | 'projects';
-
-type MockupSection = 'home' | 'devices' | 'intros' | 'products' | 'scenes' | 'video' | 'logo' | 'text' | 'slideshow' | 'social' | 'apparel' | 'environments';
-
-// Floating app switcher for fullscreen tools (Boxt, Gradi, Site Designer)
-// that hide the main header - the rest of the studio stays one click away.
-function QuickNav({ onNavigate }: { onNavigate: (state: AppState, path: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const items: Array<[string, AppState, string]> = [
-    ['Home', 'upload', '/'],
-    ['Boxt', 'boxt', '/boxt'],
-    ['Gradi AI', 'gradi', '/gradi'],
-    ['Site Designer', 'site-designer', '/site-designer'],
-    ['Projects', 'projects', '/projects'],
-    ['PaletteX', 'palettex', '/palettex'],
-    ['Mockups', 'mockup', '/mockup'],
-    ['Assets', 'assets', '/assets'],
-    ['API', 'api', '/api'],
-  ];
-  return (
-    <div className="fixed bottom-4 left-4 z-[1100]">
-      {open && (
-        <>
-          <div className="fixed inset-0" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-14 left-0 w-48 py-2 rounded-xl bg-[#0d0d14]/95 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 animate-fade-in">
-            {items.map(([label, target, path]) => (
-              <button
-                key={path}
-                onClick={() => { setOpen(false); onNavigate(target, path); }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-      <button
-        onClick={() => setOpen(!open)}
-        title="Grraphic menu"
-        className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/40 ring-1 ring-white/20 hover:scale-105 transition-transform"
-      >
-        <Sparkles size={20} className="text-white" />
-      </button>
-    </div>
-  );
-}
+type AppState = 'upload' | 'analyzing' | 'results' | 'history' | 'public' | 'success' | 'admin' | 'design-help' | 'design-info' | 'privacy' | 'terms' | 'palettex' | 'assets' | 'shared';
 
 function App() {
-  const [mode, setMode] = useState<AnalysisMode>('design');
   const [state, setState] = useState<AppState>('upload');
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
-  const [uploadedUI, setUploadedUI] = useState<UIUploadType | null>(null);
   const [analysis, setAnalysis] = useState<DesignAnalysis | null>(null);
-  const [uiAnalysis, setUIAnalysis] = useState<UIAnalysis | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -113,7 +49,6 @@ function App() {
   const [sharedToken, setSharedToken] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [mockupSection, setMockupSection] = useState<MockupSection>('home');
   const { isDark, toggleDarkMode } = useDarkMode();
   const { user, session, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth();
   const { analyses, loading: historyLoading, saveAnalysis, deleteAnalysis, togglePublic, getPublicAnalysis } = useAnalysisHistory(user?.id);
@@ -153,11 +88,10 @@ function App() {
       const savedPath = consumePostAuthRedirect();
       if (savedPath && savedPath !== '/' && savedPath !== path) {
         const stateFor: Record<string, AppState> = {
-          '/boxt': 'boxt', '/gradi': 'gradi', '/palettex': 'palettex',
-          '/mockup': 'mockup', '/assets': 'assets', '/projects': 'projects',
-          '/site-designer': 'site-designer', '/api': 'api', '/developer': 'developer',
+          '/palettex': 'palettex',
+          '/assets': 'assets',
         };
-        const next = stateFor[savedPath] || (savedPath.startsWith('/mockup') ? 'mockup' : undefined);
+        const next = stateFor[savedPath];
         if (next) {
           window.history.replaceState({}, '', savedPath);
           setState(next);
@@ -171,24 +105,6 @@ function App() {
     if (shareToken) {
       setSharedToken(shareToken);
       setState('shared');
-      return;
-    }
-    const inviteToken = urlParams.get('invite');
-    if (inviteToken) {
-      if (!user) {
-        setShowAuthModal(true);
-        return;
-      }
-      supabase.rpc('accept_team_invite', { p_token: inviteToken }).then(({ data }) => {
-        const result = data as { success?: boolean; error?: string } | null;
-        window.history.replaceState({}, '', '/projects');
-        setState('projects');
-        if (result?.success) {
-          alert('Welcome to the team!');
-        } else {
-          alert(result?.error || 'Could not accept this invite.');
-        }
-      });
       return;
     }
     const success = urlParams.get('success');
@@ -208,42 +124,6 @@ function App() {
       return;
     } else if (path === '/terms') {
       setState('terms');
-      return;
-    } else if (path === '/gradi') {
-      setState('gradi');
-      return;
-    } else if (path === '/site-designer') {
-      setState('site-designer');
-      return;
-    } else if (path === '/boxt') {
-      setState('boxt');
-      return;
-    } else if (path.startsWith('/mockup')) {
-      setState('mockup');
-      const section = path.split('/')[2] as MockupSection;
-      if (section && ['devices', 'intros', 'products', 'scenes', 'video', 'logo', 'text', 'slideshow', 'social', 'apparel', 'environments'].includes(section)) {
-        setMockupSection(section);
-      } else {
-        setMockupSection('home');
-      }
-      return;
-    } else if (path === '/api' || path === '/api/dashboard') {
-      setState('api');
-      return;
-    } else if (path === '/api/docs') {
-      setState('api-docs');
-      return;
-    } else if (path === '/api/auth/consent' || path.startsWith('/api/auth/consent')) {
-      setState('oauth-consent');
-      return;
-    } else if (path === '/api/auth/consent/callback') {
-      setState('oauth-callback');
-      return;
-    } else if (path === '/developer' || path === '/developers') {
-      setState('developer');
-      return;
-    } else if (path === '/projects' || path === '/teams') {
-      setState('projects');
       return;
     } else if (path === '/palettex') {
       setState('palettex');
@@ -398,39 +278,8 @@ function App() {
     setState('upload');
   };
 
-  const handleUIUpload = async (upload: UIUploadType) => {
-    setUploadedUI(upload);
-    setState('analyzing');
-
-    try {
-      const result = await analyzeUI(upload, import.meta.env.VITE_GEMINI_API_KEY);
-      setUIAnalysis(result);
-      setState('results');
-    } catch (error) {
-      console.error('UI Analysis failed:', error);
-      const message = error instanceof Error ? error.message : 'An unexpected error occurred during analysis';
-      setErrorMessage(message);
-      setState('upload');
-      setTimeout(() => setErrorMessage(null), 10000);
-    }
-  };
-
-  const handleRemoveUI = () => {
-    setUploadedUI(null);
-    setUIAnalysis(null);
-    setState('upload');
-  };
-
-  const handleModeChange = (newMode: AnalysisMode) => {
-    setMode(newMode);
-    handleRemoveFile();
-    handleRemoveUI();
-    setState('upload');
-  };
-
   const startNewAnalysis = () => {
     handleRemoveFile();
-    handleRemoveUI();
     setViewingAnalysis(null);
     setPublicAnalysis(null);
     setState('upload');
@@ -440,7 +289,6 @@ function App() {
   const handleViewAnalysis = (analysisRecord: AnalysisRecord) => {
     setViewingAnalysis(analysisRecord);
     setAnalysis(analysisRecord.analysis_data);
-    setMode('design'); // Set mode to design when viewing from history
     // Create a mock uploaded file with the saved image
     setUploadedFile({
       file: new File([], analysisRecord.file_name),
@@ -455,13 +303,6 @@ function App() {
     await signOut();
     setState('upload');
     handleRemoveFile();
-  };
-
-  const quickNavigate = (next: AppState, path: string) => {
-    setState(next);
-    if (next === 'mockup') setMockupSection('home');
-    window.history.pushState({}, '', path);
-    window.scrollTo({ top: 0 });
   };
 
   if (authLoading) {
@@ -544,115 +385,6 @@ function App() {
     );
   }
 
-  if (state === 'gradi') {
-    if (!user) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 dark:from-blue-900 dark:via-blue-800 dark:to-slate-900">
-          <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl">
-            <Sparkles size={64} className="mx-auto mb-4 text-blue-600" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sign in to Chat with Gradi</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Create an account or sign in to access your personal AI design assistant.</p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-xl transition-all duration-300"
-            >
-              Sign In / Sign Up
-            </button>
-          </div>
-          <AuthModal
-            isOpen={showAuthModal}
-            onClose={() => setShowAuthModal(false)}
-            onSignIn={signIn}
-  onSignUp={signUp}
-  onGoogleSignIn={signInWithGoogle}
-  />
-        </div>
-      );
-    }
-
-    return (
-      <div className="min-h-screen">
-        <GradiChat userId={user.id} />
-        <QuickNav onNavigate={quickNavigate} />
-        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
-      </div>
-    );
-  }
-
-  if (state === 'site-designer') {
-    if (!user) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-400 via-cyan-600 to-teal-800 dark:from-teal-900 dark:via-cyan-800 dark:to-slate-900">
-          <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl">
-            <Globe size={64} className="mx-auto mb-4 text-teal-600" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sign in to Use Site Designer</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Create an account or sign in to build websites with AI.</p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg hover:shadow-xl transition-all duration-300"
-            >
-              Sign In / Sign Up
-            </button>
-          </div>
-          <AuthModal
-            isOpen={showAuthModal}
-            onClose={() => setShowAuthModal(false)}
-            onSignIn={signIn}
-  onSignUp={signUp}
-  onGoogleSignIn={signInWithGoogle}
-  />
-        </div>
-      );
-    }
-
-    return (
-      <>
-        <SiteDesigner
-          userId={user.id}
-          onBack={() => {
-            setState('upload');
-            window.history.pushState({}, '', '/');
-          }}
-        />
-        <QuickNav onNavigate={quickNavigate} />
-      </>
-    );
-  }
-
-  if (state === 'boxt') {
-    if (!user) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 dark:from-blue-900 dark:via-blue-800 dark:to-slate-900">
-          <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl">
-            <Sparkles size={64} className="mx-auto mb-4 text-purple-600" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sign in to Use Boxt</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Create an account or sign in to access the powerful design editor.</p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-xl transition-all duration-300"
-            >
-              Sign In / Sign Up
-            </button>
-          </div>
-          <AuthModal
-            isOpen={showAuthModal}
-            onClose={() => setShowAuthModal(false)}
-            onSignIn={signIn}
-  onSignUp={signUp}
-  onGoogleSignIn={signInWithGoogle}
-  />
-        </div>
-      );
-    }
-
-    return (
-      <>
-        <Boxt userId={user.id} />
-        <QuickNav onNavigate={quickNavigate} />
-      </>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#0b0b12] text-white relative">
       {/* Atmosphere: aurora glows + dot grid + film grain */}
@@ -686,30 +418,6 @@ function App() {
                 <>
                   <nav className="hidden md:flex items-center gap-1 mr-2">
                     <button
-                      onClick={() => { setState('boxt'); window.history.pushState({}, '', '/boxt'); }}
-                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      Boxt
-                    </button>
-                    <button
-                      onClick={() => { setState('gradi'); window.history.pushState({}, '', '/gradi'); }}
-                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      Gradi AI
-                    </button>
-                    <button
-                      onClick={() => { setState('projects'); window.history.pushState({}, '', '/projects'); }}
-                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      Projects
-                    </button>
-                    <button
-                      onClick={() => { setState('site-designer'); window.history.pushState({}, '', '/site-designer'); }}
-                      className="px-3 py-2 text-sm text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 rounded-lg transition-colors"
-                    >
-                      Site Designer
-                    </button>
-                    <button
                       onClick={() => { setState('history'); window.history.pushState({}, '', '/history'); window.scrollTo({ top: 0 }); }}
                       className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
@@ -722,22 +430,10 @@ function App() {
                       PaletteX
                     </button>
                     <button
-                      onClick={() => { setState('mockup'); setMockupSection('home'); window.history.pushState({}, '', '/mockup'); window.scrollTo({ top: 0 }); }}
-                      className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      Mockups
-                    </button>
-                    <button
                       onClick={() => { setState('assets'); window.history.pushState({}, '', '/assets'); window.scrollTo({ top: 0 }); }}
                       className="px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     >
                       Assets
-                    </button>
-                    <button
-                      onClick={() => { setState('api'); window.history.pushState({}, '', '/api'); }}
-                      className="px-3 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors"
-                    >
-                      API
                     </button>
                     {isAdmin && (
                       <button
@@ -786,21 +482,14 @@ function App() {
             <div className="px-4 py-3 grid grid-cols-2 gap-1.5">
               {([
                 ['Analyze', 'upload', '/'],
-                ['Boxt', 'boxt', '/boxt'],
-                ['Gradi AI', 'gradi', '/gradi'],
-                ['Projects', 'projects', '/projects'],
-                ['Site Designer', 'site-designer', '/site-designer'],
                 ['History', 'history', '/history'],
                 ['PaletteX', 'palettex', '/palettex'],
-                ['Mockups', 'mockup', '/mockup'],
                 ['Assets', 'assets', '/assets'],
-                ['API', 'api', '/api'],
               ] as const).map(([label, target, path]) => (
                 <button
                   key={target}
                   onClick={() => {
                     setState(target as AppState);
-                    if (target === 'mockup') setMockupSection('home');
                     if (path) window.history.pushState({}, '', path);
                     setShowMobileMenu(false);
                     window.scrollTo({ top: 0 });
@@ -854,18 +543,16 @@ function App() {
 
           <h1 className="reveal reveal-2 font-display text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-[1.05] tracking-tight">
             <span className="block text-balance">
-              {mode === 'design' ? 'Design critique,' : 'UI analysis,'}
+              Design critique,
             </span>
             <span className="block">
               <em className="not-italic text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-violet-300 to-fuchsia-300">
-                {mode === 'design' ? 'graded in seconds' : 'graded in seconds'}
+                graded in seconds
               </em>
             </span>
           </h1>
           <p className="reveal reveal-3 text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed text-balance">
-            {mode === 'design'
-              ? 'Drop in any design for an honest, detailed read from your AI art director — then fix it in Boxt, pull a palette, mock it up, and ship it with your team. The whole studio lives here.'
-              : 'Upload HTML or paste a URL for a full UI/UX read — usability, accessibility, responsiveness, and performance, scored and explained.'}
+            Drop in any design for an honest, detailed read from your AI art director — then pull a palette and ship something better.
           </p>
 
           {(state === 'results' || state === 'history' || state === 'success') && (
@@ -936,32 +623,16 @@ function App() {
         
         {state === 'upload' && (
           <>
-            <div className="reveal reveal-4 mb-8 flex justify-center">
-              <ModeToggle mode={mode} onModeChange={handleModeChange} />
-            </div>
-
             <div className="reveal reveal-5">
-              {mode === 'design' ? (
-                <FileUpload
-                  onFileUpload={handleFileUpload}
-                  uploadedFile={uploadedFile}
-                  onRemoveFile={handleRemoveFile}
-                  hasProCredits={hasProCredits}
-                  isProSubscriber={credits?.is_pro_subscriber || false}
-                  isAuthenticated={!!user}
-                  onShowAuth={() => setShowAuthModal(true)}
-                />
-              ) : (
-                <UIUploadComponent
-                  onUpload={handleUIUpload}
-                  uploadedUI={uploadedUI}
-                  onRemove={handleRemoveUI}
-                  hasProCredits={hasProCredits}
-                  isProSubscriber={credits?.is_pro_subscriber || false}
-                  isAuthenticated={!!user}
-                  onShowAuth={() => setShowAuthModal(true)}
-                />
-              )}
+              <FileUpload
+                onFileUpload={handleFileUpload}
+                uploadedFile={uploadedFile}
+                onRemoveFile={handleRemoveFile}
+                hasProCredits={hasProCredits}
+                isProSubscriber={credits?.is_pro_subscriber || false}
+                isAuthenticated={!!user}
+                onShowAuth={() => setShowAuthModal(true)}
+              />
             </div>
 
             {/* Quiet proof strip under the upload zone */}
@@ -976,7 +647,7 @@ function App() {
               </div>
               <div className="group p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] hover:border-violet-400/30 hover:bg-white/[0.05] transition-all duration-300">
                 <div className="font-mono text-[11px] tracking-widest text-violet-300/80 uppercase mb-2">03 — Ship</div>
-                <p className="text-sm text-gray-300 leading-relaxed">Iterate in Boxt, build palettes in PaletteX, mock it up, and share your polished work.</p>
+                <p className="text-sm text-gray-300 leading-relaxed">Build palettes in PaletteX and share your polished work.</p>
               </div>
             </div>
 
@@ -991,9 +662,8 @@ function App() {
             <ToolShowcase
               onNavigate={(path) => {
                 const stateFor: Record<string, AppState> = {
-                  '/boxt': 'boxt', '/gradi': 'gradi', '/palettex': 'palettex',
-                  '/mockup': 'mockup', '/assets': 'assets', '/projects': 'projects',
-                  '/site-designer': 'site-designer', '/api': 'api',
+                  '/palettex': 'palettex',
+                  '/assets': 'assets',
                 };
                 const next = stateFor[path];
                 if (next) {
@@ -1006,26 +676,13 @@ function App() {
           </>
         )}
 
-        {state === 'analyzing' && <LoadingAnalysis mode={mode} />}
+        {state === 'analyzing' && <LoadingAnalysis />}
 
-        {state === 'results' && mode === 'design' && analysis && (
+        {state === 'results' && analysis && (
           <AnalysisResults
             analysis={analysis}
             fileName={uploadedFile?.name || viewingAnalysis?.file_name || 'Unknown'}
             imagePreview={uploadedFile?.preview}
-            isProSubscriber={credits?.is_pro_subscriber || false}
-            onUpgrade={handleSubscribe}
-            userId={user?.id}
-          />
-        )}
-
-        {state === 'results' && mode === 'ui' && uiAnalysis && uploadedUI && (
-          <UIAnalysisResults
-            analysis={uiAnalysis}
-            uploadName={uploadedUI.name}
-            uploadType={uploadedUI.type}
-            uploadUrl={uploadedUI.url}
-            screenshotUrl={(uiAnalysis as any).screenshotUrl}
             isProSubscriber={credits?.is_pro_subscriber || false}
             onUpgrade={handleSubscribe}
             userId={user?.id}
@@ -1047,73 +704,8 @@ function App() {
           <PaletteX userId={user?.id} />
         )}
 
-        {state === 'mockup' && (
-          <MockupStudio
-            userId={user?.id}
-            initialSection={mockupSection}
-            onNavigate={(section) => {
-              setMockupSection(section as MockupSection);
-              const newPath = section === 'home' ? '/mockup' : `/mockup/${section}`;
-              window.history.pushState({}, '', newPath);
-            }}
-          />
-        )}
-
         {state === 'assets' && (
           <AssetVault userId={user?.id} />
-        )}
-
-        {state === 'api' && (
-          <ApiDashboard 
-            onBack={() => {
-              setState('upload');
-              window.history.pushState({}, '', '/');
-            }}
-          />
-        )}
-
-        {state === 'api-docs' && (
-          <ApiDocs 
-            onBack={() => {
-              setState('upload');
-              window.history.pushState({}, '', '/');
-            }}
-          />
-        )}
-
-        {state === 'oauth-consent' && (
-          <OAuthConsent />
-        )}
-
-        {state === 'oauth-callback' && (
-          <OAuthCallback />
-        )}
-
-        {state === 'developer' && user && (
-          <DeveloperPortal
-            userId={user.id}
-            onBack={() => {
-              setState('upload');
-              window.history.pushState({}, '', '/');
-            }}
-          />
-        )}
-        
-        {state === 'projects' && (
-          user ? (
-            <ProjectsHub userId={user.id} />
-          ) : (
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-12 text-center backdrop-blur-sm">
-              <h3 className="text-xl font-semibold text-white mb-2">Sign in required</h3>
-              <p className="text-gray-400 mb-6">Sign in to create projects and teams.</p>
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-violet-500/25"
-              >
-                Sign in
-              </button>
-            </div>
-          )
         )}
 
         {state === 'shared' && sharedToken && (
@@ -1203,16 +795,6 @@ function App() {
         </div>
       </footer>
       
-      {/* AI Assistant */}
-      <AIAssistant
-        isAdmin={isAdmin}
-        userId={user?.id}
-        screenshotUrl={mode === 'design' ? uploadedFile?.preview : (uiAnalysis as any)?.screenshotUrl}
-        analysisData={mode === 'design' ? analysis : uiAnalysis}
-        currentPage={state}
-        hasResults={state === 'results' && (analysis !== null || uiAnalysis !== null)}
-      />
-
       {/* Dark Mode Toggle */}
       <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
 
