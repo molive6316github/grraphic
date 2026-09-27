@@ -67,19 +67,32 @@ function App() {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
 
-    // Surface auth errors that Supabase appends to the callback URL
-    // (query for PKCE flow, hash for implicit flow) instead of failing silently
+    // GateKey SSO handoff: the /api/auth/callback function redirects back with a
+    // single-use Supabase magic-link token. Verify it to establish the Supabase
+    // session, then clean the URL. onAuthStateChange (useAuth) picks up the user.
+    const gkToken = urlParams.get('gk_token');
+    if (gkToken) {
+      const gkType = (urlParams.get('gk_type') || 'magiclink') as any;
+      supabase.auth.verifyOtp({ token_hash: gkToken, type: gkType }).then(({ error }) => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (error) {
+          setErrorMessage(`Sign-in failed: ${error.message}`);
+          setTimeout(() => setErrorMessage(null), 10000);
+        }
+      });
+      return;
+    }
+
+    // Surface auth errors that the SSO callback (or Supabase) appends to the URL
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const authError = urlParams.get('error_description') || hashParams.get('error_description')
+    const authError = urlParams.get('auth_error')
+      || urlParams.get('error_description') || hashParams.get('error_description')
       || urlParams.get('error') || hashParams.get('error');
     if (authError) {
       const friendly = decodeURIComponent(authError.replace(/\+/g, ' '));
-      setErrorMessage(
-        friendly.includes('exchange external code')
-          ? 'Google sign-in is misconfigured (the provider rejected the sign-in). Please try email sign-in, or contact support.'
-          : `Sign-in failed: ${friendly}`
-      );
+      setErrorMessage(`Sign-in failed: ${friendly}`);
       window.history.replaceState({}, document.title, window.location.pathname);
+      setTimeout(() => setErrorMessage(null), 10000);
     }
 
     // Return the user to where they started an OAuth sign-in (Supabase only
