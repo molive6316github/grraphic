@@ -6,6 +6,7 @@
 export const config = { runtime: 'edge' };
 
 const GATEKEY_SSO_URL = 'https://gatekey.cc/auth/sso';
+const CLIENT_ID = process.env.GATEKEY_CLIENT_ID || 'grraphic';
 const REDIRECT_URI = process.env.GATEKEY_REDIRECT_URI || 'https://www.grraphic.xyz/auth/callback';
 
 // Only allow returning to same-site paths.
@@ -25,6 +26,7 @@ export default async function handler(request: Request): Promise<Response> {
   const returnTo = safeReturnPath(new URL(request.url).searchParams.get('return_to'));
 
   const dest = new URL(GATEKEY_SSO_URL);
+  dest.searchParams.set('client_id', CLIENT_ID);
   dest.searchParams.set('redirect_uri', REDIRECT_URI);
   dest.searchParams.set('state', state);
 
