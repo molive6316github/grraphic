@@ -104,13 +104,36 @@ export default async function handler(request: Request): Promise<Response> {
       provider: 'gatekey',
     };
 
+    // Diagnostics: confirm the Supabase target/key look sane (no secrets logged).
+    const sbHost = SUPABASE_URL.replace(/^https?:\/\//, '').replace(/\/+$/, '').split('/')[0];
+    console.log(`gk: supabase host=${sbHost} srkLen=${SERVICE_ROLE_KEY.length} srkPrefix=${SERVICE_ROLE_KEY.slice(0, 3)}`);
+    const base = SUPABASE_URL.replace(/\/+$/, '');
+
+    // Wrap admin fetches so a network-level throw surfaces its real cause
+    // instead of the runtime's opaque "internal error".
+    const adminFetch = async (path: string, bodyObj: unknown): Promise<Response> => {
+      try {
+        return await fetch(`${base}${path}`, {
+          method: 'POST',
+          headers: adminHeaders,
+          body: JSON.stringify(bodyObj),
+        });
+      } catch (e: any) {
+        const cause = e?.cause;
+        throw new Error(
+          `fetch ${path} threw: ${e?.name}: ${e?.message}` +
+            (cause ? ` | cause: ${cause?.code || cause?.message || String(cause)}` : '')
+        );
+      }
+    };
+
     // 3) Find-or-create the Supabase user (create is idempotent enough: an
     //    "already registered" response just means the user exists).
     step = 'supabase-create-user';
-    const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-      method: 'POST',
-      headers: adminHeaders,
-      body: JSON.stringify({ email, email_confirm: true, user_metadata: userMetadata }),
+    const createRes = await adminFetch('/auth/v1/admin/users', {
+      email,
+      email_confirm: true,
+      user_metadata: userMetadata,
     });
     if (!createRes.ok && createRes.status !== 422) {
       // 422 = already exists; anything else is a real error.
@@ -120,11 +143,7 @@ export default async function handler(request: Request): Promise<Response> {
 
     // 4) Mint a single-use magic-link token for that user.
     step = 'supabase-generate-link';
-    const linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
-      method: 'POST',
-      headers: adminHeaders,
-      body: JSON.stringify({ type: 'magiclink', email }),
-    });
+    const linkRes = await adminFetch('/auth/v1/admin/generate_link', { type: 'magiclink', email });
     if (!linkRes.ok) throw new Error(`generate_link ${linkRes.status}: ${(await linkRes.text()).slice(0, 200)}`);
     const link = await linkRes.json();
     const tokenHash = link?.hashed_token || link?.properties?.hashed_token;
