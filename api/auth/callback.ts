@@ -71,9 +71,9 @@ export default async function handler(request: Request): Promise<Response> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: GATEKEY_CLIENT_ID, client_secret: GATEKEY_CLIENT_SECRET }),
     });
-    if (!svcRes.ok) throw new Error(`service token ${svcRes.status}`);
+    if (!svcRes.ok) throw new Error(`service-token ${svcRes.status}: ${(await svcRes.text()).slice(0, 200)}`);
     const serviceToken = (await svcRes.json())?.access_token;
-    if (!serviceToken) throw new Error('no service token');
+    if (!serviceToken) throw new Error('service-token: no access_token in response');
 
     // 2) Exchange the code for the GateKey user.
     const exRes = await fetch('https://gatekey.cc/api/sso/token', {
@@ -81,10 +81,10 @@ export default async function handler(request: Request): Promise<Response> {
       headers: { 'Content-Type': 'application/json', 'X-GateKey-Service-Token': serviceToken },
       body: JSON.stringify({ code, redirect_uri: REDIRECT_URI }),
     });
-    if (!exRes.ok) throw new Error(`code exchange ${exRes.status}`);
+    if (!exRes.ok) throw new Error(`sso-token ${exRes.status}: ${(await exRes.text()).slice(0, 200)}`);
     const gkUser = (await exRes.json())?.user;
     const hubId: string | undefined = gkUser?.hub_id;
-    if (!hubId) throw new Error('no hub_id in GateKey response');
+    if (!hubId) throw new Error('sso-token: no hub_id in response');
 
     const email = emailForHub(hubId);
     const adminHeaders = {
@@ -122,7 +122,7 @@ export default async function handler(request: Request): Promise<Response> {
     const link = await linkRes.json();
     const tokenHash = link?.hashed_token || link?.properties?.hashed_token;
     const verifyType = link?.verification_type || link?.properties?.verification_type || 'magiclink';
-    if (!tokenHash) throw new Error('no hashed_token from generate_link');
+    if (!tokenHash) throw new Error(`generate_link: no hashed_token (keys: ${Object.keys(link || {}).join(',')})`);
 
     // 5) Hand the single-use token to the SPA, which verifies it to get a session.
     const dest = new URL(returnTo, 'https://placeholder.local');
@@ -130,7 +130,8 @@ export default async function handler(request: Request): Promise<Response> {
     dest.searchParams.set('gk_type', verifyType);
     return redirect(`${dest.pathname}${dest.search}`);
   } catch (error) {
-    console.error('GateKey callback failed:', error);
-    return fail('Sign-in failed. Please try again.');
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error('GateKey callback failed:', detail);
+    return fail(detail);
   }
 }
