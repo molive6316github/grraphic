@@ -64,8 +64,10 @@ export default async function handler(request: Request): Promise<Response> {
     return fail('Auth is not configured on the server.');
   }
 
+  let step = 'start';
   try {
     // 1) Service token from client credentials.
+    step = 'service-token';
     const svcRes = await fetch('https://gatekey.cc/api/token/service', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -76,6 +78,7 @@ export default async function handler(request: Request): Promise<Response> {
     if (!serviceToken) throw new Error('service-token: no access_token in response');
 
     // 2) Exchange the code for the GateKey user.
+    step = 'sso-token';
     const exRes = await fetch('https://gatekey.cc/api/sso/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-GateKey-Service-Token': serviceToken },
@@ -85,6 +88,7 @@ export default async function handler(request: Request): Promise<Response> {
     const gkUser = (await exRes.json())?.user;
     const hubId: string | undefined = gkUser?.hub_id;
     if (!hubId) throw new Error('sso-token: no hub_id in response');
+    console.log(`gk: exchanged code for hub_id=${hubId}`);
 
     const email = emailForHub(hubId);
     const adminHeaders = {
@@ -102,6 +106,7 @@ export default async function handler(request: Request): Promise<Response> {
 
     // 3) Find-or-create the Supabase user (create is idempotent enough: an
     //    "already registered" response just means the user exists).
+    step = 'supabase-create-user';
     const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: 'POST',
       headers: adminHeaders,
@@ -111,8 +116,10 @@ export default async function handler(request: Request): Promise<Response> {
       // 422 = already exists; anything else is a real error.
       throw new Error(`create user ${createRes.status}: ${(await createRes.text()).slice(0, 200)}`);
     }
+    console.log(`gk: create-user status=${createRes.status}`);
 
     // 4) Mint a single-use magic-link token for that user.
+    step = 'supabase-generate-link';
     const linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
       method: 'POST',
       headers: adminHeaders,
@@ -131,7 +138,8 @@ export default async function handler(request: Request): Promise<Response> {
     return redirect(`${dest.pathname}${dest.search}`);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    console.error('GateKey callback failed:', detail);
-    return fail(detail);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error(`GateKey callback failed at step=${step}:`, detail, stack);
+    return fail(`[${step}] ${detail}`);
   }
 }
