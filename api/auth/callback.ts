@@ -1,12 +1,14 @@
-// GateKey SSO callback (server-side). GateKey redirects here with ?code&state.
-// We: verify state, mint a GateKey service token, exchange the code for the
-// GateKey user, map the stable hub_id onto a Supabase user (service-role), and
-// generate a Supabase magic-link token. The browser is then sent back to the
-// SPA with that single-use token, which the client verifies to establish a
-// normal Supabase session — so all existing RLS/data/Stripe code keeps working
-// unchanged while auth is provided by GateKey.
-
-export const config = { runtime: 'edge' };
+// GateKey SSO callback (server-side, Node runtime). GateKey redirects here with
+// ?code&state. We verify state, mint a GateKey service token, exchange the code
+// for the GateKey user, map the stable hub_id onto a Supabase user
+// (service-role), and generate a Supabase magic-link token. The browser is then
+// sent back to the SPA with that single-use token, which the client verifies to
+// establish a normal Supabase session — so all existing RLS/data/Stripe code
+// keeps working unchanged while auth is provided by GateKey.
+//
+// Runs on the Node.js runtime (default): the edge runtime could not complete
+// the outbound request to Supabase (opaque "internal error"), while Node's
+// fetch reaches it reliably.
 
 const GATEKEY_CLIENT_ID = process.env.GATEKEY_CLIENT_ID || 'grraphic';
 const GATEKEY_CLIENT_SECRET = process.env.GATEKEY_CLIENT_SECRET;
@@ -14,11 +16,10 @@ const REDIRECT_URI = process.env.GATEKEY_REDIRECT_URI || 'https://www.grraphic.x
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Synthetic, stable, non-routable email derived from the GateKey hub_id. Keys
-// the Supabase user; GateKey never exposes a real email.
+// Synthetic, stable, non-routable email derived from the GateKey hub_id.
 const emailForHub = (hubId: string) => `${hubId}@gatekey.grraphic.xyz`;
 
-function parseCookies(header: string | null): Record<string, string> {
+function parseCookies(header: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
   if (!header) return out;
   for (const part of header.split(';')) {
@@ -39,24 +40,28 @@ function safeReturnPath(raw: string | undefined): string {
   return '/';
 }
 
-function redirect(location: string): Response {
-  const headers = new Headers({ Location: location });
-  // Clear the transient cookies.
-  headers.append('Set-Cookie', 'gk_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0');
-  headers.append('Set-Cookie', 'gk_return=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0');
-  return new Response(null, { status: 302, headers });
+function first(v: unknown): string | undefined {
+  return Array.isArray(v) ? v[0] : (v as string | undefined);
 }
 
-const fail = (msg: string) => redirect(`/?auth_error=${encodeURIComponent(msg)}`);
+export default async function handler(req: any, res: any): Promise<void> {
+  const redirect = (location: string) => {
+    res.statusCode = 302;
+    res.setHeader('Location', location);
+    res.setHeader('Set-Cookie', [
+      'gk_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0',
+      'gk_return=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0',
+    ]);
+    res.end();
+  };
+  const fail = (msg: string) => redirect(`/?auth_error=${encodeURIComponent(msg)}`);
 
-export default async function handler(request: Request): Promise<Response> {
-  const url = new URL(request.url);
-  const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
-  const cookies = parseCookies(request.headers.get('Cookie'));
+  const code = first(req.query?.code);
+  const state = first(req.query?.state);
+  const cookies = parseCookies(req.headers?.cookie);
   const returnTo = safeReturnPath(cookies.gk_return);
 
-  const gkError = url.searchParams.get('error_description') || url.searchParams.get('error');
+  const gkError = first(req.query?.error_description) || first(req.query?.error);
   if (gkError) return fail(gkError);
   if (!code || !state) return fail('Missing authorization code.');
   if (!cookies.gk_state || cookies.gk_state !== state) return fail('Sign-in state mismatch. Please try again.');
@@ -103,32 +108,12 @@ export default async function handler(request: Request): Promise<Response> {
       avatar_url: gkUser.avatar_url,
       provider: 'gatekey',
     };
-
-    // Diagnostics: confirm the Supabase target/key look sane (no secrets logged).
-    const sbHost = SUPABASE_URL.replace(/^https?:\/\//, '').replace(/\/+$/, '').split('/')[0];
-    console.log(`gk: supabase host=${sbHost} srkLen=${SERVICE_ROLE_KEY.length} srkPrefix=${SERVICE_ROLE_KEY.slice(0, 3)}`);
     const base = SUPABASE_URL.replace(/\/+$/, '');
 
-    // Wrap admin fetches so a network-level throw surfaces its real cause
-    // instead of the runtime's opaque "internal error".
-    const adminFetch = async (path: string, bodyObj: unknown): Promise<Response> => {
-      try {
-        return await fetch(`${base}${path}`, {
-          method: 'POST',
-          headers: adminHeaders,
-          body: JSON.stringify(bodyObj),
-        });
-      } catch (e: any) {
-        const cause = e?.cause;
-        throw new Error(
-          `fetch ${path} threw: ${e?.name}: ${e?.message}` +
-            (cause ? ` | cause: ${cause?.code || cause?.message || String(cause)}` : '')
-        );
-      }
-    };
+    const adminFetch = (path: string, bodyObj: unknown) =>
+      fetch(`${base}${path}`, { method: 'POST', headers: adminHeaders, body: JSON.stringify(bodyObj) });
 
-    // 3) Find-or-create the Supabase user (create is idempotent enough: an
-    //    "already registered" response just means the user exists).
+    // 3) Find-or-create the Supabase user (422 = already exists).
     step = 'supabase-create-user';
     const createRes = await adminFetch('/auth/v1/admin/users', {
       email,
@@ -136,7 +121,6 @@ export default async function handler(request: Request): Promise<Response> {
       user_metadata: userMetadata,
     });
     if (!createRes.ok && createRes.status !== 422) {
-      // 422 = already exists; anything else is a real error.
       throw new Error(`create user ${createRes.status}: ${(await createRes.text()).slice(0, 200)}`);
     }
     console.log(`gk: create-user status=${createRes.status}`);
@@ -150,7 +134,7 @@ export default async function handler(request: Request): Promise<Response> {
     const verifyType = link?.verification_type || link?.properties?.verification_type || 'magiclink';
     if (!tokenHash) throw new Error(`generate_link: no hashed_token (keys: ${Object.keys(link || {}).join(',')})`);
 
-    // 5) Hand the single-use token to the SPA, which verifies it to get a session.
+    // 5) Hand the single-use token to the SPA to verify into a Supabase session.
     const dest = new URL(returnTo, 'https://placeholder.local');
     dest.searchParams.set('gk_token', tokenHash);
     dest.searchParams.set('gk_type', verifyType);
