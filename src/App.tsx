@@ -20,7 +20,7 @@ import { PaletteX } from './components/PaletteX';
 import { AssetVault } from './components/AssetVault';
 import { SharedView } from './components/SharedView';
 import { ToolShowcase } from './components/ToolShowcase';
-import { supabase } from './lib/supabase';
+import { supabase, setGkSession } from './lib/supabase';
 import { consumePostAuthRedirect } from './lib/oauthConnections';
 import { analyzeDesign } from './utils/designAnalyzer';
 import { UploadedFile, DesignAnalysis, AnalysisRecord } from './types';
@@ -67,24 +67,22 @@ function App() {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
 
-    // GateKey SSO handoff: the /api/auth/callback function redirects back with a
-    // single-use Supabase magic-link token. Verify it to establish the Supabase
-    // session, then clean the URL. onAuthStateChange (useAuth) picks up the user.
-    const gkToken = urlParams.get('gk_token');
-    if (gkToken) {
-      const gkType = (urlParams.get('gk_type') || 'magiclink') as any;
-      supabase.auth.verifyOtp({ token_hash: gkToken, type: gkType }).then(({ error }) => {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        if (error) {
-          setErrorMessage(`Sign-in failed: ${error.message}`);
-          setTimeout(() => setErrorMessage(null), 10000);
-        }
+    // GateKey SSO handoff: /api/auth/callback redirects back with the GateKey
+    // user token in the URL hash. Store it as the session (its identity becomes
+    // the MXT DB bearer), then clean the URL. useAuth picks up the user.
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const gkAt = hashParams.get('gk_at');
+    if (gkAt) {
+      setGkSession(gkAt, {
+        username: hashParams.get('gk_un') || undefined,
+        display_name: hashParams.get('gk_dn') || undefined,
+        avatar_url: hashParams.get('gk_av') || undefined,
       });
+      window.history.replaceState({}, document.title, window.location.pathname);
       return;
     }
 
-    // Surface auth errors that the SSO callback (or Supabase) appends to the URL
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    // Surface auth errors that the SSO callback appends to the URL
     const authError = urlParams.get('auth_error')
       || urlParams.get('error_description') || hashParams.get('error_description')
       || urlParams.get('error') || hashParams.get('error');

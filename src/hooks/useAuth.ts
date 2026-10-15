@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { hashSensitiveData } from '../utils/encryption';
-import { persistProviderConnection, rememberOAuthOrigin } from '../lib/oauthConnections';
+import { supabase, isSupabaseConfigured, type GkUser, type GkSession } from '../lib/supabase';
 
+// Auth is provided by GateKey. The GateKey user token is held client-side (see
+// lib/supabase) and used as the MXT DB bearer. This hook exposes the current
+// user/session and a sign-out; sign-in happens via a redirect to /api/auth/login.
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<GkUser | null>(null);
+  const [session, setSession] = useState<GkSession | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,137 +15,43 @@ export function useAuth() {
       return;
     }
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data }: any) => {
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const { data } = supabase.auth.onAuthStateChange((_event: string, s: GkSession | null) => {
+      setSession(s);
+      setUser(s?.user ?? null);
       setLoading(false);
-      // Fresh OAuth sign-ins carry a provider_token; save it so integrations
-      // like GitHub stay linked permanently
-      if (session?.provider_token) {
-        persistProviderConnection(session);
-      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => { data.subscription.unsubscribe(); };
   }, []);
 
-  const signUp = async (email: string, password: string, username?: string) => {
-    if (!isSupabaseConfigured()) {
-      return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to create an account.' } };
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}`,
-        data: {
-          username: username || ''
-        }
-      }
-    });
-    return { data, error };
-  };
-
-  const signIn = async (emailOrUsername: string, password: string) => {
-    if (!isSupabaseConfigured()) {
-      return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to sign in.' } };
-    }
-
-    // Check if input is an email (contains @) or username
-    const isEmail = emailOrUsername.includes('@');
-
-    if (isEmail) {
-      // Sign in with email
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: emailOrUsername,
-        password,
-      });
-      return { data, error };
-    } else {
-      // Resolve the username to its sign-in email via a narrow RPC
-      // (direct table access for anonymous users is disabled)
-      const { data: email, error: lookupError } = await supabase
-        .rpc('get_email_for_username', { p_username: emailOrUsername });
-
-      if (lookupError || !email) {
-        return {
-          data: null,
-          error: { message: 'Username not found. Please check your username or try signing in with your email address.' }
-        };
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      return { data, error };
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    if (!isSupabaseConfigured()) {
-      return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to sign in with Google.' } };
-    }
-
-    // Use the origin only (no pathname) to avoid callback issues; the
-    // current path is restored after auth via sessionStorage
-    const redirectUrl = window.location.origin;
-    rememberOAuthOrigin(window.location.pathname, 'google');
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        }
-      }
-    });
-    return { data, error };
+  const signInWithGateKey = () => {
+    const returnTo = window.location.pathname + window.location.search;
+    window.location.href = `/api/auth/login?return_to=${encodeURIComponent(returnTo)}`;
   };
 
   const signOut = async () => {
-    if (!isSupabaseConfigured()) {
-      return;
-    }
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    await supabase.auth.signOut();
+    return { error: null };
   };
 
-  const resetPassword = async (email: string) => {
-    if (!isSupabaseConfigured()) {
-      return { data: null, error: { message: 'Supabase not configured. Please connect to Supabase to reset password.' } };
-    }
-
-    const currentUrl = new URL(window.location.href);
-    const redirectUrl = `${currentUrl.origin}${currentUrl.pathname}`;
-
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-    return { data, error };
-  };
+  // Legacy no-ops kept so existing callers keep compiling; GateKey replaces them.
+  const redirectToLogin = async () => { signInWithGateKey(); return { data: null, error: null }; };
 
   return {
     user,
     session,
     loading,
-    signUp,
-    signIn,
-    signInWithGoogle,
+    signInWithGateKey,
     signOut,
-    resetPassword,
+    signIn: redirectToLogin,
+    signUp: redirectToLogin,
+    signInWithGoogle: redirectToLogin,
+    resetPassword: redirectToLogin,
   };
 }
